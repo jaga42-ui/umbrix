@@ -67,6 +67,16 @@ node scripts/ingest-jobs.js
 
 If `MONGODB_URI` is not set in `.env.local`, the script will run in a **dry-run mode**, fetching and filtering jobs but skipping the database insertion.
 
+### Nightly Automation (GitHub Actions)
+
+[`.github/workflows/ingest-jobs.yml`](.github/workflows/ingest-jobs.yml) runs the ingestion script every night at 00:00 UTC (5:30 AM IST), so the feed is refreshed before users check it in the morning. It's free — this is a public repo, so GitHub Actions minutes are unrestricted.
+
+To enable it, add the database connection as a repository secret (**Settings → Secrets and variables → Actions → New repository secret**):
+
+- `MONGODB_URI` — the same connection string used in `.env.local`
+
+You can also trigger a run manually from the **Actions** tab (`workflow_dispatch`) without waiting for the schedule.
+
 ## Project Structure
 
 - `src/app/` - Next.js App Router pages (`/`, `/feed`, `/tracker`)

@@ -126,4 +126,7 @@ async function ingestJobs() {
   }
 }
 
-ingestJobs().catch(console.error);
+ingestJobs().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
