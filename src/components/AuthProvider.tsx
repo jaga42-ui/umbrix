@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, signOut } from "firebase/auth";
 
 let firebaseAuth: any = null;
 let googleProvider: any = null;
@@ -88,6 +88,12 @@ export function AuthProvider({ children, firebaseConfig }: { children: React.Rea
       initFirebase(firebaseConfig);
       
       if (firebaseAuth) {
+        // Complete any pending redirect-based sign-in (the popup-blocked
+        // fallback) and surface errors; onAuthStateChanged sets the user.
+        getRedirectResult(firebaseAuth).catch((e) => {
+          console.error("Redirect sign-in result error:", e);
+        });
+
         const unsubscribe = onAuthStateChanged(firebaseAuth, (currentUser) => {
           setUser(currentUser);
           setLoading(false);
@@ -132,6 +138,26 @@ export function AuthProvider({ children, firebaseConfig }: { children: React.Rea
     try {
       await signInWithPopup(firebaseAuth, googleProvider);
     } catch (error: any) {
+      const code = error?.code || "";
+
+      // The user intentionally dismissed the popup — not an error worth surfacing.
+      if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
+        return;
+      }
+
+      // Strict popup blockers (or environments that disallow popups) throw these.
+      // Fall back to a full-page redirect, which is never popup-blocked.
+      if (code === "auth/popup-blocked" || code === "auth/operation-not-supported-in-this-environment") {
+        try {
+          await signInWithRedirect(firebaseAuth, googleProvider);
+          return;
+        } catch (redirectError: any) {
+          console.error("Redirect sign-in failed:", redirectError);
+          alert(`Sign-In Error: ${redirectError?.message || redirectError}`);
+          return;
+        }
+      }
+
       console.error("Error signing in with Google:", error);
       alert(`Firebase Sign-In Error: ${error.message || error}`);
     }
