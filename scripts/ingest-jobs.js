@@ -57,8 +57,8 @@ async function ingestJobs() {
       const jobs = data.jobs || [];
       console.log(`Found ${jobs.length} jobs.`);
 
-      let processedCount = 0;
       let scamCount = 0;
+      const jobDocs = [];
 
       for (const job of jobs) {
         // Apply scam filter
@@ -98,7 +98,7 @@ async function ingestJobs() {
           }
         });
 
-        const jobDoc = {
+        jobDocs.push({
           companySlug: slug,
           title: job.title,
           location: job.location?.name || 'Remote',
@@ -106,20 +106,24 @@ async function ingestJobs() {
           tags: tags,
           applyUrl: job.absolute_url,
           status: 'Active'
-        };
-
-        if (process.env.MONGODB_URI) {
-          // Upsert based on applyUrl to avoid duplicates
-          await Job.findOneAndUpdate(
-            { applyUrl: jobDoc.applyUrl },
-            { $set: jobDoc },
-            { upsert: true, new: true }
-          );
-        }
-        processedCount++;
+        });
       }
 
-      console.log(`✅ Processed ${processedCount} valid jobs. Blocked ${scamCount} potential scams.`);
+      if (process.env.MONGODB_URI && jobDocs.length > 0) {
+        // One round-trip per company instead of one per job — upsert on
+        // applyUrl to avoid duplicates, same as before.
+        await Job.bulkWrite(
+          jobDocs.map((jobDoc) => ({
+            updateOne: {
+              filter: { applyUrl: jobDoc.applyUrl },
+              update: { $set: jobDoc },
+              upsert: true,
+            },
+          }))
+        );
+      }
+
+      console.log(`✅ Processed ${jobDocs.length} valid jobs. Blocked ${scamCount} potential scams.`);
     } catch (error) {
       console.error(`❌ Error processing ${slug}:`, error.message);
     }
