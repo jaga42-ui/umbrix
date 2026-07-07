@@ -28,6 +28,13 @@ function isScam(descriptionHtml) {
 
 async function ingestJobs() {
   if (!process.env.MONGODB_URI) {
+    if (process.env.GITHUB_ACTIONS === "true") {
+      // In CI, a missing secret is a misconfiguration, not an intentional
+      // dry-run — fail loud instead of silently no-oping with a green check.
+      throw new Error(
+        "MONGODB_URI is not set. Add it as a repository secret (Settings > Secrets and variables > Actions) — refusing to run a silent dry-run in CI."
+      );
+    }
     console.warn("⚠️ MONGODB_URI is not defined. Running in dry-run mode.");
   } else {
     await mongoose.connect(process.env.MONGODB_URI);
