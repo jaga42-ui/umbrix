@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# HIKARI - MVP
+
+HIKARI is a minimalist, premium career discovery platform designed for high performers. This MVP includes a Daily Discovery Feed and a Kanban-style Application Tracker, built with a modern tech stack.
+
+## Tech Stack
+
+- **Frontend**: Next.js 16 (App Router), React 19, Tailwind CSS v4, Framer Motion
+- **Backend API**: Node.js (via Next.js Server Components / API Routes)
+- **Database**: MongoDB (Mongoose)
+- **Auth**: Firebase Authentication
 
 ## Getting Started
 
-First, run the development server:
+### 1. Environment Variables
+
+Create a `.env.local` file in the root of the project with the following variables:
+
+```env
+# MongoDB Connection
+MONGODB_URI=your_mongodb_connection_string_here
+
+# Firebase Configuration
+NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_auth_domain
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+```
+
+*Note: The application will run with dummy data on the UI and a mocked auth state if Firebase is not fully configured, but `MONGODB_URI` is required for the ingestion script to persist data.*
+
+### Authentication & API security
+
+When Firebase is configured (a real `NEXT_PUBLIC_FIREBASE_PROJECT_ID`), all `/api/*` data routes require a valid Firebase ID token, sent automatically by the client as an `Authorization: Bearer <token>` header. The server verifies the token against Google's public signing certificates and derives the user id from it — client-supplied `userId` values are ignored, so a user can only ever read or mutate their own data.
+
+This verification uses only the **public** project ID; **no Firebase service-account key is required**. If Firebase is left unconfigured (placeholder values), the app falls back to demo mode and skips token enforcement.
+
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+### 3. Run the Development Server
+
+Start the Next.js dev server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Data Ingestion Script
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The project includes a standalone Node.js script that fetches job postings from the public Greenhouse API, standardizes them into the Mongoose schema, and applies a heuristic scam filter.
 
-## Learn More
+### Running the Script
 
-To learn more about Next.js, take a look at the following resources:
+You can run the ingestion script locally. It will read from `scripts/companies.json` and ingest jobs.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+# Run the ingestion script
+node scripts/ingest-jobs.js
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+If `MONGODB_URI` is not set in `.env.local`, the script will run in a **dry-run mode**, fetching and filtering jobs but skipping the database insertion.
 
-## Deploy on Vercel
+## Project Structure
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `src/app/` - Next.js App Router pages (`/`, `/feed`, `/tracker`)
+- `src/components/` - Reusable UI components (JobCard, KanbanBoard, AuthProvider)
+- `src/lib/` - Shared utilities and Firebase configuration
+- `src/models/` - Mongoose schemas (Job.ts)
+- `scripts/` - Standalone data ingestion scripts

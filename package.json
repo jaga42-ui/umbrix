@@ -9,7 +9,17 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@hello-pangea/dnd": "^18.0.1",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.38.0",
+    "dotenv": "^17.4.2",
+    "firebase": "^12.15.0",
+    "framer-motion": "^12.42.2",
+    "jose": "^5.10.0",
+    "lucide-react": "^1.23.0",
+    "mongoose": "^9.7.3",
     "next": "16.2.10",
+    "pdf-parse": "^2.4.5",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
