@@ -3,7 +3,7 @@
 import { useAuth } from "@/components/AuthProvider";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Check } from "lucide-react";
 
 // A representative slice of real companies from the actual source list --
@@ -25,7 +25,7 @@ const MARQUEE_ITEMS = [
 function VerificationMarquee() {
   const items = [...MARQUEE_ITEMS, ...MARQUEE_ITEMS];
   return (
-    <div className="bg-primary text-primary-foreground py-2.5 overflow-hidden">
+    <div className="w-full bg-primary text-primary-foreground py-2.5 min-h-[2.25rem] overflow-hidden">
       <div className="flex marquee-track w-max">
         {items.map((item, i) => (
           <span
@@ -42,30 +42,63 @@ function VerificationMarquee() {
   );
 }
 
-function VerificationSeal() {
+// Real postings, visibly getting checked one at a time -- this is what the
+// product actually does, not an abstract stand-in for it.
+function VerificationStack() {
+  const [index, setIndex] = useState(0);
+  const shouldReduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    if (shouldReduceMotion) return;
+    const id = setInterval(() => {
+      setIndex((i) => (i + 1) % MARQUEE_ITEMS.length);
+    }, 2800);
+    return () => clearInterval(id);
+  }, [shouldReduceMotion]);
+
+  const current = MARQUEE_ITEMS[index];
+
   return (
-    <div
-      className="relative w-[22rem] h-[22rem] sm:w-[26rem] sm:h-[26rem] shrink-0 pointer-events-none select-none"
-      aria-hidden="true"
-    >
-      {/* Outer dial: a ring of tick marks, like a gauge face -- reads as an
-          engineered mechanism even at rest, not just an empty circle. */}
-      <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full slow-spin">
-        <circle cx="50" cy="50" r="47" fill="none" stroke="var(--accent)" strokeOpacity="0.4" strokeWidth="1" strokeDasharray="1.2 5.4" strokeLinecap="round" />
-      </svg>
-      {/* Inner dial, denser ticks, turning the opposite way */}
-      <svg viewBox="0 0 100 100" className="absolute inset-12 w-[calc(100%-6rem)] h-[calc(100%-6rem)] slow-spin-reverse">
-        <circle cx="50" cy="50" r="47" fill="none" stroke="var(--foreground)" strokeOpacity="0.25" strokeWidth="1" strokeDasharray="0.8 3.2" strokeLinecap="round" />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="w-24 h-24 rounded-full bg-card border-2 border-double border-accent/70 flex items-center justify-center rotate-[-8deg] shadow-[0_0_0_6px_var(--background)]">
-          <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-accent text-center leading-tight">
-            Verified
-            <br />
-            No Scams
+    <div className="relative w-full max-w-sm h-60 mx-auto md:mx-0">
+      {/* Queued cards peeking out behind, like a small deck */}
+      <div className="absolute inset-x-7 top-6 bottom-0 bg-card border border-border rounded-2xl rotate-2" aria-hidden="true" />
+      <div className="absolute inset-x-3.5 top-3 bottom-0 bg-card border border-border rounded-2xl rotate-1" aria-hidden="true" />
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={index}
+          initial={shouldReduceMotion ? false : { opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={shouldReduceMotion ? undefined : { opacity: 0, y: -14 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+          className="absolute inset-0 bg-card border border-border rounded-2xl p-6 flex flex-col justify-between"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="text-xl font-semibold tracking-tight truncate">{current.company}</div>
+              <div className="text-sm text-muted-foreground truncate">{current.role}</div>
+            </div>
+            <div
+              key={`stamp-${index}`}
+              className={`shrink-0 w-12 h-12 rounded-full border-2 border-double border-accent/70 flex items-center justify-center rotate-[-8deg] ${
+                shouldReduceMotion ? "" : "stamp-mark"
+              }`}
+              aria-hidden="true"
+            >
+              <span className="font-mono text-[7px] font-semibold uppercase tracking-[0.06em] text-accent text-center leading-[1.15]">
+                Verified
+                <br />
+                No Scams
+              </span>
+            </div>
           </div>
-        </div>
-      </div>
+
+          <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" aria-hidden="true" />
+            Checked just now
+          </div>
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
@@ -194,14 +227,13 @@ export default function LandingPage() {
             </motion.div>
           </div>
 
-          {/* Right: the verification seal, large and always turning */}
+          {/* Right: real postings, getting checked one at a time */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-            className="flex justify-center md:justify-end"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
           >
-            <VerificationSeal />
+            <VerificationStack />
           </motion.div>
         </div>
       </main>
