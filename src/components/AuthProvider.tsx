@@ -90,9 +90,17 @@ export function AuthProvider({ children, firebaseConfig }: { children: React.Rea
       if (firebaseAuth) {
         // Complete any pending redirect-based sign-in (the popup-blocked
         // fallback) and surface errors; onAuthStateChanged sets the user.
-        getRedirectResult(firebaseAuth).catch((e) => {
-          console.error("Redirect sign-in result error:", e);
-        });
+        getRedirectResult(firebaseAuth)
+          .then((result) => {
+            console.log(
+              result
+                ? `🔥 getRedirectResult resolved with user: ${result.user?.email}`
+                : "🔥 getRedirectResult resolved with NO pending redirect (result is null)"
+            );
+          })
+          .catch((e) => {
+            console.error("Redirect sign-in result error:", e?.code, e?.message || e);
+          });
 
         const unsubscribe = onAuthStateChanged(firebaseAuth, (currentUser) => {
           setUser(currentUser);
