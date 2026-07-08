@@ -32,9 +32,9 @@ function VerificationMarquee() {
             key={i}
             className="font-mono text-xs uppercase tracking-wider px-6 flex items-center gap-2 shrink-0 whitespace-nowrap"
           >
-            <Check className="w-3 h-3 text-accent-on-dark" />
+            <Check className="w-3 h-3 text-[var(--landing-ink-on-dark)]" />
             {item.company} &mdash; {item.role}
-            <span className="ml-2 text-accent-on-dark">&bull;</span>
+            <span className="ml-2 text-[var(--landing-ink-on-dark)]">&bull;</span>
           </span>
         ))}
       </div>
@@ -92,18 +92,46 @@ function VerificationRadar() {
           className="absolute inset-0 radar-sweep"
           style={{
             background:
-              "conic-gradient(from 0deg, transparent 0deg, var(--accent) 8deg, transparent 55deg)",
+              "conic-gradient(from 0deg, transparent 0deg, var(--landing-ink) 8deg, transparent 55deg)",
           }}
         />
       </div>
+
+      {/* Connecting lines: each source flows into the verified core --
+          drawn in (not just faded) after the badges settle. */}
+      <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none">
+        {RADAR_SOURCES.map((source, i) => {
+          const rad = (source.angle * Math.PI) / 180;
+          const x1 = 50 + 24 * Math.cos(rad);
+          const y1 = 50 + 24 * Math.sin(rad);
+          const x2 = 50 + 47 * Math.cos(rad);
+          const y2 = 50 + 47 * Math.sin(rad);
+          return (
+            <motion.line
+              key={source.name}
+              x1={x1}
+              y1={y1}
+              x2={x2}
+              y2={y2}
+              stroke="var(--landing-ink)"
+              strokeOpacity="0.35"
+              strokeWidth="0.6"
+              strokeLinecap="round"
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 1 }}
+              transition={{ duration: 0.6, delay: 1 + i * 0.08, ease: EASE }}
+            />
+          );
+        })}
+      </svg>
 
       {/* Spoke tips on the mid ring, one per source, marking where each
           "signal" sits before it radiates out to its badge. */}
       {RADAR_SOURCES.map((source, i) => (
         <span
           key={source.name}
-          className="absolute w-2 h-2 -ml-1 -mt-1 rounded-full bg-accent opacity-70 radar-blip"
-          style={{ ...polar(source.angle, 33), animationDelay: `${i * 0.5}s` }}
+          className="absolute w-2 h-2 -ml-1 -mt-1 rounded-full opacity-70 radar-blip"
+          style={{ ...polar(source.angle, 33), backgroundColor: "var(--landing-ink)", animationDelay: `${i * 0.5}s` }}
         />
       ))}
 
@@ -136,9 +164,15 @@ function VerificationRadar() {
       </motion.div>
 
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="w-24 h-24 rounded-full bg-card border-2 border-double border-accent/70 flex flex-col items-center justify-center gap-1 shadow-[0_0_0_8px_var(--background)]">
-          <ShieldCheck className="w-5 h-5 text-accent" />
-          <div className="font-mono text-[9px] font-semibold uppercase tracking-[0.1em] text-accent text-center leading-tight">
+        <div
+          className="w-24 h-24 rounded-full bg-card border-2 border-double flex flex-col items-center justify-center gap-1 shadow-[0_0_0_8px_var(--background)]"
+          style={{ borderColor: "color-mix(in srgb, var(--landing-ink) 70%, transparent)" }}
+        >
+          <ShieldCheck className="w-5 h-5" style={{ color: "var(--landing-ink)" }} />
+          <div
+            className="font-mono text-[9px] font-semibold uppercase tracking-[0.1em] text-center leading-tight"
+            style={{ color: "var(--landing-ink)" }}
+          >
             Verified
             <br />
             No Scams
@@ -202,7 +236,8 @@ export default function LandingPage() {
                 className="font-mono text-xs tracking-widest uppercase text-muted-foreground mb-6 flex items-center gap-2"
               >
                 <motion.span
-                  className="w-1.5 h-1.5 rounded-full bg-accent"
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{ backgroundColor: "var(--landing-ink)" }}
                   animate={{ opacity: [1, 0.25, 1], scale: [1, 0.7, 1] }}
                   transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
                   aria-hidden="true"
@@ -220,8 +255,8 @@ export default function LandingPage() {
                   >
                     <motion.span
                       className="inline-block"
-                      initial={{ y: "120%" }}
-                      animate={{ y: 0 }}
+                      initial={{ y: "120%", filter: "blur(6px)" }}
+                      animate={{ y: 0, filter: "blur(0px)" }}
                       transition={{ duration: 0.75, delay: 0.15 + i * 0.075, ease: EASE }}
                     >
                       {word}

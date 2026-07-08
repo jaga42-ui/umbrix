@@ -67,6 +67,14 @@
   --stage-applied: #2c3e63;
   --stage-interview: #2f5d3a;
   --stage-rejected: #7a3430;
+
+  /* Landing-page-only accent (deep ink blue) -- deliberately separate from
+     --accent (green), which stays as the trust color everywhere else in the
+     app (Kanban Interview stage, JobCard stamp, focus rings, nav). Scoping
+     this to its own variable instead of overriding --accent keeps the
+     landing page's color a local design choice, not a site-wide rebrand. */
+  --landing-ink: #2c4870;
+  --landing-ink-on-dark: #9ab4d8;
 }
 
 body {
