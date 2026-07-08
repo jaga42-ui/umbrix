@@ -8,7 +8,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://umbrix.co"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://umbrix.vercel.app"),
   title: {
     default: "Umbrix — Career Discovery",
     template: "%s · Umbrix",
