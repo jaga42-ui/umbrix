@@ -19,8 +19,9 @@ export function Header() {
       <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between px-6">
         {/* Brand Logo */}
         <div className="flex items-center space-x-8">
-          <Link href="/feed" className="flex items-center space-x-2">
-            <span className="text-2xl font-bold tracking-wider bg-gradient-to-r from-primary via-primary/80 to-primary/50 bg-clip-text text-transparent">
+          <Link href="/feed" className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent" aria-hidden="true" />
+            <span className="text-lg font-mono font-semibold tracking-[0.2em]">
               UMBRIX
             </span>
           </Link>
@@ -40,7 +41,7 @@ export function Header() {
                 {isActive("/feed") && (
                   <motion.div
                     layoutId="active-nav-indicator"
-                    className="absolute bottom-[-1px] left-4 right-4 h-0.5 bg-primary"
+                    className="absolute bottom-[-1px] left-4 right-4 h-0.5 bg-accent"
                     transition={{ type: "spring", stiffness: 380, damping: 30 }}
                   />
                 )}
@@ -59,7 +60,7 @@ export function Header() {
                 {isActive("/profile") && (
                   <motion.div
                     layoutId="active-nav-indicator"
-                    className="absolute bottom-[-1px] left-4 right-4 h-0.5 bg-primary"
+                    className="absolute bottom-[-1px] left-4 right-4 h-0.5 bg-accent"
                     transition={{ type: "spring", stiffness: 380, damping: 30 }}
                   />
                 )}
@@ -78,7 +79,7 @@ export function Header() {
                 {isActive("/tracker") && (
                   <motion.div
                     layoutId="active-nav-indicator"
-                    className="absolute bottom-[-1px] left-4 right-4 h-0.5 bg-primary"
+                    className="absolute bottom-[-1px] left-4 right-4 h-0.5 bg-accent"
                     transition={{ type: "spring", stiffness: 380, damping: 30 }}
                   />
                 )}
@@ -90,8 +91,8 @@ export function Header() {
         {/* Profile / Demo status */}
         <div className="flex items-center space-x-4">
           {isDemoMode && (
-            <div className="hidden sm:inline-flex items-center space-x-1 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs px-2.5 py-1 rounded-full font-medium">
-              <Sparkles className="w-3 h-3 text-amber-500" />
+            <div className="hidden sm:inline-flex items-center space-x-1.5 bg-secondary border border-border text-muted-foreground text-[11px] font-mono uppercase tracking-wider px-2.5 py-1 rounded-full">
+              <Sparkles className="w-3 h-3" />
               <span>Demo Mode</span>
             </div>
           )}
@@ -106,7 +107,7 @@ export function Header() {
                 className="w-7 h-7 rounded-full border border-border/80"
               />
             ) : (
-              <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-primary to-primary/40 text-primary-foreground flex items-center justify-center font-bold text-xs">
+              <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-mono font-semibold text-xs">
                 {user.displayName?.charAt(0) || user.email?.charAt(0) || "U"}
               </div>
             )}

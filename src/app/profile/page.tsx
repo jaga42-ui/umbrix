@@ -398,7 +398,7 @@ export default function ProfilePage() {
         <Header />
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
           <AlertCircle className="w-12 h-12 text-destructive mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Failed to load profile</h2>
+          <h2 className="font-serif text-2xl font-semibold mb-2">Failed to load profile</h2>
           <p className="text-muted-foreground mb-4">We encountered an error loading your data.</p>
           <button 
             onClick={() => window.location.reload()} 
@@ -412,11 +412,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col relative pb-16">
-      {/* Background radial glow */}
-      <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-10 left-10 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
-
+    <div className="min-h-screen bg-background flex flex-col pb-16">
       <Header />
 
       {/* Main Container */}
@@ -430,9 +426,9 @@ export default function ProfilePage() {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="absolute left-0 right-0 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm py-2 px-4 rounded-xl flex items-center gap-2"
+                className="absolute left-0 right-0 bg-secondary border border-stage-interview/25 text-stage-interview text-sm py-2 px-4 rounded-xl flex items-center gap-2"
               >
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <CheckCircle2 className="w-4 h-4" />
                 <span>{successMessage}</span>
               </motion.div>
             )}
@@ -457,7 +453,7 @@ export default function ProfilePage() {
           <div className="lg:col-span-4 space-y-6">
             
             {/* Profile Card */}
-            <div className="bg-card/50 border border-border backdrop-blur-md rounded-2xl p-6 shadow-sm flex flex-col items-center text-center">
+            <div className="bg-card border border-border rounded-2xl p-6 flex flex-col items-center text-center">
               <div className="w-20 h-20 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary mb-4 relative">
                 {isDemoMode ? (
                   <img 
@@ -469,7 +465,7 @@ export default function ProfilePage() {
                   <UserIcon className="w-10 h-10" />
                 )}
                 {isDemoMode && (
-                  <span className="absolute -bottom-1 -right-1 bg-primary text-[8px] font-bold uppercase text-primary-foreground px-1.5 py-0.5 rounded-full border border-card shadow-sm">
+                  <span className="absolute -bottom-1 -right-1 bg-primary text-[8px] font-mono font-semibold uppercase text-primary-foreground px-1.5 py-0.5 rounded-full border border-card">
                     Guest
                   </span>
                 )}
@@ -479,7 +475,7 @@ export default function ProfilePage() {
                 type="text"
                 value={profile.name}
                 onChange={(e) => handleSaveProfile({ ...profile, name: e.target.value })}
-                className="text-xl font-bold bg-transparent border-b border-transparent hover:border-border focus:border-primary focus:outline-none text-center px-2 py-0.5 rounded-md w-full mb-1"
+                className="font-serif text-xl font-semibold bg-transparent border-b border-transparent hover:border-border focus:border-primary focus:outline-none text-center px-2 py-0.5 rounded-md w-full mb-1"
                 placeholder="Enter Name"
               />
 
@@ -506,7 +502,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Resume Upload Card */}
-            <div className="bg-card/50 border border-border backdrop-blur-md rounded-2xl p-6 shadow-sm">
+            <div className="bg-card border border-border rounded-2xl p-6">
               <h3 className="font-bold text-sm mb-2 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-primary" />
                 <span>Resume Import Engine</span>
@@ -572,7 +568,7 @@ export default function ProfilePage() {
           <div className="lg:col-span-8 space-y-6">
             
             {/* Professional Summary */}
-            <div className="bg-card/50 border border-border backdrop-blur-md rounded-2xl p-6 shadow-sm">
+            <div className="bg-card border border-border rounded-2xl p-6">
               <h3 className="font-bold text-base mb-4 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-primary" />
                 <span>Professional Summary</span>
@@ -591,7 +587,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Skills manager */}
-            <div className="bg-card/50 border border-border backdrop-blur-md rounded-2xl p-6 shadow-sm">
+            <div className="bg-card border border-border rounded-2xl p-6">
               <h3 className="font-bold text-base mb-4 flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-primary" />
                 <span>Extracted Match Tags</span>
@@ -643,7 +639,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Experience list */}
-            <div className="bg-card/50 border border-border backdrop-blur-md rounded-2xl p-6 shadow-sm">
+            <div className="bg-card border border-border rounded-2xl p-6">
               <h3 className="font-bold text-base mb-4 flex items-center gap-2">
                 <Briefcase className="w-5 h-5 text-primary" />
                 <span>Work Experience</span>
@@ -724,7 +720,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Education list */}
-            <div className="bg-card/50 border border-border backdrop-blur-md rounded-2xl p-6 shadow-sm">
+            <div className="bg-card border border-border rounded-2xl p-6">
               <h3 className="font-bold text-base mb-4 flex items-center gap-2">
                 <GraduationCap className="w-5 h-5 text-primary" />
                 <span>Education</span>

@@ -170,19 +170,19 @@ export default function FeedPage() {
       <main className="flex-1 max-w-4xl w-full mx-auto px-6 py-10">
         {/* Profile incomplete warning / Callout banner */}
         {!hasSkills && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+            className="mb-6 bg-card border border-border border-l-2 border-l-accent rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
           >
             <div className="flex items-start space-x-3">
-              <div className="p-2 bg-primary/10 rounded-xl text-primary mt-0.5">
+              <div className="p-2 bg-secondary rounded-xl text-accent mt-0.5">
                 <Sparkles className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="font-bold text-sm text-foreground">Complete Your AI Match Profile</h4>
+                <h4 className="font-semibold text-sm text-foreground">Complete your match profile</h4>
                 <p className="text-xs text-muted-foreground leading-normal mt-0.5">
-                  You haven't uploaded a resume yet. Upload one now to unlock custom compatibility scores for each role.
+                  You haven&rsquo;t uploaded a resume yet. Upload one to get a real compatibility score for each role.
                 </p>
               </div>
             </div>
@@ -199,14 +199,13 @@ export default function FeedPage() {
         {/* Intro Section */}
         <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-8 gap-4">
           <div>
-            <div className="flex items-center space-x-3 mb-2.5">
-              <div className="p-2 bg-primary/5 rounded-xl border border-primary/10">
-                <Compass className="w-5 h-5 text-primary" />
-              </div>
-              <h1 className="text-3xl font-extrabold tracking-tight">Daily Discovery</h1>
+            <div className="font-mono text-xs tracking-widest uppercase text-muted-foreground mb-2 flex items-center gap-2">
+              <Compass className="w-3.5 h-3.5" />
+              Daily discovery
             </div>
-            <p className="text-muted-foreground text-sm sm:text-base">
-              A curated selection of career opportunities refined by AI to match your preferences.
+            <h1 className="font-serif text-3xl sm:text-4xl tracking-tight">Today&rsquo;s feed</h1>
+            <p className="text-muted-foreground text-sm sm:text-base mt-1.5">
+              Every posting here comes from a real company ATS, checked before you see it.
             </p>
           </div>
 
@@ -219,7 +218,7 @@ export default function FeedPage() {
         </div>
 
         {/* Search & Filtering Dashboard */}
-        <div className="bg-card border border-border p-4 rounded-2xl shadow-sm space-y-4 mb-8">
+        <div className="bg-card border border-border p-4 rounded-2xl space-y-4 mb-8">
           <div className="flex flex-col md:flex-row gap-3">
             {/* Search Bar */}
             <div className="relative flex-1">

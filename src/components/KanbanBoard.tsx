@@ -10,6 +10,21 @@ import { authedFetch } from "@/lib/authedFetch";
 type Stage = "Saved" | "Applied" | "Interview" | "Rejected";
 const STAGES: Stage[] = ["Saved", "Applied", "Interview", "Rejected"];
 
+// Each stage gets its own ink color -- this is real pipeline status, not
+// decoration, so it's consistent everywhere a stage is shown.
+const STAGE_DOT: Record<Stage, string> = {
+  Saved: "bg-stage-saved",
+  Applied: "bg-stage-applied",
+  Interview: "bg-stage-interview",
+  Rejected: "bg-stage-rejected",
+};
+const STAGE_BORDER: Record<Stage, string> = {
+  Saved: "border-t-stage-saved",
+  Applied: "border-t-stage-applied",
+  Interview: "border-t-stage-interview",
+  Rejected: "border-t-stage-rejected",
+};
+
 interface KanbanTask {
   id: string; // local or key representation
   _id?: string; // MongoDB ObjectID
@@ -390,13 +405,14 @@ export function KanbanBoard() {
             return (
               <div
                 key={columnId}
-                className="w-80 flex-shrink-0 flex flex-col bg-secondary/30 rounded-2xl border border-border p-4 shadow-sm"
+                className={`w-80 flex-shrink-0 flex flex-col bg-secondary/30 rounded-2xl border border-border border-t-2 ${STAGE_BORDER[columnId]} p-4`}
               >
                 {/* Column Header */}
                 <div className="flex items-center justify-between mb-4 px-1.5">
                   <div className="flex items-center space-x-2">
-                    <h3 className="font-bold text-sm text-foreground tracking-tight">{columnId}</h3>
-                    <span className="text-[10px] font-bold bg-secondary border border-border text-muted-foreground px-2 py-0.5 rounded-full">
+                    <span className={`w-1.5 h-1.5 rounded-full ${STAGE_DOT[columnId]}`} aria-hidden="true" />
+                    <h3 className="font-mono text-xs font-semibold text-foreground tracking-wider uppercase">{columnId}</h3>
+                    <span className="text-[10px] font-mono font-semibold bg-secondary border border-border text-muted-foreground px-2 py-0.5 rounded-full">
                       {columnTasks.length}
                     </span>
                   </div>
@@ -439,8 +455,8 @@ export function KanbanBoard() {
                                 onClick={() => handleOpenDetailModal(task)}
                                 className={`bg-card text-card-foreground p-4 rounded-xl border transition-all cursor-pointer group/card select-none ${
                                   snapshot.isDragging
-                                    ? "shadow-lg border-primary/25 scale-[1.03] z-50 ring-2 ring-primary/5"
-                                    : "border-border shadow-sm hover:border-primary/20 hover:shadow-md"
+                                    ? "shadow-lg border-foreground/25 scale-[1.03] z-50"
+                                    : "border-border hover:border-foreground/25"
                                 }`}
                               >
                                 <div className="flex items-start gap-2.5">
@@ -496,15 +512,15 @@ export function KanbanBoard() {
       {/* MODAL 1: ADD APPLICATION */}
       <AnimatePresence>
         {isAddModalOpen && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-card border border-border rounded-2xl w-full max-w-md p-6 relative shadow-2xl space-y-4"
+              className="bg-card border border-border rounded-2xl w-full max-w-md p-6 relative space-y-4"
             >
               <div className="flex justify-between items-center pb-2 border-b border-border">
-                <h3 className="font-bold text-lg text-foreground">Add New Application</h3>
+                <h3 className="font-serif font-semibold text-lg text-foreground">Add new application</h3>
                 <button
                   onClick={() => setIsAddModalOpen(false)}
                   className="p-1 hover:bg-secondary rounded-lg text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
@@ -515,7 +531,7 @@ export function KanbanBoard() {
 
               <form onSubmit={handleAddApplication} className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-muted-foreground uppercase">Role Title</label>
+                  <label className="text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider">Role Title</label>
                   <input
                     type="text"
                     required
@@ -528,7 +544,7 @@ export function KanbanBoard() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-muted-foreground uppercase">Company</label>
+                    <label className="text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider">Company</label>
                     <input
                       type="text"
                       required
@@ -539,7 +555,7 @@ export function KanbanBoard() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-muted-foreground uppercase">Location</label>
+                    <label className="text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider">Location</label>
                     <input
                       type="text"
                       required
@@ -552,7 +568,7 @@ export function KanbanBoard() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-muted-foreground uppercase">Column Stage</label>
+                  <label className="text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider">Column Stage</label>
                   <select
                     value={formStage}
                     onChange={(e) => setFormStage(e.target.value as Stage)}
@@ -567,7 +583,7 @@ export function KanbanBoard() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-muted-foreground uppercase">Application URL (Optional)</label>
+                  <label className="text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider">Application URL (Optional)</label>
                   <input
                     type="url"
                     placeholder="https://company.com/apply"
@@ -578,7 +594,7 @@ export function KanbanBoard() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-muted-foreground uppercase">Notes (Optional)</label>
+                  <label className="text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider">Notes (Optional)</label>
                   <textarea
                     placeholder="Interview dates, tech stack notes, key contacts..."
                     value={formNotes}
@@ -616,20 +632,21 @@ export function KanbanBoard() {
       {/* MODAL 2: CARD DETAILS & EDITING */}
       <AnimatePresence>
         {isDetailModalOpen && selectedTask && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-card border border-border rounded-2xl w-full max-w-lg p-6 relative shadow-2xl space-y-4"
+              className="bg-card border border-border rounded-2xl w-full max-w-lg p-6 relative space-y-4"
             >
               {/* Modal Header */}
               <div className="flex justify-between items-start pb-2 border-b border-border">
                 <div className="min-w-0 pr-8">
-                  <div className="text-[10px] font-bold text-primary bg-primary/5 border border-primary/10 rounded-full px-2.5 py-0.5 inline-block mb-1.5">
+                  <div className="text-[10px] font-mono font-semibold uppercase tracking-wider text-foreground bg-secondary border border-border rounded-full px-2.5 py-0.5 inline-flex items-center gap-1.5 mb-1.5">
+                    <span className={`w-1.5 h-1.5 rounded-full ${STAGE_DOT[formStage]}`} aria-hidden="true" />
                     {formStage}
                   </div>
-                  <h3 className="font-bold text-xl text-foreground truncate">
+                  <h3 className="font-serif font-semibold text-xl text-foreground truncate">
                     {isEditing ? "Edit Application" : selectedTask.title}
                   </h3>
                 </div>
@@ -645,7 +662,7 @@ export function KanbanBoard() {
               {isEditing ? (
                 <form onSubmit={handleUpdateApplication} className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-muted-foreground uppercase">Role Title</label>
+                    <label className="text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider">Role Title</label>
                     <input
                       type="text"
                       required
@@ -657,7 +674,7 @@ export function KanbanBoard() {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-muted-foreground uppercase">Company</label>
+                      <label className="text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider">Company</label>
                       <input
                         type="text"
                         required
@@ -667,7 +684,7 @@ export function KanbanBoard() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-muted-foreground uppercase">Location</label>
+                      <label className="text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider">Location</label>
                       <input
                         type="text"
                         required
@@ -679,7 +696,7 @@ export function KanbanBoard() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-muted-foreground uppercase">Column Stage</label>
+                    <label className="text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider">Column Stage</label>
                     <select
                       value={formStage}
                       onChange={(e) => setFormStage(e.target.value as Stage)}
@@ -694,7 +711,7 @@ export function KanbanBoard() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-muted-foreground uppercase">Application URL</label>
+                    <label className="text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider">Application URL</label>
                     <input
                       type="url"
                       placeholder="https://..."
@@ -705,7 +722,7 @@ export function KanbanBoard() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-muted-foreground uppercase">Notes</label>
+                    <label className="text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider">Notes</label>
                     <textarea
                       value={formNotes}
                       onChange={(e) => setFormNotes(e.target.value)}
@@ -770,7 +787,7 @@ export function KanbanBoard() {
 
                   {/* Notes Card */}
                   <div className="bg-secondary/30 rounded-xl p-4 border border-border/80">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-2">
+                    <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-muted-foreground block mb-2">
                       Pipeline Notes
                     </span>
                     {selectedTask.notes ? (

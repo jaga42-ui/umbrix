@@ -42,14 +42,13 @@ export default function TrackerPage() {
           transition={{ duration: 0.4 }}
           className="mb-8"
         >
-          <div className="flex items-center space-x-3 mb-2.5">
-            <div className="p-2 bg-primary/5 rounded-xl border border-primary/10">
-              <LayoutDashboard className="w-5 h-5 text-primary" />
-            </div>
-            <h1 className="text-3xl font-extrabold tracking-tight">Application Tracker</h1>
+          <div className="font-mono text-xs tracking-widest uppercase text-muted-foreground mb-2 flex items-center gap-2">
+            <LayoutDashboard className="w-3.5 h-3.5" />
+            Application tracker
           </div>
-          <p className="text-muted-foreground text-sm sm:text-base">
-            Track your pipeline stages. Drag cards to update application statuses, add notes, or manage details.
+          <h1 className="font-serif text-3xl sm:text-4xl tracking-tight">Your pipeline</h1>
+          <p className="text-muted-foreground text-sm sm:text-base mt-1.5">
+            Drag cards between stages, add notes, or manage details.
           </p>
         </motion.div>
 

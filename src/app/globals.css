@@ -18,53 +18,51 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  /* Stage-ink colors: each application stage in the tracker gets its own
+     verification-stamp color. This is status information, not decoration. */
+  --color-stage-saved: var(--stage-saved);
+  --color-stage-applied: var(--stage-applied);
+  --color-stage-interview: var(--stage-interview);
+  --color-stage-rejected: var(--stage-rejected);
+
+  /* Sharper, smaller corners than the framework default (0.75rem/1rem) -- an
+     index card, not a soft app blob. Deliberately not zero-radius either. */
+  --radius-xl: 0.3rem;
+  --radius-2xl: 0.45rem;
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
-  --font-sans: var(--font-inter);
+
+  --font-sans: var(--font-plex-sans);
+  --font-serif: var(--font-plex-serif);
+  --font-mono: var(--font-plex-mono);
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: #09090b;
-  --card: #ffffff;
-  --card-foreground: #09090b;
-  --primary: #18181b;
-  --primary-foreground: #fafafa;
-  --secondary: #f4f4f5;
-  --secondary-foreground: #18181b;
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  --accent: #f4f4f5;
-  --accent-foreground: #18181b;
-  --destructive: #ef4444;
-  --destructive-foreground: #fafafa;
-  --border: #e4e4e7;
-  --input: #e4e4e7;
-  --ring: #18181b;
-  --radius: 0.75rem;
-}
+  --background: #f6f3ec;
+  --foreground: #1c1917;
+  --card: #fcfaf5;
+  --card-foreground: #1c1917;
+  --primary: #1c1917;
+  --primary-foreground: #f6f3ec;
+  --secondary: #efe9da;
+  --secondary-foreground: #1c1917;
+  --muted: #efe9da;
+  --muted-foreground: #6b6156;
+  --accent: #2f5d3a;
+  --accent-foreground: #f6f3ec;
+  --destructive: #7a3430;
+  --destructive-foreground: #f6f3ec;
+  --border: #dad3c3;
+  --input: #dad3c3;
+  --ring: #2f5d3a;
+  --radius: 0.3rem;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #09090b;
-    --foreground: #fafafa;
-    --card: #09090b;
-    --card-foreground: #fafafa;
-    --primary: #fafafa;
-    --primary-foreground: #18181b;
-    --secondary: #27272a;
-    --secondary-foreground: #fafafa;
-    --muted: #27272a;
-    --muted-foreground: #a1a1aa;
-    --accent: #27272a;
-    --accent-foreground: #fafafa;
-    --destructive: #7f1d1d;
-    --destructive-foreground: #fafafa;
-    --border: #27272a;
-    --input: #27272a;
-    --ring: #d4d4d8;
-  }
+  --stage-saved: #6b6156;
+  --stage-applied: #2c3e63;
+  --stage-interview: #2f5d3a;
+  --stage-rejected: #7a3430;
 }
 
 body {
@@ -72,4 +70,38 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Visible keyboard focus everywhere, drawn in the verification-ink accent. */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* The signature moment: a job posting gets physically "stamped" verified
+   once it settles on screen -- a quick overshoot-and-settle, like real ink
+   hitting paper, never repeating once played. */
+@keyframes stamp-in {
+  0% {
+    opacity: 0;
+    transform: translateY(2px) rotate(-14deg) scale(1.6);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(0) rotate(-8deg) scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) rotate(-8deg) scale(1);
+  }
+}
+
+.stamp-mark {
+  animation: stamp-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp-mark {
+    animation: none;
+  }
 }
