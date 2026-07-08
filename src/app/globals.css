@@ -100,8 +100,52 @@ body {
   animation: stamp-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
+/* Continuous ticker band of company/role postings scrolling across the
+   landing hero -- the content is duplicated in the DOM so this loops with
+   no visible seam. */
+@keyframes marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-track {
+  animation: marquee-scroll 28s linear infinite;
+}
+
+/* A large ambient stamp watermark behind the hero copy -- slow, continuous,
+   meant to be felt at a glance rather than watched. */
+@keyframes slow-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.slow-spin {
+  animation: slow-spin 50s linear infinite;
+}
+
+.slow-spin-reverse {
+  animation: slow-spin 34s linear infinite reverse;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .stamp-mark {
+    animation: none;
+  }
+  .slow-spin-reverse {
+    animation: none;
+  }
+  .marquee-track {
+    animation: none;
+  }
+  .slow-spin {
     animation: none;
   }
 }
