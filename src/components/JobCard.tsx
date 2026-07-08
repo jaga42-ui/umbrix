@@ -66,25 +66,27 @@ export function JobCard({
         exit={{ opacity: 0, y: -15 }}
         className="group relative bg-card text-card-foreground border border-border p-6 rounded-2xl hover:border-foreground/25 transition-colors duration-300 overflow-hidden flex flex-col md:flex-row gap-6 items-start w-full"
       >
-        {/* Verified stamp -- every posting here passed the scam filter, so this
-            marks a real, checked fact, not decoration. */}
-        <div
-          className="stamp-mark pointer-events-none absolute top-4 right-4 sm:top-5 sm:right-5 w-16 h-16 sm:w-[4.5rem] sm:h-[4.5rem] rounded-full border-2 border-double border-accent/70 flex items-center justify-center rotate-[-8deg] z-10"
-          aria-hidden="true"
-        >
-          <span className="font-mono text-[8px] sm:text-[9px] font-semibold uppercase tracking-[0.12em] text-accent text-center leading-tight px-1">
-            Verified
-            <br />
-            No Scams
-          </span>
-        </div>
-
-        {/* Match Score Badge (Left Side or Top on mobile) */}
+        {/* Match Score Badge, with the verified stamp docked to its own corner
+            -- kept inside this column's own relative box so it can never
+            collide with the Save/Apply buttons in the content area. */}
         <button
           onClick={() => setShowMatchModal(true)}
-          className="flex flex-row md:flex-col items-center justify-center shrink-0 w-full md:w-20 py-3 md:py-4 px-4 bg-secondary/50 hover:bg-secondary rounded-xl border border-border text-center gap-2 cursor-pointer transition-colors active:scale-95 group/badge"
+          className="relative flex flex-row md:flex-col items-center justify-center shrink-0 w-full md:w-20 py-3 md:py-4 px-4 bg-secondary/50 hover:bg-secondary rounded-xl border border-border text-center gap-2 cursor-pointer transition-colors active:scale-95 group/badge"
           title="Click to view detailed match report"
         >
+          {/* Verified stamp -- every posting here passed the scam filter, so
+              this marks a real, checked fact, not decoration. */}
+          <div
+            className="stamp-mark pointer-events-none absolute -top-3 -right-3 w-12 h-12 rounded-full border-2 border-double border-accent/70 bg-card flex items-center justify-center rotate-[-8deg] z-10"
+            aria-hidden="true"
+          >
+            <span className="font-mono text-[7px] font-semibold uppercase tracking-[0.06em] text-accent text-center leading-[1.15]">
+              Verified
+              <br />
+              No Scams
+            </span>
+          </div>
+
           <div className={`font-mono text-2xl font-semibold tracking-tight ${getScoreColorClass(matchScore)}`}>
             {matchScore}%
           </div>
