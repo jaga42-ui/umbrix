@@ -20,6 +20,194 @@ const JobSchema = new mongoose.Schema(
 
 const Job = mongoose.models.Job || mongoose.model('Job', JobSchema);
 
+// How many companies to fetch concurrently. Kept moderate to stay a
+// courteous, well-behaved client of two free public APIs rather than
+// hammering them -- not a hard rate limit either has published.
+const FETCH_CONCURRENCY = 8;
+
+const SKILL_KEYWORDS = [
+  "React", "TypeScript", "Next.js", "Node.js", "Python", "Rust",
+  "Go", "Figma", "UI/UX", "Product Design", "GraphQL", "PostgreSQL",
+  "Docker", "Kubernetes", "AWS", "Machine Learning", "AI", "C++",
+  "Java", "Ruby", "Swift", "Kotlin", "Frontend", "Backend", "Fullstack"
+];
+
+/**
+ * Fetches raw postings from a Greenhouse board and normalizes each into a
+ * common shape: { title, location, content, applyUrl, department }.
+ */
+async function fetchGreenhouseJobs(slug) {
+  const response = await fetch(`https://boards-api.greenhouse.io/v1/boards/${slug}/jobs?content=true`);
+  if (!response.ok) {
+    throw new Error(`Greenhouse ${response.status} ${response.statusText}`);
+  }
+  const data = await response.json();
+  const jobs = data.jobs || [];
+  return jobs.map((job) => ({
+    title: job.title,
+    location: job.location?.name || 'Remote',
+    content: job.content || '',
+    applyUrl: job.absolute_url,
+    department: job.departments?.[0]?.name && job.departments[0].name !== 'No Department'
+      ? job.departments[0].name
+      : null,
+  }));
+}
+
+/**
+ * Fetches raw postings from a Lever board and normalizes each into the same
+ * common shape as Greenhouse, so the rest of the pipeline (scam filter, tag
+ * extraction, upsert) doesn't need to know which ATS a job came from.
+ */
+async function fetchLeverJobs(slug) {
+  const response = await fetch(`https://api.lever.co/v0/postings/${slug}?mode=json`);
+  if (!response.ok) {
+    throw new Error(`Lever ${response.status} ${response.statusText}`);
+  }
+  const jobs = await response.json();
+  if (!Array.isArray(jobs)) return [];
+  return jobs.map((job) => ({
+    title: job.text,
+    location: job.categories?.location || 'Remote',
+    content: job.description || job.descriptionPlain || '',
+    applyUrl: job.hostedUrl,
+    department: job.categories?.team || null,
+  }));
+}
+
+const ATS_FETCHERS = {
+  greenhouse: fetchGreenhouseJobs,
+  lever: fetchLeverJobs,
+};
+
+function extractTags(job) {
+  const tags = [];
+  if (job.department) tags.push(job.department);
+
+  const lowerTitle = job.title.toLowerCase();
+  const lowerContent = job.content.toLowerCase();
+  for (const keyword of SKILL_KEYWORDS) {
+    const lowerKeyword = keyword.toLowerCase();
+    if (lowerTitle.includes(lowerKeyword) || lowerContent.includes(lowerKeyword)) {
+      if (!tags.includes(keyword)) tags.push(keyword);
+    }
+  }
+  return tags;
+}
+
+/**
+ * Round-robins companies across ATS types instead of processing them in
+ * file order. companies.json groups all Lever entries together at the end
+ * for readability, but with FETCH_CONCURRENCY workers pulling the next item
+ * as soon as they're free, that grouping means every Lever request (the
+ * slower, more failure-prone host) tends to land in the pool at the same
+ * time near the end of the run. Interleaving spreads same-host requests out
+ * across the whole run instead.
+ */
+function interleaveByAts(companies) {
+  const groups = new Map();
+  for (const company of companies) {
+    if (!groups.has(company.ats)) groups.set(company.ats, []);
+    groups.get(company.ats).push(company);
+  }
+  const queues = [...groups.values()];
+  const interleaved = [];
+  let remaining = companies.length;
+  let i = 0;
+  while (remaining > 0) {
+    const queue = queues[i % queues.length];
+    if (queue.length > 0) {
+      interleaved.push(queue.shift());
+      remaining--;
+    }
+    i++;
+  }
+  return interleaved;
+}
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Retries `fn` a couple of times with a short backoff before giving up.
+ * Lever in particular is much higher-latency than Greenhouse (2-10s per
+ * request vs sub-second) and occasionally drops a connection when several
+ * requests land on it inside the same concurrency window. This also retries
+ * on a genuine HTTP error (e.g. 404), which is a wasted round-trip in that
+ * case -- acceptable here since every slug in companies.json was verified
+ * live before being added, so a real 404 shouldn't occur in practice.
+ */
+async function withRetry(fn, retries = 2, delayMs = 1500) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (attempt >= retries) throw error;
+      await sleep(delayMs * (attempt + 1));
+    }
+  }
+}
+
+/** Runs `worker` over `items` with at most `size` in flight at once. */
+async function pool(items, worker, size) {
+  const results = new Array(items.length);
+  let cursor = 0;
+  async function run() {
+    while (cursor < items.length) {
+      const index = cursor++;
+      results[index] = await worker(items[index], index);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(size, items.length) }, run));
+  return results;
+}
+
+async function processCompany({ slug, ats }) {
+  const fetchJobs = ATS_FETCHERS[ats];
+  if (!fetchJobs) {
+    return { slug, ok: false, message: `Unknown ATS "${ats}"` };
+  }
+
+  try {
+    const rawJobs = await withRetry(() => fetchJobs(slug));
+    const jobDocs = [];
+    const blocked = [];
+
+    for (const job of rawJobs) {
+      const verdict = evaluateScam({ title: job.title, content: job.content, applyUrl: job.applyUrl });
+      if (verdict.isScam) {
+        blocked.push(`"${job.title}" (score ${verdict.score}): ${verdict.reasons.join('; ')}`);
+        continue;
+      }
+      jobDocs.push({
+        companySlug: slug,
+        title: job.title,
+        location: job.location,
+        descriptionHtml: job.content,
+        tags: extractTags(job),
+        applyUrl: job.applyUrl,
+        status: 'Active',
+      });
+    }
+
+    if (process.env.MONGODB_URI && jobDocs.length > 0) {
+      // One round-trip per company instead of one per job.
+      await Job.bulkWrite(
+        jobDocs.map((jobDoc) => ({
+          updateOne: {
+            filter: { applyUrl: jobDoc.applyUrl },
+            update: { $set: jobDoc },
+            upsert: true,
+          },
+        }))
+      );
+    }
+
+    return { slug, ats, ok: true, found: rawJobs.length, processed: jobDocs.length, blocked };
+  } catch (error) {
+    return { slug, ats, ok: false, message: error.message };
+  }
+}
+
 async function ingestJobs() {
   if (!process.env.MONGODB_URI) {
     if (process.env.GITHUB_ACTIONS === "true") {
@@ -36,107 +224,39 @@ async function ingestJobs() {
   }
 
   const companiesPath = path.join(__dirname, 'companies.json');
-  const companies = JSON.parse(fs.readFileSync(companiesPath, 'utf8'));
+  const companies = interleaveByAts(JSON.parse(fs.readFileSync(companiesPath, 'utf8')));
 
-  for (const slug of companies) {
-    console.log(`\nFetching jobs for ${slug}...`);
-    try {
-      const response = await fetch(`https://boards-api.greenhouse.io/v1/boards/${slug}/jobs?content=true`);
-      if (!response.ok) {
-        console.error(`❌ Failed to fetch for ${slug}: ${response.statusText}`);
-        continue;
-      }
-      
-      const data = await response.json();
-      const jobs = data.jobs || [];
-      console.log(`Found ${jobs.length} jobs.`);
+  console.log(`\nFetching ${companies.length} companies (${FETCH_CONCURRENCY} at a time)...\n`);
 
-      let scamCount = 0;
-      const jobDocs = [];
+  const results = await pool(companies, processCompany, FETCH_CONCURRENCY);
 
-      for (const job of jobs) {
-        // Apply the weighted scam filter. Log why anything is dropped so every
-        // block is auditable — the trust moat depends on being able to explain it.
-        const content = job.content || '';
-        const verdict = evaluateScam({
-          title: job.title,
-          content,
-          applyUrl: job.absolute_url,
-        });
-        if (verdict.isScam) {
-          scamCount++;
-          console.log(
-            `   🚫 Blocked "${job.title}" (score ${verdict.score}): ${verdict.reasons.join('; ')}`
-          );
-          continue;
-        }
+  let totalProcessed = 0;
+  let totalBlocked = 0;
+  let totalFailed = 0;
 
-        // Standardize tags (departments/offices in Greenhouse)
-        const tags = [];
-        if (job.departments && job.departments.length > 0) {
-          const dept = job.departments[0].name;
-          if (dept && dept !== "No Department") {
-            tags.push(dept);
-          }
-        }
-
-        // Extract key technical skills & keywords for improved discovery/filtering
-        const skillKeywords = [
-          "React", "TypeScript", "Next.js", "Node.js", "Python", "Rust", 
-          "Go", "Figma", "UI/UX", "Product Design", "GraphQL", "PostgreSQL", 
-          "Docker", "Kubernetes", "AWS", "Machine Learning", "AI", "C++", 
-          "Java", "Ruby", "Swift", "Kotlin", "Frontend", "Backend", "Fullstack"
-        ];
-        const lowerTitle = job.title.toLowerCase();
-        const lowerContent = content.toLowerCase();
-
-        skillKeywords.forEach((keyword) => {
-          if (
-            lowerTitle.includes(keyword.toLowerCase()) || 
-            lowerContent.includes(keyword.toLowerCase())
-          ) {
-            if (!tags.includes(keyword)) {
-              tags.push(keyword);
-            }
-          }
-        });
-
-        jobDocs.push({
-          companySlug: slug,
-          title: job.title,
-          location: job.location?.name || 'Remote',
-          descriptionHtml: content,
-          tags: tags,
-          applyUrl: job.absolute_url,
-          status: 'Active'
-        });
-      }
-
-      if (process.env.MONGODB_URI && jobDocs.length > 0) {
-        // One round-trip per company instead of one per job — upsert on
-        // applyUrl to avoid duplicates, same as before.
-        await Job.bulkWrite(
-          jobDocs.map((jobDoc) => ({
-            updateOne: {
-              filter: { applyUrl: jobDoc.applyUrl },
-              update: { $set: jobDoc },
-              upsert: true,
-            },
-          }))
-        );
-      }
-
-      console.log(`✅ Processed ${jobDocs.length} valid jobs. Blocked ${scamCount} potential scams.`);
-    } catch (error) {
-      console.error(`❌ Error processing ${slug}:`, error.message);
+  for (const r of results) {
+    if (!r.ok) {
+      totalFailed++;
+      console.error(`❌ ${r.slug} (${r.ats || '?'}): ${r.message}`);
+      continue;
+    }
+    totalProcessed += r.processed;
+    totalBlocked += r.blocked.length;
+    console.log(`✅ ${r.slug} (${r.ats}): ${r.found} found, ${r.processed} processed, ${r.blocked.length} blocked`);
+    for (const reason of r.blocked) {
+      console.log(`   🚫 ${reason}`);
     }
   }
 
+  console.log(
+    `\n=== Summary: ${totalProcessed} jobs processed, ${totalBlocked} blocked, ${totalFailed}/${companies.length} companies failed ===`
+  );
+
   if (process.env.MONGODB_URI) {
     await mongoose.disconnect();
-    console.log("\n✅ Disconnected from MongoDB");
+    console.log("✅ Disconnected from MongoDB");
   } else {
-    console.log("\n✅ Dry run completed.");
+    console.log("✅ Dry run completed.");
   }
 }
 

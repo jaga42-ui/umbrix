@@ -54,7 +54,10 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ## Data Ingestion Script
 
-The project includes a standalone Node.js script that fetches job postings from the public Greenhouse API, standardizes them into the Mongoose schema, and applies a heuristic scam filter.
+The project includes a standalone Node.js script that fetches job postings from public ATS APIs (Greenhouse and Lever) across 128 companies, normalizes them into a common shape, standardizes them into the Mongoose schema, and applies a heuristic scam filter.
+
+- **Two ATS sources.** Each entry in `scripts/companies.json` is `{ "slug": "...", "ats": "greenhouse" | "lever" }`. Adding a new source is a matter of adding a fetcher function to the `ATS_FETCHERS` map in `ingest-jobs.js` that returns the common `{ title, location, content, applyUrl, department }` shape — the rest of the pipeline (scam filter, tagging, upsert) doesn't need to know which ATS a job came from.
+- **Concurrent, not sequential.** Companies are fetched `FETCH_CONCURRENCY` (8) at a time via a small worker pool, with automatic retry-with-backoff on transient network failures — Lever in particular is much higher-latency than Greenhouse (2-10s per request vs sub-second) and occasionally drops a connection under concurrent load. Companies are interleaved by ATS type before pooling so the slower host's requests don't all cluster together in the same concurrency window.
 
 ### Scam filter
 
@@ -64,7 +67,7 @@ The project includes a standalone Node.js script that fetches job postings from 
 - **Anti-scam disclaimers are ignored.** Reputable JDs that say *"we will never ask you to pay a fee"* are not flagged by their own disclaimer text.
 - **Every block is auditable** — the filter returns the exact reasons, which the ingestion script logs.
 
-Behavior is pinned by [`scripts/scamFilter.test.js`](scripts/scamFilter.test.js) (run with `npm test`), and the nightly workflow runs these tests before ingesting so the filter can't silently regress. Verified against 8,400+ live postings with zero legitimate jobs blocked.
+Behavior is pinned by [`scripts/scamFilter.test.js`](scripts/scamFilter.test.js) (run with `npm test`), and the nightly workflow runs these tests before ingesting so the filter can't silently regress. Verified against 11,500+ live postings across both ATS sources with zero legitimate jobs blocked.
 
 ### Running the Script
 

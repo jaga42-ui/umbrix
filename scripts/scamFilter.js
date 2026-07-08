@@ -85,10 +85,17 @@ const RULES = [
       /\bmake\s+(a\s+)?payment\s+(of|to|before)\b/.test(t),
   },
   {
+    // A fee/money noun must be bound to the payment verb -- bare "pay using
+    // UPI" is exactly the marketing copy a payments company (Paytm, PhonePe,
+    // both real employers in our source list) uses to describe its own
+    // product to consumers, not a candidate being asked to pay anything.
     weight: 3,
-    reason: 'asks candidate to pay via UPI / wallet',
+    reason: 'asks candidate to pay a fee via UPI / wallet',
     test: (t) =>
-      /\b(pay|send|transfer|deposit)\b[^.]{0,30}\b(via|through|using|on|to)\b[^.]{0,15}\b(upi|paytm|phonepe|gpay|google\s?pay|bhim)/.test(
+      /\b(pay|send|transfer|deposit)\b[^.]{0,20}\b(fee|fees|amount|money|deposit|charges?|registration|security|token)\b[^.]{0,30}\b(via|through|using|on|to)\b[^.]{0,15}\b(upi|paytm|phonepe|gpay|google\s?pay|bhim)/.test(
+        t,
+      ) ||
+      /\b(pay|send|transfer|deposit)\b[^.]{0,15}\b(via|through|using|on|to)\b[^.]{0,15}\b(upi|paytm|phonepe|gpay|google\s?pay|bhim)\b[^.]{0,30}\b(fee|fees|amount|deposit|charges?|registration)\b/.test(
         t,
       ),
   },

@@ -168,6 +168,22 @@ test('pay-via-UPI training-fee scam is flagged', () => {
   assert.equal(evaluate(job).isScam, true);
 });
 
+// Real false positive found by dry-running against the live Paytm Lever
+// board: their own "About Us" boilerplate describes the product, not a
+// candidate being asked to pay anything.
+test('Paytm\'s own "pay using UPI" product description is NOT flagged', () => {
+  const job = {
+    title: 'Assistant Manager, Surveillance',
+    content:
+      '<p>Paytm is India’s largest digital payment app which makes it secure ' +
+      'and seamless to pay using UPI, make bill payments, recharge mobiles, DTH, ' +
+      'data card etc anywhere in India.</p>',
+    applyUrl: 'https://jobs.lever.co/paytm/abc',
+  };
+  const r = evaluate(job);
+  assert.equal(r.isScam, false, `unexpectedly flagged: ${r.reasons.join('; ')}`);
+});
+
 test('guaranteed-placement + suspicious short link is flagged', () => {
   const job = {
     title: 'Guaranteed Placement',
