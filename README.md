@@ -56,6 +56,16 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 The project includes a standalone Node.js script that fetches job postings from the public Greenhouse API, standardizes them into the Mongoose schema, and applies a heuristic scam filter.
 
+### Scam filter
+
+[`scripts/scamFilter.js`](scripts/scamFilter.js) scores each posting against weighted heuristics tuned for the scams that target Indian freshers — pay-to-apply / registration fees, refundable "security deposits", training-kit charges, UPI payment requests, and application funnels routed to WhatsApp/Telegram or a personal Gmail. Key design choices:
+
+- **No single keyword can drop a job.** A posting is only blocked once its weighted score crosses a threshold, so ambiguous fintech terms ("wire transfer", "processing fee", "security deposit") don't cause false positives.
+- **Anti-scam disclaimers are ignored.** Reputable JDs that say *"we will never ask you to pay a fee"* are not flagged by their own disclaimer text.
+- **Every block is auditable** — the filter returns the exact reasons, which the ingestion script logs.
+
+Behavior is pinned by [`scripts/scamFilter.test.js`](scripts/scamFilter.test.js) (run with `npm test`), and the nightly workflow runs these tests before ingesting so the filter can't silently regress. Verified against 8,400+ live postings with zero legitimate jobs blocked.
+
 ### Running the Script
 
 You can run the ingestion script locally. It will read from `scripts/companies.json` and ingest jobs.

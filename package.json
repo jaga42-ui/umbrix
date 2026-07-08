@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "ingest": "node scripts/ingest-jobs.js"
+    "ingest": "node scripts/ingest-jobs.js",
+    "test": "node --test scripts/*.test.js"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",

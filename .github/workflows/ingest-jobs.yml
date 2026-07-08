@@ -27,6 +27,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Test scam filter
+        run: npm test
+
       - name: Run ingestion pipeline
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}

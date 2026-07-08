@@ -2,6 +2,7 @@ require('dotenv').config({ path: '.env.local' });
 const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
+const { evaluate: evaluateScam } = require('./scamFilter');
 
 // Basic Job Schema since we're running outside Next.js compile context
 const JobSchema = new mongoose.Schema(
@@ -18,13 +19,6 @@ const JobSchema = new mongoose.Schema(
 );
 
 const Job = mongoose.models.Job || mongoose.model('Job', JobSchema);
-
-const SCAM_KEYWORDS = ['processing fee', 'security deposit', 'wire transfer', 'upfront payment'];
-
-function isScam(descriptionHtml) {
-  const lowerDesc = descriptionHtml.toLowerCase();
-  return SCAM_KEYWORDS.some((keyword) => lowerDesc.includes(keyword));
-}
 
 async function ingestJobs() {
   if (!process.env.MONGODB_URI) {
@@ -61,10 +55,19 @@ async function ingestJobs() {
       const jobDocs = [];
 
       for (const job of jobs) {
-        // Apply scam filter
+        // Apply the weighted scam filter. Log why anything is dropped so every
+        // block is auditable — the trust moat depends on being able to explain it.
         const content = job.content || '';
-        if (isScam(content)) {
+        const verdict = evaluateScam({
+          title: job.title,
+          content,
+          applyUrl: job.absolute_url,
+        });
+        if (verdict.isScam) {
           scamCount++;
+          console.log(
+            `   🚫 Blocked "${job.title}" (score ${verdict.score}): ${verdict.reasons.join('; ')}`
+          );
           continue;
         }
 
