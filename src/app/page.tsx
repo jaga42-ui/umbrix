@@ -3,7 +3,7 @@
 import { useAuth } from "@/components/AuthProvider";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import { ArrowRight, Check } from "lucide-react";
 
 // A representative slice of real companies from the actual source list --
@@ -42,63 +42,53 @@ function VerificationMarquee() {
   );
 }
 
-// Real postings, visibly getting checked one at a time -- this is what the
-// product actually does, not an abstract stand-in for it.
-function VerificationStack() {
-  const [index, setIndex] = useState(0);
-  const shouldReduceMotion = useReducedMotion();
+// A radar sweep: the clearest honest metaphor for what the scam filter does
+// -- continuously scanning for real signal and letting the noise pass
+// through. Purely conceptual, no invented job data standing in for product.
+const RADAR_BLIP_ANGLES = [20, 100, 160, 250, 320];
 
-  useEffect(() => {
-    if (shouldReduceMotion) return;
-    const id = setInterval(() => {
-      setIndex((i) => (i + 1) % MARQUEE_ITEMS.length);
-    }, 2800);
-    return () => clearInterval(id);
-  }, [shouldReduceMotion]);
-
-  const current = MARQUEE_ITEMS[index];
-
+function VerificationRadar() {
   return (
-    <div className="relative w-full max-w-sm h-60 mx-auto md:mx-0">
-      {/* Queued cards peeking out behind, like a small deck */}
-      <div className="absolute inset-x-7 top-6 bottom-0 bg-card border border-border rounded-2xl rotate-2" aria-hidden="true" />
-      <div className="absolute inset-x-3.5 top-3 bottom-0 bg-card border border-border rounded-2xl rotate-1" aria-hidden="true" />
+    <div
+      className="relative w-[19rem] h-[19rem] sm:w-[23rem] sm:h-[23rem] mx-auto md:mx-0"
+      aria-hidden="true"
+    >
+      <div className="absolute inset-0 rounded-full border border-border" />
 
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={index}
-          initial={shouldReduceMotion ? false : { opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={shouldReduceMotion ? undefined : { opacity: 0, y: -14 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-          className="absolute inset-0 bg-card border border-border rounded-2xl p-6 flex flex-col justify-between"
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="text-xl font-semibold tracking-tight truncate">{current.company}</div>
-              <div className="text-sm text-muted-foreground truncate">{current.role}</div>
-            </div>
-            <div
-              key={`stamp-${index}`}
-              className={`shrink-0 w-12 h-12 rounded-full border-2 border-double border-accent/70 flex items-center justify-center rotate-[-8deg] ${
-                shouldReduceMotion ? "" : "stamp-mark"
-              }`}
-              aria-hidden="true"
-            >
-              <span className="font-mono text-[7px] font-semibold uppercase tracking-[0.06em] text-accent text-center leading-[1.15]">
-                Verified
-                <br />
-                No Scams
-              </span>
-            </div>
-          </div>
+      <div className="absolute inset-0 rounded-full overflow-hidden">
+        <div
+          className="absolute inset-0 radar-sweep"
+          style={{
+            background:
+              "conic-gradient(from 0deg, transparent 0deg, var(--accent) 8deg, transparent 55deg)",
+          }}
+        />
+      </div>
 
-          <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" aria-hidden="true" />
-            Checked just now
+      {RADAR_BLIP_ANGLES.map((angle, i) => {
+        const rad = (angle * Math.PI) / 180;
+        return (
+          <span
+            key={angle}
+            className="absolute w-2 h-2 -ml-1 -mt-1 rounded-full bg-accent opacity-60 radar-blip"
+            style={{
+              top: `${50 + 42 * Math.sin(rad)}%`,
+              left: `${50 + 42 * Math.cos(rad)}%`,
+              animationDelay: `${i * 0.6}s`,
+            }}
+          />
+        );
+      })}
+
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="w-24 h-24 rounded-full bg-card border-2 border-double border-accent/70 flex items-center justify-center rotate-[-8deg] shadow-[0_0_0_8px_var(--background)]">
+          <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-accent text-center leading-tight">
+            Verified
+            <br />
+            No Scams
           </div>
-        </motion.div>
-      </AnimatePresence>
+        </div>
+      </div>
     </div>
   );
 }
@@ -227,13 +217,13 @@ export default function LandingPage() {
             </motion.div>
           </div>
 
-          {/* Right: real postings, getting checked one at a time */}
+          {/* Right: the radar -- always scanning for what's real */}
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
           >
-            <VerificationStack />
+            <VerificationRadar />
           </motion.div>
         </div>
       </main>

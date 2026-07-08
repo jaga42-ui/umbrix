@@ -120,36 +120,50 @@ body {
   animation: marquee-scroll 28s linear infinite;
 }
 
-/* A large ambient stamp watermark behind the hero copy -- slow, continuous,
-   meant to be felt at a glance rather than watched. */
-@keyframes slow-spin {
-  from {
-    transform: rotate(0deg);
-  }
+/* The radar sweep -- a rotating light wedge (conic-gradient) standing in for
+   "continuously scanning for what's real." */
+@keyframes radar-sweep {
   to {
     transform: rotate(360deg);
   }
 }
 
-.slow-spin {
-  animation: slow-spin 50s linear infinite;
+.radar-sweep {
+  animation: radar-sweep 4s linear infinite;
 }
 
-.slow-spin-reverse {
-  animation: slow-spin 34s linear infinite reverse;
+/* A "signal" being picked up by the sweep -- rests at a visible base opacity
+   so reduced-motion still reads as a lit dot, not something mid-transition. */
+@keyframes radar-blip {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+.radar-blip {
+  animation: radar-blip 3s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .stamp-mark {
     animation: none;
   }
-  .slow-spin-reverse {
-    animation: none;
-  }
   .marquee-track {
     animation: none;
   }
-  .slow-spin {
+  .radar-sweep {
     animation: none;
+    opacity: 0.5;
+  }
+  .radar-blip {
+    animation: none;
+    opacity: 0.7;
+    transform: scale(1);
   }
 }
