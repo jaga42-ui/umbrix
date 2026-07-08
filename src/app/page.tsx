@@ -25,16 +25,16 @@ const MARQUEE_ITEMS = [
 function VerificationMarquee() {
   const items = [...MARQUEE_ITEMS, ...MARQUEE_ITEMS];
   return (
-    <div className="border-b border-border bg-secondary/60 py-2.5 overflow-hidden">
+    <div className="bg-primary text-primary-foreground py-2.5 overflow-hidden">
       <div className="flex marquee-track w-max">
         {items.map((item, i) => (
           <span
             key={i}
-            className="font-mono text-xs uppercase tracking-wider text-muted-foreground px-6 flex items-center gap-2 shrink-0 whitespace-nowrap"
+            className="font-mono text-xs uppercase tracking-wider px-6 flex items-center gap-2 shrink-0 whitespace-nowrap"
           >
-            <Check className="w-3 h-3 text-accent" />
+            <Check className="w-3 h-3 text-accent-on-dark" />
             {item.company} &mdash; {item.role}
-            <span className="text-accent ml-2">&bull;</span>
+            <span className="ml-2 text-accent-on-dark">&bull;</span>
           </span>
         ))}
       </div>
@@ -48,8 +48,15 @@ function VerificationSeal() {
       className="relative w-[22rem] h-[22rem] sm:w-[26rem] sm:h-[26rem] shrink-0 pointer-events-none select-none"
       aria-hidden="true"
     >
-      <div className="absolute inset-0 rounded-full border-2 border-double border-accent/25 slow-spin" />
-      <div className="absolute inset-10 rounded-full border border-border slow-spin-reverse" />
+      {/* Outer dial: a ring of tick marks, like a gauge face -- reads as an
+          engineered mechanism even at rest, not just an empty circle. */}
+      <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full slow-spin">
+        <circle cx="50" cy="50" r="47" fill="none" stroke="var(--accent)" strokeOpacity="0.4" strokeWidth="1" strokeDasharray="1.2 5.4" strokeLinecap="round" />
+      </svg>
+      {/* Inner dial, denser ticks, turning the opposite way */}
+      <svg viewBox="0 0 100 100" className="absolute inset-12 w-[calc(100%-6rem)] h-[calc(100%-6rem)] slow-spin-reverse">
+        <circle cx="50" cy="50" r="47" fill="none" stroke="var(--foreground)" strokeOpacity="0.25" strokeWidth="1" strokeDasharray="0.8 3.2" strokeLinecap="round" />
+      </svg>
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="w-24 h-24 rounded-full bg-card border-2 border-double border-accent/70 flex items-center justify-center rotate-[-8deg] shadow-[0_0_0_6px_var(--background)]">
           <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-accent text-center leading-tight">

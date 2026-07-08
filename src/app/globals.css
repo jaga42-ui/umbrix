@@ -13,6 +13,7 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-accent-on-dark: var(--accent-on-dark);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
@@ -52,6 +53,9 @@
   --muted-foreground: #6b6156;
   --accent: #2f5d3a;
   --accent-foreground: #f6f3ec;
+  /* A lighter tint of the accent for use as a highlight on dark (ink)
+     backgrounds, where the base accent's contrast is too low to read. */
+  --accent-on-dark: #8fb89b;
   --destructive: #7a3430;
   --destructive-foreground: #f6f3ec;
   --border: #dad3c3;
