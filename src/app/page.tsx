@@ -2,9 +2,92 @@
 
 import { useAuth } from "@/components/AuthProvider";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
-import { motion } from "framer-motion";
-import { ArrowRight, Building2, MapPin } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { ArrowRight } from "lucide-react";
+
+// A representative slice of real companies from the actual source list --
+// illustrative here (the landing page can't call the authenticated jobs
+// API), but grounded in the real product, not invented placeholders.
+const LIVE_SAMPLE = [
+  { company: "Stripe", role: "Senior Frontend Engineer" },
+  { company: "Airbnb", role: "Product Designer" },
+  { company: "Groww", role: "Backend Engineer" },
+  { company: "Datadog", role: "Site Reliability Engineer" },
+  { company: "PhonePe", role: "Mobile Engineer" },
+  { company: "Cloudflare", role: "Security Engineer" },
+  { company: "Slice", role: "Product Manager" },
+];
+
+function VerificationTicker() {
+  const [index, setIndex] = useState(0);
+  const shouldReduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    // Reduced motion: hold on the first item instead of auto-cycling.
+    if (shouldReduceMotion) return;
+    const id = setInterval(() => {
+      setIndex((i) => (i + 1) % LIVE_SAMPLE.length);
+    }, 2600);
+    return () => clearInterval(id);
+  }, [shouldReduceMotion]);
+
+  const current = LIVE_SAMPLE[index];
+
+  return (
+    <div className="bg-card border border-border rounded-2xl p-8 max-w-sm mx-auto md:mx-0">
+      <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-7 flex items-center gap-2">
+        <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" aria-hidden="true" />
+        Scanning today&rsquo;s postings
+      </div>
+
+      <div className="min-h-[7.5rem]">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={index}
+            initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={shouldReduceMotion ? undefined : { opacity: 0, y: -8 }}
+            transition={{ duration: 0.35 }}
+            className="flex items-start justify-between gap-4"
+          >
+            <div className="min-w-0">
+              <div className="text-lg font-semibold tracking-tight mb-1 truncate">
+                {current.company}
+              </div>
+              <div className="text-sm text-muted-foreground truncate">{current.role}</div>
+            </div>
+
+            <div
+              key={`stamp-${index}`}
+              className={`shrink-0 w-11 h-11 rounded-full border-2 border-double border-accent/70 flex items-center justify-center rotate-[-8deg] ${
+                shouldReduceMotion ? "" : "stamp-mark"
+              }`}
+              aria-hidden="true"
+            >
+              <span className="font-mono text-[7px] font-semibold uppercase tracking-[0.06em] text-accent text-center leading-[1.15]">
+                Verified
+                <br />
+                No Scams
+              </span>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      <div className="mt-7 pt-5 border-t border-border flex items-center gap-1.5" aria-hidden="true">
+        {LIVE_SAMPLE.map((_, i) => (
+          <span
+            key={i}
+            className={`h-1 rounded-full transition-all duration-300 ${
+              i === index ? "w-6 bg-accent" : "w-1.5 bg-border"
+            }`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function LandingPage() {
   const { user, loading, signInWithGoogle, isDemoMode } = useAuth();
@@ -78,55 +161,15 @@ export default function LandingPage() {
             </div>
           </motion.div>
 
-          {/* Right: a live sample of what "verified" actually looks like */}
+          {/* Right: the verification mechanic itself, in motion */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: "easeOut", delay: 0.15 }}
-            className="relative"
           >
-            <div className="relative bg-card border border-border rounded-2xl p-6 max-w-sm mx-auto md:mx-0">
-              <div
-                className="stamp-mark pointer-events-none absolute top-4 right-4 w-16 h-16 rounded-full border-2 border-double border-accent/70 flex items-center justify-center rotate-[-8deg]"
-                aria-hidden="true"
-              >
-                <span className="font-mono text-[8px] font-semibold uppercase tracking-[0.12em] text-accent text-center leading-tight px-1">
-                  Verified
-                  <br />
-                  No Scams
-                </span>
-              </div>
-
-              <div className="font-mono text-2xl font-semibold text-stage-interview mb-1">92%</div>
-              <div className="font-mono text-[10px] uppercase font-semibold tracking-wider text-muted-foreground mb-4">
-                Match
-              </div>
-
-              <h3 className="text-lg font-semibold tracking-tight mb-1.5 pr-16">
-                Senior Frontend Engineer
-              </h3>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground mb-4">
-                <span className="flex items-center">
-                  <Building2 className="w-3.5 h-3.5 mr-1.5 shrink-0" />
-                  Stripe
-                </span>
-                <span className="flex items-center">
-                  <MapPin className="w-3.5 h-3.5 mr-1.5 shrink-0" />
-                  Remote
-                </span>
-              </div>
-
-              <div className="border-l-2 border-accent/40 pl-3 py-0.5">
-                <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
-                  Why this matches
-                </span>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  You know React, TypeScript and Next.js &mdash; this role leads with all three.
-                </p>
-              </div>
-            </div>
+            <VerificationTicker />
             <p className="font-mono text-[11px] text-muted-foreground/70 text-center mt-3">
-              An actual posting from today&rsquo;s feed, checked before you ever see it.
+              Every posting is checked like this before it ever reaches you.
             </p>
           </motion.div>
         </div>
