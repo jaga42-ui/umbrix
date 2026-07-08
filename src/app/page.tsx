@@ -3,7 +3,7 @@
 import { useAuth } from "@/components/AuthProvider";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { MotionConfig, motion } from "framer-motion";
 import { ArrowRight, Check } from "lucide-react";
 
 // A representative slice of real companies from the actual source list --
@@ -93,6 +93,10 @@ function VerificationRadar() {
   );
 }
 
+// Shared easing for the entrance choreography -- a gentle overshoot-free
+// deceleration (expo-out) so everything settles rather than snaps.
+const EASE = [0.22, 1, 0.36, 1] as const;
+
 const headlineWords = ["Every", "dream", "deserves", "a", "chance."];
 
 export default function LandingPage() {
@@ -131,102 +135,117 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col overflow-hidden">
-      <VerificationMarquee />
+    <MotionConfig reducedMotion="user">
+      <div className="min-h-screen bg-background flex flex-col overflow-hidden">
+        <VerificationMarquee />
 
-      <main className="flex-1 flex items-center relative overflow-hidden">
-        <div className="max-w-6xl mx-auto px-6 sm:px-10 py-14 md:py-16 w-full grid grid-cols-1 md:grid-cols-[1.15fr_0.85fr] gap-14 md:gap-6 items-center relative z-10">
-          {/* Left: the pitch */}
-          <div>
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-              className="font-mono text-xs tracking-widest uppercase text-muted-foreground mb-6 flex items-center gap-2"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-accent" aria-hidden="true" />
-              Daily digest &mdash; {issueDate}
-            </motion.div>
-
-            <h1 className="font-serif text-5xl sm:text-6xl md:text-[4.5rem] leading-[1.05] tracking-tight mb-6 text-balance">
-              {headlineWords.map((word, i) => (
-                <motion.span
-                  key={i}
-                  initial={{ opacity: 0, y: 28 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    duration: 0.55,
-                    delay: i * 0.07,
-                    ease: [0.16, 1, 0.3, 1],
-                  }}
-                  className="inline-block mr-[0.28em]"
-                >
-                  {word}
-                </motion.span>
-              ))}
-            </h1>
-
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.45 }}
-              className="text-xl text-foreground/80 mb-2 leading-relaxed"
-            >
-              Stop searching everywhere. Start searching once.
-            </motion.p>
-
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.52 }}
-              className="text-base text-muted-foreground mb-10 max-w-md leading-relaxed"
-            >
-              We pull roles straight from company ATS systems, run every one through
-              a scam filter, and show you what&rsquo;s real. Nothing else.
-            </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.6 }}
-              className="space-y-3"
-            >
-              <button
-                onClick={handleSignIn}
-                className="group relative inline-flex items-center gap-2.5 bg-primary text-primary-foreground h-12 px-6 rounded-xl font-medium hover:opacity-90 active:scale-[0.97] transition-all cursor-pointer overflow-hidden"
+        <main className="flex-1 flex items-center relative overflow-hidden">
+          <div className="max-w-6xl mx-auto px-6 sm:px-10 py-14 md:py-16 w-full grid grid-cols-1 md:grid-cols-[1.15fr_0.85fr] gap-14 md:gap-6 items-center relative z-10">
+            {/* Left: the pitch */}
+            <div>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: EASE }}
+                className="font-mono text-xs tracking-widest uppercase text-muted-foreground mb-6 flex items-center gap-2"
               >
                 <motion.span
-                  className="inline-flex items-center gap-2.5"
-                  animate={isStamping ? { scale: [1, 0.85, 1] } : { scale: 1 }}
-                  transition={{ duration: 0.35 }}
-                >
-                  {isStamping ? (
-                    <Check className="w-4 h-4" />
-                  ) : (
-                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-                  )}
-                  <span>{isDemoMode ? "Sign in as guest developer" : "Sign in with Google"}</span>
-                </motion.span>
-              </button>
+                  className="w-1.5 h-1.5 rounded-full bg-accent"
+                  animate={{ opacity: [1, 0.25, 1], scale: [1, 0.7, 1] }}
+                  transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+                  aria-hidden="true"
+                />
+                Daily digest &mdash; {issueDate}
+              </motion.div>
 
-              <p className="font-mono text-[11px] text-muted-foreground/80">
-                {isDemoMode
-                  ? "One click, no database or Firebase setup — try it instantly."
-                  : "One click. No forms, no waiting."}
-              </p>
+              {/* Each word rises from behind its own mask -- an ink-press
+                  reveal rather than a flat fade. */}
+              <h1 className="font-serif text-5xl sm:text-6xl md:text-[4.5rem] leading-[1.05] tracking-tight mb-6 text-balance">
+                {headlineWords.map((word, i) => (
+                  <span
+                    key={i}
+                    className="inline-block overflow-hidden align-bottom mr-[0.28em] pb-[0.14em] -mb-[0.14em]"
+                  >
+                    <motion.span
+                      className="inline-block"
+                      initial={{ y: "120%" }}
+                      animate={{ y: 0 }}
+                      transition={{ duration: 0.75, delay: 0.15 + i * 0.075, ease: EASE }}
+                    >
+                      {word}
+                    </motion.span>
+                  </span>
+                ))}
+              </h1>
+
+              <motion.p
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.55, ease: EASE }}
+                className="text-xl text-foreground/80 mb-2 leading-relaxed"
+              >
+                Stop searching everywhere. Start searching once.
+              </motion.p>
+
+              <motion.p
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.64, ease: EASE }}
+                className="text-base text-muted-foreground mb-10 max-w-md leading-relaxed"
+              >
+                We pull roles straight from company ATS systems, run every one through
+                a scam filter, and show you what&rsquo;s real. Nothing else.
+              </motion.p>
+
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.74, ease: EASE }}
+                className="space-y-3"
+              >
+                <button
+                  onClick={handleSignIn}
+                  className="group relative inline-flex items-center gap-2.5 bg-primary text-primary-foreground h-12 px-6 rounded-xl font-medium active:scale-[0.97] transition-transform cursor-pointer overflow-hidden"
+                >
+                  {/* Light sweep across the button on hover */}
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 -translate-x-[150%] group-hover:translate-x-[150%] transition-transform duration-700 ease-out bg-gradient-to-r from-transparent via-primary-foreground/25 to-transparent"
+                  />
+                  <motion.span
+                    className="relative z-10 inline-flex items-center gap-2.5"
+                    animate={isStamping ? { scale: [1, 0.85, 1] } : { scale: 1 }}
+                    transition={{ duration: 0.35 }}
+                  >
+                    {isStamping ? (
+                      <Check className="w-4 h-4" />
+                    ) : (
+                      <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                    )}
+                    <span>{isDemoMode ? "Sign in as guest developer" : "Sign in with Google"}</span>
+                  </motion.span>
+                </button>
+
+                <p className="font-mono text-[11px] text-muted-foreground/80">
+                  {isDemoMode
+                    ? "One click, no database or Firebase setup — try it instantly."
+                    : "One click. No forms, no waiting."}
+                </p>
+              </motion.div>
+            </div>
+
+            {/* Right: the radar -- always scanning for what's real */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.7, delay: 0.3, ease: EASE }}
+              className="float-slow"
+            >
+              <VerificationRadar />
             </motion.div>
           </div>
-
-          {/* Right: the radar -- always scanning for what's real */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.92 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
-          >
-            <VerificationRadar />
-          </motion.div>
-        </div>
-      </main>
-    </div>
+        </main>
+      </div>
+    </MotionConfig>
   );
 }

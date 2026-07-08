@@ -150,6 +150,21 @@ body {
   animation: radar-blip 3s ease-in-out infinite;
 }
 
+/* A slow vertical drift so the radar feels alive without demanding attention. */
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translateY(-8px);
+  }
+  50% {
+    transform: translateY(8px);
+  }
+}
+
+.float-slow {
+  animation: float-slow 7s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .stamp-mark {
     animation: none;
@@ -165,5 +180,8 @@ body {
     animation: none;
     opacity: 0.7;
     transform: scale(1);
+  }
+  .float-slow {
+    animation: none;
   }
 }
