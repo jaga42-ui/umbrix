@@ -4,7 +4,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { MotionConfig, motion } from "framer-motion";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, ShieldCheck } from "lucide-react";
 
 // A representative slice of real companies from the actual source list --
 // illustrative here (the landing page can't call the authenticated jobs
@@ -44,18 +44,50 @@ function VerificationMarquee() {
 
 // A radar sweep: the clearest honest metaphor for what the scam filter does
 // -- continuously scanning for real signal and letting the noise pass
-// through. Purely conceptual, no invented job data standing in for product.
-const RADAR_BLIP_ANGLES = [20, 100, 160, 250, 320];
+// through. The sources radiating outward are real companies from the actual
+// 61-company list (61 - 6 shown = "+55 more" is the literal, accurate count) --
+// deliberately real employers, not job boards, since going direct to company
+// ATS instead of scraping boards like Naukri/LinkedIn is the actual product.
+const RADAR_SOURCES = [
+  { name: "Stripe", angle: 235 },
+  { name: "Cloudflare", angle: 305 },
+  { name: "Groww", angle: 180 },
+  { name: "Airbnb", angle: 0 },
+  { name: "PhonePe", angle: 145 },
+  { name: "Datadog", angle: 35 },
+];
+
+const RING_RADII = [22, 33, 44];
+
+// Shared easing for the entrance choreography -- a gentle overshoot-free
+// deceleration (expo-out) so everything settles rather than snaps.
+const EASE = [0.22, 1, 0.36, 1] as const;
+
+function polar(angleDeg: number, radiusPct: number) {
+  const rad = (angleDeg * Math.PI) / 180;
+  return {
+    top: `${50 + radiusPct * Math.sin(rad)}%`,
+    left: `${50 + radiusPct * Math.cos(rad)}%`,
+  };
+}
 
 function VerificationRadar() {
   return (
-    <div
-      className="relative w-[19rem] h-[19rem] sm:w-[23rem] sm:h-[23rem] mx-auto md:mx-0"
-      aria-hidden="true"
-    >
-      <div className="absolute inset-0 rounded-full border border-border" />
-
+    <div className="relative w-full max-w-[26rem] sm:max-w-[30rem] aspect-square mx-auto md:mx-0" aria-hidden="true">
+      {/* Concentric dial rings, clipped together with the sweep */}
       <div className="absolute inset-0 rounded-full overflow-hidden">
+        {RING_RADII.map((r) => (
+          <div
+            key={r}
+            className="absolute rounded-full border border-dashed border-border"
+            style={{
+              top: `${50 - r}%`,
+              left: `${50 - r}%`,
+              width: `${r * 2}%`,
+              height: `${r * 2}%`,
+            }}
+          />
+        ))}
         <div
           className="absolute inset-0 radar-sweep"
           style={{
@@ -65,24 +97,48 @@ function VerificationRadar() {
         />
       </div>
 
-      {RADAR_BLIP_ANGLES.map((angle, i) => {
-        const rad = (angle * Math.PI) / 180;
-        return (
-          <span
-            key={angle}
-            className="absolute w-2 h-2 -ml-1 -mt-1 rounded-full bg-accent opacity-60 radar-blip"
-            style={{
-              top: `${50 + 42 * Math.sin(rad)}%`,
-              left: `${50 + 42 * Math.cos(rad)}%`,
-              animationDelay: `${i * 0.6}s`,
-            }}
-          />
-        );
-      })}
+      {/* Spoke tips on the mid ring, one per source, marking where each
+          "signal" sits before it radiates out to its badge. */}
+      {RADAR_SOURCES.map((source, i) => (
+        <span
+          key={source.name}
+          className="absolute w-2 h-2 -ml-1 -mt-1 rounded-full bg-accent opacity-70 radar-blip"
+          style={{ ...polar(source.angle, 33), animationDelay: `${i * 0.5}s` }}
+        />
+      ))}
+
+      {/* Source badges, radiating outward from the scan */}
+      {RADAR_SOURCES.map((source, i) => (
+        <motion.div
+          key={source.name}
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.5 + i * 0.08, ease: EASE }}
+          className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center gap-2 bg-card border border-border rounded-full pl-1.5 pr-3.5 py-1.5 whitespace-nowrap"
+          style={polar(source.angle, 52)}
+        >
+          <span className="w-5 h-5 rounded-full bg-secondary border border-border flex items-center justify-center font-mono text-[10px] font-semibold text-foreground shrink-0">
+            {source.name.charAt(0)}
+          </span>
+          <span className="text-xs font-medium">{source.name}</span>
+        </motion.div>
+      ))}
+
+      {/* The literal, accurate count of everything else in the source list */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5, delay: 0.5 + RADAR_SOURCES.length * 0.08, ease: EASE }}
+        className="absolute -translate-x-1/2 -translate-y-1/2 font-mono text-xs text-muted-foreground border border-dashed border-border rounded-full px-3.5 py-1.5 whitespace-nowrap"
+        style={polar(90, 52)}
+      >
+        +55 more
+      </motion.div>
 
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="w-24 h-24 rounded-full bg-card border-2 border-double border-accent/70 flex items-center justify-center rotate-[-8deg] shadow-[0_0_0_8px_var(--background)]">
-          <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-accent text-center leading-tight">
+        <div className="w-24 h-24 rounded-full bg-card border-2 border-double border-accent/70 flex flex-col items-center justify-center gap-1 shadow-[0_0_0_8px_var(--background)]">
+          <ShieldCheck className="w-5 h-5 text-accent" />
+          <div className="font-mono text-[9px] font-semibold uppercase tracking-[0.1em] text-accent text-center leading-tight">
             Verified
             <br />
             No Scams
@@ -92,10 +148,6 @@ function VerificationRadar() {
     </div>
   );
 }
-
-// Shared easing for the entrance choreography -- a gentle overshoot-free
-// deceleration (expo-out) so everything settles rather than snaps.
-const EASE = [0.22, 1, 0.36, 1] as const;
 
 const headlineWords = ["Every", "dream", "deserves", "a", "chance."];
 
