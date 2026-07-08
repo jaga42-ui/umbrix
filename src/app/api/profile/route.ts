@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import UserProfile from "@/models/UserProfile";
 import { parseResumeText } from "@/lib/resumeParser";
-import { PDFParse } from "pdf-parse";
 import { resolveUserId } from "@/lib/serverAuth";
 import { checkRateLimit } from "@/lib/rateLimit";
 import {
@@ -177,6 +176,10 @@ export async function POST(req: NextRequest) {
 
     // pdf-parse v2 bundles pdfjs and manages its worker internally (it explicitly
     // supports Next.js + Vercel), so no manual pdfjs-dist wiring is needed.
+    // Imported dynamically (not at module top-level) so its native
+    // @napi-rs/canvas dependency can only ever affect this upload path, never
+    // the GET/PUT handlers in this same file.
+    const { PDFParse } = await import("pdf-parse");
     const pdfParser = new PDFParse({ data: new Uint8Array(buffer) });
     const textResult = await pdfParser.getText();
     const parsedData = parseResumeText(textResult.text);

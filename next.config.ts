@@ -34,6 +34,11 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+  // pdf-parse pulls in @napi-rs/canvas, a native binary with per-platform
+  // builds. Left to the default bundler it can fail to resolve the right
+  // platform binary inside a Vercel serverless function; excluding it from
+  // bundling lets Node's normal module resolution find it at runtime instead.
+  serverExternalPackages: ["pdf-parse"],
   async headers() {
     return [
       {
