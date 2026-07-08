@@ -74,7 +74,7 @@ export function AuthProvider({ children, firebaseConfig }: { children: React.Rea
     if (!isConfigured) {
       setIsDemoMode(true);
       // Retrieve mock user from localStorage if it exists
-      const savedUser = localStorage.getItem("hikari_demo_user");
+      const savedUser = localStorage.getItem("umbrix_demo_user");
       if (savedUser) {
         try {
           setUser(JSON.parse(savedUser));
@@ -115,10 +115,10 @@ export function AuthProvider({ children, firebaseConfig }: { children: React.Rea
         const mockUser = {
           uid: "demo-user-123",
           displayName: "Hiroshi Tanaka",
-          email: "hiroshi.tanaka@hikari.io",
+          email: "hiroshi.tanaka@umbrix.io",
           photoURL: "https://api.dicebear.com/7.x/adventurer/svg?seed=Hiroshi",
         };
-        localStorage.setItem("hikari_demo_user", JSON.stringify(mockUser));
+        localStorage.setItem("umbrix_demo_user", JSON.stringify(mockUser));
         setUser(mockUser);
         setLoading(false);
       }, 600);
@@ -167,7 +167,7 @@ export function AuthProvider({ children, firebaseConfig }: { children: React.Rea
     const isConfigured = getIsFirebaseConfigured(firebaseConfig);
 
     if (!isConfigured) {
-      localStorage.removeItem("hikari_demo_user");
+      localStorage.removeItem("umbrix_demo_user");
       setUser(null);
       return;
     }

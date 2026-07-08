@@ -28,7 +28,7 @@ function makeLimiter(requests: number, window: `${number} ${"s" | "m"}`) {
     redis,
     limiter: Ratelimit.slidingWindow(requests, window),
     analytics: false,
-    prefix: "hikari/ratelimit",
+    prefix: "umbrix/ratelimit",
   });
 }
 

@@ -48,7 +48,7 @@ export default function LandingPage() {
           </h1>
           
           <p className="text-xl text-muted-foreground mb-12 max-w-xl mx-auto leading-relaxed">
-            HIKARI is an exclusive career discovery platform. We cut through the noise to bring you roles tailored to your exact skillset.
+            Umbrix is an exclusive career discovery platform. We cut through the noise to bring you roles tailored to your exact skillset.
           </p>
 
           <div className="max-w-md mx-auto space-y-4">

@@ -22,7 +22,9 @@ const securityHeaders = [
 // sign-in handshake (handler + iframe) is first-party. This avoids the
 // cross-domain storage partitioning that otherwise breaks signInWithRedirect
 // (and popup persistence) in modern browsers. Requires authDomain to be set to
-// this app's own domain (NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=hikari-tau.vercel.app).
+// this app's own domain (NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=<your-deployment-domain>).
+// Note: the Firebase project itself ("hikari-d7c84") is untouched by the
+// Umbrix rebrand — it's existing infrastructure, not a brand-name reference.
 const firebaseProjectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "hikari-d7c84";
 const firebaseAppDomain = `${firebaseProjectId}.firebaseapp.com`;
 

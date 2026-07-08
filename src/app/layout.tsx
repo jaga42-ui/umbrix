@@ -8,22 +8,22 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://hikari.app"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://umbrix.co"),
   title: {
-    default: "HIKARI — Career Discovery",
-    template: "%s · HIKARI",
+    default: "Umbrix — Career Discovery",
+    template: "%s · Umbrix",
   },
   description: "Exclusive career discovery platform for high performers.",
-  applicationName: "HIKARI",
+  applicationName: "Umbrix",
   openGraph: {
-    title: "HIKARI — Career Discovery",
+    title: "Umbrix — Career Discovery",
     description: "Exclusive career discovery platform for high performers.",
-    siteName: "HIKARI",
+    siteName: "Umbrix",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "HIKARI — Career Discovery",
+    title: "Umbrix — Career Discovery",
     description: "Exclusive career discovery platform for high performers.",
   },
   robots: {

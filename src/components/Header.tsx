@@ -21,7 +21,7 @@ export function Header() {
         <div className="flex items-center space-x-8">
           <Link href="/feed" className="flex items-center space-x-2">
             <span className="text-2xl font-bold tracking-wider bg-gradient-to-r from-primary via-primary/80 to-primary/50 bg-clip-text text-transparent">
-              HIKARI
+              UMBRIX
             </span>
           </Link>
 

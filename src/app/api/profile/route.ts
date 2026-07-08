@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
       profile: {
         userId,
         name: "Hiroshi Tanaka (Guest)",
-        email: "guest@hikari.io",
+        email: "guest@umbrix.io",
         title: "Full Stack Engineer",
         summary: "Database is currently offline. You are running in offline fallback mode.",
         skills: ["React", "TypeScript", "Next.js", "Node.js", "TailwindCSS", "Figma", "Git"],

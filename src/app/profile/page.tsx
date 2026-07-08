@@ -41,7 +41,7 @@ interface Profile {
 
 const DEFAULT_GUEST_PROFILE: Profile = {
   name: "Hiroshi Tanaka",
-  email: "hiroshi.tanaka@hikari.io",
+  email: "hiroshi.tanaka@umbrix.io",
   title: "Senior Product Engineer",
   summary: "Creative and performance-focused engineer with 6+ years of experience building premium dashboards, responsive SaaS platforms, and animated design systems.",
   skills: ["React", "TypeScript", "Next.js", "Node.js", "TailwindCSS", "Figma", "Git"],
@@ -104,12 +104,12 @@ export default function ProfilePage() {
       setFetchingProfile(true);
       try {
         if (isDemoMode) {
-          const saved = localStorage.getItem("hikari_demo_profile");
+          const saved = localStorage.getItem("umbrix_demo_profile");
           if (saved) {
             setProfile(JSON.parse(saved));
           } else {
             setProfile(DEFAULT_GUEST_PROFILE);
-            localStorage.setItem("hikari_demo_profile", JSON.stringify(DEFAULT_GUEST_PROFILE));
+            localStorage.setItem("umbrix_demo_profile", JSON.stringify(DEFAULT_GUEST_PROFILE));
           }
         } else {
           const res = await authedFetch(`/api/profile?userId=${user.uid}`);
@@ -155,7 +155,7 @@ export default function ProfilePage() {
 
     try {
       if (isDemoMode) {
-        localStorage.setItem("hikari_demo_profile", JSON.stringify(updatedProfile));
+        localStorage.setItem("umbrix_demo_profile", JSON.stringify(updatedProfile));
         setProfile(updatedProfile);
         triggerSuccess("Profile saved to local storage!");
       } else {
@@ -170,7 +170,7 @@ export default function ProfilePage() {
         const data = await res.json();
         if (res.ok && data.success) {
           if (data.isDemo) {
-            localStorage.setItem("hikari_demo_profile", JSON.stringify(updatedProfile));
+            localStorage.setItem("umbrix_demo_profile", JSON.stringify(updatedProfile));
             setProfile(updatedProfile);
             triggerSuccess("Database offline: Saved to local storage!");
           } else {
@@ -270,7 +270,7 @@ export default function ProfilePage() {
         
         if (isDemoMode || data.isDemo) {
           // Sync demo local storage profile
-          localStorage.setItem("hikari_demo_profile", JSON.stringify(data.profile));
+          localStorage.setItem("umbrix_demo_profile", JSON.stringify(data.profile));
         }
         
         triggerSuccess(data.isDemo ? "Database offline: Resume saved to local storage!" : "Resume uploaded and parsed successfully!");

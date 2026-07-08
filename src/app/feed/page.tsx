@@ -44,7 +44,7 @@ export default function FeedPage() {
 
       const headers: { [key: string]: string } = {};
       if (isDemoMode) {
-        const demoProfile = JSON.parse(localStorage.getItem("hikari_demo_profile") || "{}");
+        const demoProfile = JSON.parse(localStorage.getItem("umbrix_demo_profile") || "{}");
         const demoSkills = demoProfile.skills || ["React", "TypeScript", "Next.js", "Node.js", "TailwindCSS", "Figma", "Git"];
         headers["x-guest-skills"] = JSON.stringify(demoSkills);
       } else {
@@ -70,7 +70,7 @@ export default function FeedPage() {
         
         if (trackerData.isDemo) {
           // Retrieve from local storage demo applications
-          const demoApps = JSON.parse(localStorage.getItem("hikari_demo_applications") || "[]");
+          const demoApps = JSON.parse(localStorage.getItem("umbrix_demo_applications") || "[]");
           demoApps.forEach((app: any) => {
             if (app.jobId) savedIds.add(app.jobId);
           });
@@ -122,7 +122,7 @@ export default function FeedPage() {
       if (data.success) {
         // Handle local storage fallback if API returned demo mode
         if (data.isDemo) {
-          const demoApps = JSON.parse(localStorage.getItem("hikari_demo_applications") || "[]");
+          const demoApps = JSON.parse(localStorage.getItem("umbrix_demo_applications") || "[]");
           // Generate a random ID for the local mock app
           const localApp = {
             ...payload,
@@ -131,7 +131,7 @@ export default function FeedPage() {
             createdAt: new Date().toISOString(),
           };
           demoApps.push(localApp);
-          localStorage.setItem("hikari_demo_applications", JSON.stringify(demoApps));
+          localStorage.setItem("umbrix_demo_applications", JSON.stringify(demoApps));
         }
 
         // Add to saved IDs set locally to update the UI button state immediately

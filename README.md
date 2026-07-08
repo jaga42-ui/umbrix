@@ -1,6 +1,6 @@
-# HIKARI - MVP
+# Umbrix - MVP
 
-HIKARI is a minimalist, premium career discovery platform designed for high performers. This MVP includes a Daily Discovery Feed and a Kanban-style Application Tracker, built with a modern tech stack.
+Umbrix is a minimalist, premium career discovery platform designed for high performers. This MVP includes a Daily Discovery Feed and a Kanban-style Application Tracker, built with a modern tech stack.
 
 ## Tech Stack
 

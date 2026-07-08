@@ -68,12 +68,12 @@ export function KanbanBoard() {
       if (data.success) {
         if (data.isDemo) {
           // Load from LocalStorage
-          const savedLocal = localStorage.getItem("hikari_demo_applications");
+          const savedLocal = localStorage.getItem("umbrix_demo_applications");
           if (savedLocal) {
             setTasks(JSON.parse(savedLocal));
           } else {
             // Seed default mock cards
-            localStorage.setItem("hikari_demo_applications", JSON.stringify(DEFAULT_MOCK_APPS));
+            localStorage.setItem("umbrix_demo_applications", JSON.stringify(DEFAULT_MOCK_APPS));
             setTasks(DEFAULT_MOCK_APPS);
           }
         } else {
@@ -106,7 +106,7 @@ export function KanbanBoard() {
 
   const persistTasksUpdate = async (updatedItems: KanbanTask[], fullUpdatedList: KanbanTask[]) => {
     if (isDemoMode) {
-      localStorage.setItem("hikari_demo_applications", JSON.stringify(fullUpdatedList));
+      localStorage.setItem("umbrix_demo_applications", JSON.stringify(fullUpdatedList));
       return;
     }
 
@@ -228,7 +228,7 @@ export function KanbanBoard() {
           };
           const newTasksList = [...tasks, newApp];
           setTasks(newTasksList);
-          localStorage.setItem("hikari_demo_applications", JSON.stringify(newTasksList));
+          localStorage.setItem("umbrix_demo_applications", JSON.stringify(newTasksList));
         } else {
           const newApp = {
             ...data.application,
@@ -318,7 +318,7 @@ export function KanbanBoard() {
         setTasks(updatedTasksList);
 
         if (data.isDemo) {
-          localStorage.setItem("hikari_demo_applications", JSON.stringify(updatedTasksList));
+          localStorage.setItem("umbrix_demo_applications", JSON.stringify(updatedTasksList));
         }
 
         setIsDetailModalOpen(false);
@@ -358,7 +358,7 @@ export function KanbanBoard() {
         setTasks(finalTasksList);
 
         if (data.isDemo) {
-          localStorage.setItem("hikari_demo_applications", JSON.stringify(finalTasksList));
+          localStorage.setItem("umbrix_demo_applications", JSON.stringify(finalTasksList));
         }
 
         setIsDetailModalOpen(false);
