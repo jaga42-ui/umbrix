@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { Job } from "@/models/Job";
 import UserProfile from "@/models/UserProfile";
 import { resolveUserId } from "@/lib/serverAuth";
+import { calculateMatch, rankByMatch, type MatchProfile } from "@/lib/matchScore";
 
 // A robust set of mock jobs to fall back to when MongoDB is offline
 const MOCK_JOBS = [
@@ -63,90 +64,6 @@ const MOCK_JOBS = [
   }
 ];
 
-function calculateMatch(userSkills: string[], jobTags: string[], jobTitle: string, jobDescription: string) {
-  const userSkillsSet = new Set(userSkills.map(s => s.toLowerCase()));
-  
-  if (userSkills.length === 0) {
-    return {
-      score: 70,
-      matchingSkills: [],
-      missingSkills: jobTags,
-      explanation: [
-        "Baseline match score. Upload a resume to calculate your exact fit.",
-        `This role actively uses: ${jobTags.slice(0, 4).join(", ")}.`
-      ]
-    };
-  }
-
-  const matchingSkills: string[] = [];
-  const missingSkills: string[] = [];
-
-  for (const tag of jobTags) {
-    if (userSkillsSet.has(tag.toLowerCase())) {
-      matchingSkills.push(tag);
-    } else {
-      missingSkills.push(tag);
-    }
-  }
-
-  const lowercaseTitle = jobTitle.toLowerCase();
-  
-  // Calculate score base
-  let score = 70;
-  if (jobTags.length > 0) {
-    const ratio = matchingSkills.length / jobTags.length;
-    score = 70 + Math.round(ratio * 25); // up to 95
-  }
-
-  // Bonus points if user skills match words in the job title
-  let titleMatchCount = 0;
-  for (const skill of userSkills) {
-    if (lowercaseTitle.includes(skill.toLowerCase()) && !jobTags.some(t => t.toLowerCase() === skill.toLowerCase())) {
-      titleMatchCount++;
-    }
-  }
-  if (titleMatchCount > 0) {
-    score += Math.min(titleMatchCount * 3, 4);
-  }
-
-  score = Math.min(score, 99);
-
-  const explanation: string[] = [];
-  
-  if (matchingSkills.length > 0) {
-    explanation.push(
-      `Excellent match: You possess key required skills: ${matchingSkills.slice(0, 3).join(", ")}.`
-    );
-  }
-
-  if (missingSkills.length > 0) {
-    explanation.push(
-      `Opportunity to grow: This role utilizes ${missingSkills.slice(0, 3).join(", ")}, which are not in your profile.`
-    );
-  } else {
-    explanation.push(
-      `Full stack alignment: Your skillset covers 100% of the core technologies listed.`
-    );
-  }
-
-  if (lowercaseTitle.includes("senior") || lowercaseTitle.includes("staff") || lowercaseTitle.includes("lead")) {
-    explanation.push(
-      `Leadership fit: This is a senior role. Highlight your project ownership and architecture decisions.`
-    );
-  } else {
-    explanation.push(
-      `Execution fit: Focuses on core feature delivery and high-velocity engineering.`
-    );
-  }
-
-  return {
-    score,
-    matchingSkills,
-    missingSkills,
-    explanation
-  };
-}
-
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -158,31 +75,36 @@ export async function GET(request: Request) {
     if (auth.errorResponse) return auth.errorResponse;
     const userId = auth.userId!;
 
-    // 1. Fetch user's skills
-    let userSkills: string[] = [];
+    // 1. Build the match profile used to personalize ranking.
+    const matchProfile: MatchProfile = { skills: [] };
     const guestSkillsHeader = request.headers.get("x-guest-skills");
+    const guestTitleHeader = request.headers.get("x-guest-title");
 
-    // The guest-skills header is client-supplied and untrusted, so it is only
-    // honored in demo mode. When auth is enforced, skills come from the DB profile.
+    // The guest-* headers are client-supplied and untrusted, so they are only
+    // honored in demo mode. When auth is enforced, the profile comes from the DB.
     if (!auth.enforced && guestSkillsHeader) {
       try {
-        userSkills = JSON.parse(guestSkillsHeader);
+        matchProfile.skills = JSON.parse(guestSkillsHeader);
       } catch (e) {
         console.error("Failed to parse guest skills header", e);
       }
+      if (guestTitleHeader) matchProfile.title = guestTitleHeader;
     } else {
       try {
         const db = await connectToDatabase();
         if (db) {
           const profile = await UserProfile.findOne({ userId });
           if (profile) {
-            userSkills = profile.skills || [];
+            matchProfile.skills = profile.skills || [];
+            matchProfile.title = profile.title;
+            matchProfile.experience = profile.experience;
           }
         }
       } catch (e) {
         console.error("Failed to fetch UserProfile in jobs API", e);
       }
     }
+    const hasSkills = matchProfile.skills.length > 0;
 
     // Helper for offline fallback
     const getMockJobsFallback = () => {
@@ -218,22 +140,22 @@ export async function GET(request: Request) {
       }
 
       const formattedMockJobs = filteredJobs.map((job) => {
-        const match = calculateMatch(userSkills, job.tags, job.title, job.descriptionHtml);
+        const match = calculateMatch(matchProfile, job);
         return {
           ...job,
           matchScore: match.score,
           matchingSkills: match.matchingSkills,
           missingSkills: match.missingSkills,
-          matchSummary: match.explanation[0],
-          matchExplanation: match.explanation,
+          matchSummary: match.matchSummary,
+          matchExplanation: match.matchExplanation,
         };
       });
 
       return NextResponse.json({
         success: true,
-        jobs: formattedMockJobs,
+        jobs: rankByMatch(formattedMockJobs),
         isDemo: true,
-        hasSkills: userSkills.length > 0,
+        hasSkills,
       });
     };
 
@@ -269,10 +191,10 @@ export async function GET(request: Request) {
 
       const jobs = await Job.find(query).sort({ createdAt: -1 });
 
-      // Format jobs with computed match summaries and scores dynamically
+      // Format jobs with computed match summaries and scores, then rank by fit.
       const formattedJobs = jobs.map((job) => {
         const companyCapitalized = job.companySlug.charAt(0).toUpperCase() + job.companySlug.slice(1);
-        const match = calculateMatch(userSkills, job.tags, job.title, job.descriptionHtml);
+        const match = calculateMatch(matchProfile, job);
 
         return {
           _id: job._id.toString(),
@@ -286,17 +208,17 @@ export async function GET(request: Request) {
           matchScore: match.score,
           matchingSkills: match.matchingSkills,
           missingSkills: match.missingSkills,
-          matchSummary: match.explanation[0],
-          matchExplanation: match.explanation,
+          matchSummary: match.matchSummary,
+          matchExplanation: match.matchExplanation,
           createdAt: job.createdAt,
         };
       });
 
       return NextResponse.json({
         success: true,
-        jobs: formattedJobs,
+        jobs: rankByMatch(formattedJobs),
         isDemo: false,
-        hasSkills: userSkills.length > 0,
+        hasSkills,
       });
     } catch (dbError) {
       console.warn("Database query failed, falling back to mock jobs:", dbError);

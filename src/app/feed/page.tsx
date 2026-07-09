@@ -47,6 +47,7 @@ export default function FeedPage() {
         const demoProfile = JSON.parse(localStorage.getItem("umbrix_demo_profile") || "{}");
         const demoSkills = demoProfile.skills || ["React", "TypeScript", "Next.js", "Node.js", "TailwindCSS", "Figma", "Git"];
         headers["x-guest-skills"] = JSON.stringify(demoSkills);
+        if (demoProfile.title) headers["x-guest-title"] = demoProfile.title;
       } else {
         queryParams.set("userId", user.uid);
       }
@@ -211,8 +212,11 @@ export default function FeedPage() {
 
           {/* Quick Stats */}
           {jobs.length > 0 && !fetchingJobs && (
-            <div className="text-xs bg-secondary/50 border border-border px-3 py-1.5 rounded-lg text-muted-foreground self-start md:self-auto">
-              Showing <span className="font-semibold text-foreground">{jobs.length}</span> matching opportunities
+            <div className="text-xs bg-secondary/50 border border-border px-3 py-1.5 rounded-lg text-muted-foreground self-start md:self-auto flex items-center gap-1.5">
+              {hasSkills && <Sparkles className="w-3 h-3 text-primary" />}
+              {hasSkills ? "Ranked by your match" : "Showing"}{" "}
+              <span className="font-semibold text-foreground">{jobs.length}</span>{" "}
+              {hasSkills ? "roles" : "opportunities"}
             </div>
           )}
         </div>
@@ -393,7 +397,7 @@ export default function FeedPage() {
               You have completed today's discovery review.
             </p>
             <p className="text-xs text-muted-foreground/75 mt-1">
-              New matching opportunities ingest daily from Greenhouse partner boards.
+              New matching opportunities ingest daily from partner ATS boards (Greenhouse, Lever).
             </p>
           </div>
         )}

@@ -15,7 +15,8 @@ employers or ads. Backlog priority is therefore driven by two questions:
 **does it convert free users to paying ones?** and **does it protect the premium moat?**
 
 The current top of the list, in order:
-1. 🔴 **Personalized feed ranking** (§2) — flagship Premium feature, #1 conversion lever.
+1. ✅ **Personalized feed ranking** (§2) — shipped. Feed now ranks by a heuristic match
+   score (skills, domain, seniority, description) via `src/lib/matchScore.ts`.
 2. 🔴 **Scam filter + feed freshness** (§2, §3) — the trust moat; retention + positioning.
 3. 🟡 **Tracker free-cap + reminders** (§4) — second conversion lever (free → unlimited).
 4. 🟡 **Billing infrastructure** (§7) — required before any revenue can be collected.
@@ -37,8 +38,11 @@ Employer/marketplace features are **off-strategy** and deliberately not built (�
 - 🟢 Add security headers (CSP, HSTS, etc.) and review CORS on API routes.
 
 ## 2. Discovery feed  ⭐ conversion + moat
-- 🔴 **Personalized ranking (Premium)** — use `UserProfile` (skills/experience) to
-  rank/filter the feed instead of a flat curated list. The flagship paid feature.
+- ✅ **Personalized ranking** — `/api/jobs` scores every job against the user's
+  `UserProfile` (skills, domain, seniority) via `src/lib/matchScore.ts` and ranks the
+  feed by fit (recency tiebreak). No-resume users fall back to recency, preserving the
+  upload upsell. Follow-ups: gate behind Premium once billing exists (§7); tune weights
+  against real ingested-job tag quality.
 - 🔴 **Feed freshness/rotation (moat)** — define what "daily" means, dedup across
   ingests, and expire stale roles (`status: Closed`). Trust depends on it.
 - 🟡 Advanced filters & search — Premium gate: remote, seniority, tags, location.
