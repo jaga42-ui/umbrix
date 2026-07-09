@@ -20,7 +20,8 @@ The current top of the list, in order:
 2. ✅ **Scam filter + feed freshness** (§2, §3) — shipped. Weighted scam heuristic
    (`scripts/scamFilter.js`, 20 tests) + ingest-time stale-role reconciliation.
 3. 🟡 **Tracker free-cap + reminders** (§4) — second conversion lever (free → unlimited).
-4. 🟡 **Billing infrastructure** (§7) — required before any revenue can be collected.
+4. 🟡 **Billing infrastructure** (§7) — entitlement foundation shipped; still needs a
+   payment provider + checkout/webhooks before revenue can be collected.
 5. 🟡 **More ATS sources** (§3) — Greenhouse + Lever ship today; extend breadth further.
 
 Employer/marketplace features are **off-strategy** and deliberately not built (§8).
@@ -87,10 +88,15 @@ Employer/marketplace features are **off-strategy** and deliberately not built (�
 - 🟢 Loading/skeleton and empty states across feed, tracker, and profile.
 
 ## 7. Monetization & billing  ⭐ revenue
-- 🟡 **Billing infrastructure** — subscription plans, checkout, and webhook handling
-  (Stripe is the default). Nothing can be charged until this exists.
-- 🟡 **Entitlement / feature gating** — a clean way to gate Premium features (feed
-  personalization, unlimited tracker, filters) behind an active subscription.
+- 🟡 **Billing infrastructure** — entitlement foundation ✅ (provider-agnostic
+  `Subscription` model, pure `entitlements.ts`, `getEntitlement()`, `/api/entitlement`,
+  `useEntitlement()` hook, `BillingProvider` seam). **Still to do:** pick a provider
+  (Stripe / Paddle / Lemon Squeezy — deferred), implement `src/lib/billing/<provider>.ts`
+  against the seam, and add checkout + webhook routes (webhook upserts the Subscription).
+- ✅ **Entitlement / feature gating** — the mechanism exists: `computeEntitlement` +
+  `FREE_TRACKER_ACTIVE_LIMIT` gate off a single source of truth, fail-safe to free.
+  Not yet *consumed* — first consumer is the tracker free-cap (§4). Feed personalization
+  is still ungated by choice (avoid a free-tier regression until checkout exists).
 - 🟡 **Plans & pricing** — Free vs Premium tiers; monthly + annual (see BUSINESS_MODEL §5).
 - 🟢 **Pause / dormant tier** — low-cost tier to retain users between job searches
   (churn-by-design mitigation, BUSINESS_MODEL §5).
