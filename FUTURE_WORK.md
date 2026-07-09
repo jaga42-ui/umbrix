@@ -17,7 +17,8 @@ employers or ads. Backlog priority is therefore driven by two questions:
 The current top of the list, in order:
 1. ✅ **Personalized feed ranking** (§2) — shipped. Feed now ranks by a heuristic match
    score (skills, domain, seniority, description) via `src/lib/matchScore.ts`.
-2. 🔴 **Scam filter + feed freshness** (§2, §3) — the trust moat; retention + positioning.
+2. ✅ **Scam filter + feed freshness** (§2, §3) — shipped. Weighted scam heuristic
+   (`scripts/scamFilter.js`, 20 tests) + ingest-time stale-role reconciliation.
 3. 🟡 **Tracker free-cap + reminders** (§4) — second conversion lever (free → unlimited).
 4. 🟡 **Billing infrastructure** (§7) — required before any revenue can be collected.
 5. 🟡 **More ATS sources** (§3) — Greenhouse + Lever ship today; extend breadth further.
@@ -43,16 +44,22 @@ Employer/marketplace features are **off-strategy** and deliberately not built (�
   feed by fit (recency tiebreak). No-resume users fall back to recency, preserving the
   upload upsell. Follow-ups: gate behind Premium once billing exists (§7); tune weights
   against real ingested-job tag quality.
-- 🔴 **Feed freshness/rotation (moat)** — define what "daily" means, dedup across
-  ingests, and expire stale roles (`status: Closed`). Trust depends on it.
+- ✅ **Feed freshness/rotation (moat)** — the ingest stamps `lastSeenAt` and closes a
+  company's still-`Active` jobs not seen in a successful run (`reconcileStaleJobs`),
+  so stale postings drop out of the feed; reappearing jobs auto-revive. Follow-up:
+  a global TTL sweep to close "zombie" jobs from companies *removed* from
+  `companies.json` (no longer reconciled per-company); dedup near-identical postings
+  across companies.
 - 🟡 Advanced filters & search — Premium gate: remote, seniority, tags, location.
 - 🟢 Save/hide/dismiss signals to inform future ranking.
 
 ## 3. Data ingestion  ⭐ moat
 - 🟡 **Add more ATS sources** — Greenhouse and Lever ship today (128 companies). Extend
   to Ashby, Workday, and others. Feed breadth gates perceived value and conversion.
-- 🔴 **Formalize & evaluate the scam-filter heuristic (moat)** — add test cases and
-  metrics; keeping scams out of the feed is a core positioning promise, not a nice-to-have.
+- ✅ **Scam-filter heuristic (moat)** — weighted, auditable rules in
+  `scripts/scamFilter.js` (pay-to-apply, deposits, WhatsApp/Telegram funnels, personal
+  emails, suspicious apply hosts) with disclaimer-stripping and 20 pinned tests. Blocked
+  postings are logged with reasons at ingest. Follow-up: track block-rate metrics over time.
 - 🟡 Schedule ingestion (cron) instead of manual runs; add run logging/observability.
 - 🟢 Company management UI/config instead of hand-edited `scripts/companies.json`.
 

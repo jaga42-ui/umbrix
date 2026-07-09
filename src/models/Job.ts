@@ -8,6 +8,10 @@ export interface IJob extends Document {
   tags: string[];
   applyUrl: string;
   status: 'Active' | 'Closed';
+  /** Last time an ingest run confirmed this posting is still live on the ATS. */
+  lastSeenAt?: Date;
+  /** When the job was reconciled to Closed (fell off its ATS feed). */
+  closedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -43,12 +47,22 @@ const JobSchema = new Schema<IJob>(
       type: String,
       enum: ['Active', 'Closed'],
       default: 'Active',
+      index: true,
+    },
+    lastSeenAt: {
+      type: Date,
+    },
+    closedAt: {
+      type: Date,
     },
   },
   {
     timestamps: true,
   }
 );
+
+// The feed's hot path: active jobs for a company, freshest first.
+JobSchema.index({ status: 1, lastSeenAt: -1 });
 
 export const Job: Model<IJob> =
   mongoose.models.Job || mongoose.model<IJob>('Job', JobSchema);

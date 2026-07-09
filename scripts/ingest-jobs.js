@@ -14,6 +14,8 @@ const JobSchema = new mongoose.Schema(
     tags: { type: [String], default: [] },
     applyUrl: { type: String, required: true },
     status: { type: String, enum: ['Active', 'Closed'], default: 'Active' },
+    lastSeenAt: { type: Date },
+    closedAt: { type: Date },
   },
   { timestamps: true }
 );
@@ -161,6 +163,26 @@ async function pool(items, worker, size) {
   return results;
 }
 
+/**
+ * Feed-freshness reconciliation. After a company's board has been fetched
+ * successfully, any of its still-Active jobs whose applyUrl was NOT seen in
+ * this run has fallen off the ATS — mark it Closed so it drops out of the feed.
+ *
+ * This is scoped per-company and only ever called after a *successful* fetch,
+ * so a network failure can never wrongly close a whole company's postings. An
+ * empty `seenUrls` (a board that legitimately has zero open roles now) closes
+ * all of that company's active jobs, which is the correct outcome.
+ *
+ * Returns the number of jobs closed.
+ */
+async function reconcileStaleJobs(JobModel, slug, seenUrls, now = new Date()) {
+  const result = await JobModel.updateMany(
+    { companySlug: slug, status: 'Active', applyUrl: { $nin: seenUrls } },
+    { $set: { status: 'Closed', closedAt: now } }
+  );
+  return result.modifiedCount || 0;
+}
+
 async function processCompany({ slug, ats }) {
   const fetchJobs = ATS_FETCHERS[ats];
   if (!fetchJobs) {
@@ -169,6 +191,7 @@ async function processCompany({ slug, ats }) {
 
   try {
     const rawJobs = await withRetry(() => fetchJobs(slug));
+    const now = new Date();
     const jobDocs = [];
     const blocked = [];
 
@@ -186,23 +209,32 @@ async function processCompany({ slug, ats }) {
         tags: extractTags(job),
         applyUrl: job.applyUrl,
         status: 'Active',
+        lastSeenAt: now,
       });
     }
 
-    if (process.env.MONGODB_URI && jobDocs.length > 0) {
-      // One round-trip per company instead of one per job.
-      await Job.bulkWrite(
-        jobDocs.map((jobDoc) => ({
-          updateOne: {
-            filter: { applyUrl: jobDoc.applyUrl },
-            update: { $set: jobDoc },
-            upsert: true,
-          },
-        }))
-      );
+    let closed = 0;
+    if (process.env.MONGODB_URI) {
+      if (jobDocs.length > 0) {
+        // One round-trip per company instead of one per job. Reviving a job
+        // that reappears after being closed is automatic: status flips back to
+        // Active via $set and closedAt is cleared.
+        await Job.bulkWrite(
+          jobDocs.map((jobDoc) => ({
+            updateOne: {
+              filter: { applyUrl: jobDoc.applyUrl },
+              update: { $set: jobDoc, $unset: { closedAt: '' } },
+              upsert: true,
+            },
+          }))
+        );
+      }
+      // Close anything for this company we no longer see on the board.
+      const seenUrls = jobDocs.map((d) => d.applyUrl);
+      closed = await reconcileStaleJobs(Job, slug, seenUrls, now);
     }
 
-    return { slug, ats, ok: true, found: rawJobs.length, processed: jobDocs.length, blocked };
+    return { slug, ats, ok: true, found: rawJobs.length, processed: jobDocs.length, blocked, closed };
   } catch (error) {
     return { slug, ats, ok: false, message: error.message };
   }
@@ -232,6 +264,7 @@ async function ingestJobs() {
 
   let totalProcessed = 0;
   let totalBlocked = 0;
+  let totalClosed = 0;
   let totalFailed = 0;
 
   for (const r of results) {
@@ -242,14 +275,16 @@ async function ingestJobs() {
     }
     totalProcessed += r.processed;
     totalBlocked += r.blocked.length;
-    console.log(`✅ ${r.slug} (${r.ats}): ${r.found} found, ${r.processed} processed, ${r.blocked.length} blocked`);
+    totalClosed += r.closed || 0;
+    const closedNote = r.closed ? `, ${r.closed} closed (stale)` : '';
+    console.log(`✅ ${r.slug} (${r.ats}): ${r.found} found, ${r.processed} processed, ${r.blocked.length} blocked${closedNote}`);
     for (const reason of r.blocked) {
       console.log(`   🚫 ${reason}`);
     }
   }
 
   console.log(
-    `\n=== Summary: ${totalProcessed} jobs processed, ${totalBlocked} blocked, ${totalFailed}/${companies.length} companies failed ===`
+    `\n=== Summary: ${totalProcessed} jobs processed, ${totalBlocked} blocked, ${totalClosed} closed as stale, ${totalFailed}/${companies.length} companies failed ===`
   );
 
   if (process.env.MONGODB_URI) {
@@ -260,7 +295,19 @@ async function ingestJobs() {
   }
 }
 
-ingestJobs().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+// Only auto-run when invoked directly (`node scripts/ingest-jobs.js`), so the
+// helpers above can be imported by tests without kicking off a live ingest.
+if (require.main === module) {
+  ingestJobs().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = {
+  Job,
+  JobSchema,
+  reconcileStaleJobs,
+  extractTags,
+  interleaveByAts,
+};
