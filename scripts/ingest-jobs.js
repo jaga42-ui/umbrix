@@ -189,6 +189,32 @@ async function pool(items, worker, size) {
 }
 
 /**
+ * Runs the worker over all items concurrently, then retries any that failed
+ * once more — sequentially, so the retry doesn't recreate the same network/DB
+ * pressure (concurrency saturation) that most transient failures come from.
+ * A worker result is a "failure" when its `ok` field is falsy.
+ *
+ * Returns the final results plus how many were retried and how many of those
+ * recovered, for reporting.
+ */
+async function runIngestPass(items, worker, concurrency) {
+  const results = await pool(items, worker, concurrency);
+  const failedIndexes = [];
+  results.forEach((r, i) => {
+    if (!r || !r.ok) failedIndexes.push(i);
+  });
+
+  let recovered = 0;
+  for (const i of failedIndexes) {
+    const retry = await worker(items[i], i);
+    results[i] = retry;
+    if (retry && retry.ok) recovered++;
+  }
+
+  return { results, retried: failedIndexes.length, recovered };
+}
+
+/**
  * Feed-freshness reconciliation. After a company's board has been fetched
  * successfully, any of its still-Active jobs whose applyUrl was NOT seen in
  * this run has fallen off the ATS — mark it Closed so it drops out of the feed.
@@ -211,9 +237,12 @@ async function reconcileStaleJobs(JobModel, slug, seenUrls, now = new Date()) {
 async function processCompany({ slug, ats }) {
   const fetchJobs = ATS_FETCHERS[ats];
   if (!fetchJobs) {
-    return { slug, ok: false, message: `Unknown ATS "${ats}"` };
+    return { slug, ok: false, phase: 'config', message: `Unknown ATS "${ats}"` };
   }
 
+  // Track which phase failed so the summary can separate flaky ATS endpoints
+  // from database problems — they need different fixes.
+  let phase = 'fetch';
   try {
     const rawJobs = await withRetry(() => fetchJobs(slug));
     const now = new Date();
@@ -240,28 +269,34 @@ async function processCompany({ slug, ats }) {
 
     let closed = 0;
     if (process.env.MONGODB_URI) {
-      if (jobDocs.length > 0) {
-        // One round-trip per company instead of one per job. Reviving a job
-        // that reappears after being closed is automatic: status flips back to
-        // Active via $set and closedAt is cleared.
-        await Job.bulkWrite(
-          jobDocs.map((jobDoc) => ({
-            updateOne: {
-              filter: { applyUrl: jobDoc.applyUrl },
-              update: { $set: jobDoc, $unset: { closedAt: '' } },
-              upsert: true,
-            },
-          }))
-        );
-      }
-      // Close anything for this company we no longer see on the board.
-      const seenUrls = jobDocs.map((d) => d.applyUrl);
-      closed = await reconcileStaleJobs(Job, slug, seenUrls, now);
+      phase = 'db';
+      // Both operations are idempotent (upsert by applyUrl; reconcile is a
+      // filtered updateMany), so retrying a transient connection blip — the
+      // ECONNRESET / timeout / DNS errors seen late in large runs — is safe.
+      closed = await withRetry(async () => {
+        if (jobDocs.length > 0) {
+          // One round-trip per company instead of one per job. Reviving a job
+          // that reappears after being closed is automatic: status flips back
+          // to Active via $set and closedAt is cleared.
+          await Job.bulkWrite(
+            jobDocs.map((jobDoc) => ({
+              updateOne: {
+                filter: { applyUrl: jobDoc.applyUrl },
+                update: { $set: jobDoc, $unset: { closedAt: '' } },
+                upsert: true,
+              },
+            }))
+          );
+        }
+        // Close anything for this company we no longer see on the board.
+        const seenUrls = jobDocs.map((d) => d.applyUrl);
+        return reconcileStaleJobs(Job, slug, seenUrls, now);
+      });
     }
 
     return { slug, ats, ok: true, found: rawJobs.length, processed: jobDocs.length, blocked, closed };
   } catch (error) {
-    return { slug, ats, ok: false, message: error.message };
+    return { slug, ats, ok: false, phase, message: error.message };
   }
 }
 
@@ -276,7 +311,15 @@ async function ingestJobs() {
     }
     console.warn("⚠️ MONGODB_URI is not defined. Running in dry-run mode.");
   } else {
-    await mongoose.connect(process.env.MONGODB_URI);
+    // Bound the pool and give server selection / sockets generous timeouts so a
+    // brief network blip mid-run doesn't kill in-flight writes. retryWrites is
+    // on by default for Atlas URIs; set it explicitly for safety.
+    await mongoose.connect(process.env.MONGODB_URI, {
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 15000,
+      socketTimeoutMS: 60000,
+      retryWrites: true,
+    });
     console.log("✅ Connected to MongoDB");
   }
 
@@ -285,17 +328,26 @@ async function ingestJobs() {
 
   console.log(`\nFetching ${companies.length} companies (${FETCH_CONCURRENCY} at a time)...\n`);
 
-  const results = await pool(companies, processCompany, FETCH_CONCURRENCY);
+  const { results, retried, recovered } = await runIngestPass(
+    companies,
+    processCompany,
+    FETCH_CONCURRENCY
+  );
+  if (retried > 0) {
+    console.log(`\n↻ Retried ${retried} failed companies; ${recovered} recovered.\n`);
+  }
 
   let totalProcessed = 0;
   let totalBlocked = 0;
   let totalClosed = 0;
   let totalFailed = 0;
+  const failedByPhase = { fetch: 0, db: 0, config: 0 };
 
   for (const r of results) {
     if (!r.ok) {
       totalFailed++;
-      console.error(`❌ ${r.slug} (${r.ats || '?'}): ${r.message}`);
+      failedByPhase[r.phase] = (failedByPhase[r.phase] || 0) + 1;
+      console.error(`❌ ${r.slug} (${r.ats || '?'}) [${r.phase}]: ${r.message}`);
       continue;
     }
     totalProcessed += r.processed;
@@ -308,8 +360,11 @@ async function ingestJobs() {
     }
   }
 
+  const failBreakdown = totalFailed
+    ? ` (fetch: ${failedByPhase.fetch}, db: ${failedByPhase.db}, config: ${failedByPhase.config})`
+    : '';
   console.log(
-    `\n=== Summary: ${totalProcessed} jobs processed, ${totalBlocked} blocked, ${totalClosed} closed as stale, ${totalFailed}/${companies.length} companies failed ===`
+    `\n=== Summary: ${totalProcessed} jobs processed, ${totalBlocked} blocked, ${totalClosed} closed as stale, ${totalFailed}/${companies.length} companies failed${failBreakdown} ===`
   );
 
   if (process.env.MONGODB_URI) {
@@ -336,4 +391,6 @@ module.exports = {
   extractTags,
   interleaveByAts,
   ATS_FETCHERS,
+  withRetry,
+  runIngestPass,
 };

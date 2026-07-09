@@ -71,11 +71,14 @@ Employer/marketplace features are **off-strategy** and deliberately not built (�
 ## 3. Data ingestion  ⭐ moat
 - ✅ **More ATS sources** — Greenhouse + Lever + **Ashby** now ship (`fetchAshbyJobs`,
   case-sensitive board slugs, drops unlisted postings). 137 companies, ~12.4k active jobs.
-  Follow-ups: add Workday / SmartRecruiters / Recruitee (the `ATS_FETCHERS` registry makes
-  this a one-function add); the last ingest had **19/137 companies fail** on transient
-  fetch errors + MongoDB connection saturation late in a heavier run — consider lowering
-  `FETCH_CONCURRENCY` or hardening the DB connection. Failed companies are not wrongly
-  closed (reconciliation only runs after a successful fetch).
+  Follow-up: add Workday / SmartRecruiters / Recruitee (the `ATS_FETCHERS` registry makes
+  this a one-function add).
+- ✅ **Ingest reliability** — the DB writes (`bulkWrite` + reconcile) are now retried via
+  `withRetry` (both idempotent), the Mongo connection is hardened (`maxPoolSize`, server-
+  selection/socket timeouts, `retryWrites`), and `runIngestPass` retries first-pass
+  failures once, sequentially. Failures are phase-tagged (fetch/db/config) in the summary.
+  Took the last run from **19/137 → 0/137 companies failed**. Covered by offline tests
+  (`ingest-reliability.test.js`).
 - ✅ **Scam-filter heuristic (moat)** — weighted, auditable rules in
   `scripts/scamFilter.js` (pay-to-apply, deposits, WhatsApp/Telegram funnels, personal
   emails, suspicious apply hosts) with disclaimer-stripping and 20 pinned tests. Blocked
