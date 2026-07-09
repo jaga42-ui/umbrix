@@ -61,6 +61,19 @@ export function reqEnum<T extends string>(value: unknown, field: string, allowed
   return value as T;
 }
 
+/**
+ * Escapes regex metacharacters so user input can be safely embedded in a
+ * `$regex` query without injection or catastrophic-backtracking (ReDoS) risk.
+ * Also trims and hard-caps length so an attacker can't send a huge pattern.
+ * Returns undefined for empty/absent input (so the caller can skip the filter).
+ */
+export function safeRegexTerm(value: unknown, max = 100): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim().slice(0, max);
+  if (!trimmed) return undefined;
+  return trimmed.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 /** A plausibly-valid email address (also length-capped). */
 export function reqEmail(value: unknown, field: string): string {
   const email = reqString(value, field, 254);

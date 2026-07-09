@@ -4,6 +4,7 @@ import { Job } from "@/models/Job";
 import UserProfile from "@/models/UserProfile";
 import { resolveUserId } from "@/lib/serverAuth";
 import { calculateMatch, rankByMatch, type MatchProfile } from "@/lib/matchScore";
+import { safeRegexTerm } from "@/lib/validation";
 
 // Max jobs returned to the feed. Ranked by match, so this is "your best N".
 // Bounds the payload as the ingested job set grows across ATS sources.
@@ -176,27 +177,28 @@ export async function GET(request: Request) {
         return getMockJobsFallback();
       }
 
-      // Database is connected: build Mongoose query
+      // Database is connected: build Mongoose query. All user-supplied terms are
+      // escaped + length-capped before entering a $regex to avoid regex
+      // injection / ReDoS.
       const query: any = { status: "Active" };
 
-      if (search) {
+      const searchTerm = safeRegexTerm(search);
+      if (searchTerm) {
         query.$or = [
-          { title: { $regex: search, $options: "i" } },
-          { companySlug: { $regex: search, $options: "i" } },
-          { descriptionHtml: { $regex: search, $options: "i" } },
+          { title: { $regex: searchTerm, $options: "i" } },
+          { companySlug: { $regex: searchTerm, $options: "i" } },
+          { descriptionHtml: { $regex: searchTerm, $options: "i" } },
         ];
       }
 
-      if (location) {
-        if (location.toLowerCase() === "remote") {
-          query.location = { $regex: "remote", $options: "i" };
-        } else {
-          query.location = { $regex: location, $options: "i" };
-        }
+      const locationTerm = safeRegexTerm(location);
+      if (locationTerm) {
+        query.location = { $regex: locationTerm, $options: "i" };
       }
 
-      if (tag) {
-        query.tags = { $regex: new RegExp(`^${tag}$`, "i") };
+      const tagTerm = safeRegexTerm(tag);
+      if (tagTerm) {
+        query.tags = { $regex: `^${tagTerm}$`, $options: "i" };
       }
 
       // Bound the work per request. We never load descriptionHtml (large, and

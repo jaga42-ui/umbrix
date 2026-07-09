@@ -12,6 +12,9 @@ import {
 } from "@/lib/validation";
 
 const MAX_RESUME_BYTES = 5 * 1024 * 1024; // 5MB
+// Cap the extracted text we parse + persist. A real resume is a few KB of text;
+// this bounds DB document size and parse cost against a text-heavy/bomb PDF.
+const MAX_RAWTEXT_CHARS = 100_000;
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -182,7 +185,9 @@ export async function POST(req: NextRequest) {
     const { PDFParse } = await import("pdf-parse");
     const pdfParser = new PDFParse({ data: new Uint8Array(buffer) });
     const textResult = await pdfParser.getText();
-    const parsedData = parseResumeText(textResult.text);
+    // Cap before parsing so both the parse and the persisted rawText are bounded.
+    const cappedText = (textResult.text || "").slice(0, MAX_RAWTEXT_CHARS);
+    const parsedData = parseResumeText(cappedText);
 
     // Create the profile object from parsed data
     const profileData = {

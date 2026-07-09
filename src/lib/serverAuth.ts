@@ -16,6 +16,17 @@ export function isServerAuthEnabled(): boolean {
   );
 }
 
+/**
+ * Whether the app is running in its live production environment. On Vercel this
+ * is only the Production deployment (previews/dev may keep demo mode for
+ * stakeholder demos); elsewhere it falls back to NODE_ENV. Used to guarantee
+ * demo mode (unauthenticated access) can never run in production.
+ */
+export function isProductionRuntime(): boolean {
+  if (process.env.VERCEL_ENV) return process.env.VERCEL_ENV === "production";
+  return process.env.NODE_ENV === "production";
+}
+
 function getBearerToken(req: Request): string | null {
   const header = req.headers.get("authorization");
   if (!header) return null;
@@ -45,6 +56,21 @@ export async function resolveUserId(
   fallbackUserId?: string | null
 ): Promise<ResolvedAuth> {
   if (!isServerAuthEnabled()) {
+    // Fail closed: demo mode grants unauthenticated access, which must never
+    // happen in production. If auth is unconfigured in prod that is a
+    // deployment misconfiguration — deny rather than expose every user's data.
+    if (isProductionRuntime()) {
+      console.error(
+        "Server auth is not configured in production (missing NEXT_PUBLIC_FIREBASE_PROJECT_ID). Refusing unauthenticated access."
+      );
+      return {
+        enforced: true,
+        errorResponse: NextResponse.json(
+          { success: false, error: "Server authentication is not configured" },
+          { status: 503 }
+        ),
+      };
+    }
     return { userId: fallbackUserId ?? undefined, enforced: false };
   }
 

@@ -32,15 +32,21 @@ Employer/marketplace features are **off-strategy** and deliberately not built (�
 ---
 
 ## 1. Security & hardening
-- 🟡 **Rotate the MongoDB credential (precautionary).** The connection string in
-  `.env.local` holds live Atlas credentials. Confirmed git-ignored and never committed,
-  so this is hygiene, not an incident — rotate since it was exposed in plaintext locally.
-- 🔴 Decide whether demo mode (unconfigured Firebase → mocked auth, no token checks)
-  can ever run in production. Gate it to non-production environments explicitly.
-- 🟡 Add input validation/sanitization coverage audit across all API routes.
-- 🟡 Restrict resume uploads: max file size, PDF-only MIME enforcement, and scan/limit
-  extracted `rawText` size before persisting.
-- 🟢 Add security headers (CSP, HSTS, etc.) and review CORS on API routes.
+- ✅ **Demo mode can never run in production** — `resolveUserId` now fails closed:
+  when server auth is unconfigured in a production runtime (`isProductionRuntime`)
+  it returns 503 instead of granting unauthenticated demo access. Previews/dev keep
+  demo mode.
+- ✅ **Regex injection / ReDoS fixed** — `search`/`location`/`tag` were inserted raw
+  into `$regex` in the jobs route; now escaped + length-capped via `safeRegexTerm`.
+  Broader validation is covered: tracker/profile routes use the validation helpers.
+- ✅ **Resume upload hardening** — 5MB cap, `application/pdf` MIME check, PDF magic-byte
+  verification, and rate limiting were in place; added a 100k-char cap on the parsed +
+  persisted `rawText` (bounds DB size / parse cost against a text-heavy or bomb PDF).
+- 🟢 Security headers present in `next.config.ts` (X-Content-Type-Options, X-Frame-Options,
+  Referrer-Policy, HSTS, Permissions-Policy). CSP deliberately omitted (breaks the Firebase
+  auth popup); revisit with a nonce-based policy if tightening further.
+- 🟡 **Rotate the MongoDB credential (precautionary).** Live Atlas creds in `.env.local`;
+  git-ignored and never committed, so hygiene not incident — ops task, rotate before launch.
 
 ## 2. Discovery feed  ⭐ conversion + moat
 - ✅ **Personalized ranking** — `/api/jobs` scores every job against the user's
