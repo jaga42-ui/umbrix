@@ -115,9 +115,15 @@ Employer/marketplace features are **off-strategy** and deliberately not built (�
 - 🟢 Multiple resume versions and per-application resume tagging (Premium).
 
 ## 6. Platform, quality & DX
-- 🔴 **Testing** — no test suite exists yet. Add unit tests (parsing, scam filter,
-  validation) and integration tests for API routes + auth scoping.
-- 🟡 CI/CD pipeline (lint, typecheck, test, preview deploys) on Vercel.
+- ✅ **Test harness** — `tsx` lets `node --test` run `src/**/*.test.ts` next to the
+  `scripts/*.test.js` suite. Pure logic is covered: scam filter, match scoring,
+  entitlements + tracker cap, reminders, and validation (incl. the regex-escaping).
+  ~37 tests. Follow-ups: integration tests for API routes + auth scoping (the opt-in DB
+  test in `freshness.test.js` is the pattern); a src-level API-route harness.
+- ✅ **CI pipeline** — `.github/workflows/ci.yml` runs typecheck → test → build (hard
+  gates, green without secrets) on push/PR to `main`; lint is advisory for now.
+  Follow-up: clear the lint debt (a few `any`s + setState-in-effect) so lint can become a
+  blocking gate. Preview deploys are handled by the Vercel Git integration.
 - 🟡 Error monitoring & structured logging (currently minimal).
 - 🟡 Analytics/metrics instrumentation — required to measure the conversion/LTV/CAC
   levers in BUSINESS_MODEL §6 and the PRD success metrics.
