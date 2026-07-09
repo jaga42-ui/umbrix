@@ -8,26 +8,67 @@ Legend: 🔴 high · 🟡 medium · 🟢 low
 
 ---
 
-## 0. Strategic priorities (from the business model)
+## 0. Strategic priorities (v2 — Indian freshers)
 
-The revenue model is **B2C premium subscription** — we monetize the job seeker, not
-employers or ads. Backlog priority is therefore driven by two questions:
-**does it convert free users to paying ones?** and **does it protect the premium moat?**
+Per [BUSINESS_MODEL.md](./BUSINESS_MODEL.md) v2, UMBRIX targets **Indian students /
+freshers** with one integrated wedge (eligibility relevance + trust + speed/AI) and a
+phased money model: **free B2C → cheap ₹ premium → B2B2C institutions**. The MVP is
+well-built but was built for the wrong audience — so the current focus is **closing the
+pivot gap**: serve real, fresher-eligible Indian inventory.
 
-The current top of the list, in order:
-1. ✅ **Personalized feed ranking** (§2) — shipped. Feed now ranks by a heuristic match
-   score (skills, domain, seniority, description) via `src/lib/matchScore.ts`.
-2. ✅ **Scam filter + feed freshness** (§2, §3) — shipped. Weighted scam heuristic
-   (`scripts/scamFilter.js`, 20 tests) + ingest-time stale-role reconciliation.
-3. ✅ **Tracker free-cap + reminders** (§4) — shipped. Free active-app cap (first
-   consumer of the entitlement layer) + per-application follow-up dates with a
-   due-soon/overdue badge.
-4. 🟡 **Billing infrastructure** (§7) — entitlement foundation shipped; still needs a
-   payment provider + checkout/webhooks before revenue can be collected.
-5. ✅ **More ATS sources** (§3) — Ashby added (9 boards, ~727 jobs); ~12.4k active jobs
-   across 3 ATSs. Feed now grouped into match tiers with load-more.
+Current build order (detail in "★ Freshers pivot" below):
+1. 🔴 Generalize `Job` → **`Opportunity`** (type: job | internship; extensible to hackathon).
+2. 🔴 **Indian coverage, phase A** — curate Indian companies on existing ATS + location filter.
+3. 🔴 **Indian ATS adapters** — Freshteam / Keka / Darwinbox / Zoho / SmartRecruiters / Workday.
+4. 🔴 **Eligibility metadata + eligibility-aware matching** (batch / branch / exp / CGPA).
+5. 🟡 **Internships** as a first-class type (filter existing sources).
+6. ⏸️ Later: hackathons/competitions, AI resume tailoring (Phase-2 premium), billing (Phase 2).
 
-Employer/marketplace features are **off-strategy** and deliberately not built (§8).
+The shipped features below (ranking, tracker, feed perf, ingest reliability, security, CI,
+billing foundation) are a **sound audience-agnostic foundation** — they carry forward, but
+serve the wrong inventory until the pivot gap closes.
+
+> **Trust is latent (honest note).** ATS feeds are clean, so the scam filter has caught ~0.
+> With ATS-adapters-first sourcing, the near-term wedge leans on **relevance + Indian
+> coverage + speed** — "we block scams" only becomes a felt benefit if messier sources are
+> added later. Don't over-claim trust before it's real.
+
+---
+
+## ★ Freshers pivot — current focus (v2)
+
+### Data model
+- 🔴 **Generalize `Job` → `Opportunity`** — add `type` (`job` | `internship`; reserve
+  `hackathon` | `competition`) plus eligibility fields (`batchYears[]`, `branches[]`,
+  `minExperience`, `cgpaCutoff`, `roleType`, India-location flag). Migrate existing `Job`
+  usage (feed, ingest, tracker `jobId`). Foundational — do first so breadth needs no rewrite.
+
+### Indian inventory (ATS-adapters-first)
+- 🔴 **Indian coverage, phase A** — curate Indian companies already on Greenhouse/Lever/
+  Ashby (a probe found Postman 119, PhonePe 56, Groww 15, Navi 8, CRED 5 live today) and add
+  a **location filter** so foreign roles don't dominate. Fast win, no new adapters.
+- 🔴 **Indian ATS adapters** — Freshteam (Freshworks), Keka, Darwinbox, Zoho Recruit,
+  SmartRecruiters, Workday. These back most Indian company career pages; each is a
+  one-function add to `ATS_FETCHERS`. Slug discovery is the real effort.
+- 🟢 **Bespoke career-page scraping** — only for a curated few high-value custom pages;
+  brittle + high-maintenance + ToS risk, so last resort, not the strategy.
+
+### Relevance
+- 🔴 **Eligibility-aware matching** — extend `matchScore` beyond skills to eligibility fit
+  (batch year, branch, experience, CGPA); surface eligibility + a "fresher-eligible" signal
+  on the card.
+- 🟡 **Internships** — surface as an `Opportunity` type (filter existing sources for
+  intern/trainee) with a job/internship toggle on the feed.
+
+### Deferred (post-beachhead)
+- ⏸️ **Hackathons / competitions** — new event data model + sources (Devfolio, Devpost,
+  MLH, Unstop, HackerEarth). Reserved in the type enum; build after jobs + internships land.
+  Note: this moves UMBRIX toward Unstop's territory — a deliberate, later bet.
+- ⏸️ **AI resume/cover-letter tailoring** — the Phase-2 premium anchor.
+
+### Open (decide before/while building — BUSINESS_MODEL §9)
+- Narrow **beachhead** (which streams / role types / colleges)?
+- Which fresher-eligible + ToS-safe **sources** beyond ATS?
 
 ---
 
@@ -136,11 +177,16 @@ Employer/marketplace features are **off-strategy** and deliberately not built (�
   `useEntitlement()` hook, `BillingProvider` seam). **Still to do:** pick a provider
   (Stripe / Paddle / Lemon Squeezy — deferred), implement `src/lib/billing/<provider>.ts`
   against the seam, and add checkout + webhook routes (webhook upserts the Subscription).
+  Under v2 this is **Phase 2**, priced in **₹**, and only needed once a free B2C base
+  exists — not the current focus. The same `Subscription` powers Phase-3 institutional seats.
 - ✅ **Entitlement / feature gating** — the mechanism exists: `computeEntitlement` +
   `FREE_TRACKER_ACTIVE_LIMIT` gate off a single source of truth, fail-safe to free.
   Not yet *consumed* — first consumer is the tracker free-cap (§4). Feed personalization
   is still ungated by choice (avoid a free-tier regression until checkout exists).
-- 🟡 **Plans & pricing** — Free vs Premium tiers; monthly + annual (see BUSINESS_MODEL §5).
+- 🟡 **Plans & pricing** — free + cheap ₹ premium (Phase 2) + institutional seats
+  (Phase 3, B2B2C — the real engine); see BUSINESS_MODEL §3–4.
+- 🟢 **B2B2C institutional dashboard** (Phase 3) — placement-cell view over a batch's usage
+  + outcomes; the pitch to colleges/training institutes.
 - 🟢 **Pause / dormant tier** — low-cost tier to retain users between job searches
   (churn-by-design mitigation, BUSINESS_MODEL §5).
 - 🟢 **Email digest of matched roles (Premium)** — recurring-value hook + retention.
@@ -149,9 +195,12 @@ Employer/marketplace features are **off-strategy** and deliberately not built (�
 
 ## 8. Off-strategy (explicitly not building)
 Kept here so the decision is visible, not forgotten:
-- ❌ Employer/recruiter side of the marketplace — reintroduces incentive conflict.
-- ❌ Display ads / data sales — poisons the premium, trust-based positioning.
+- ❌ Employer/recruiter-paid ranking or a two-sided marketplace — reintroduces the
+  incentive conflict. (Note: **B2B2C selling to institutions is on-strategy** — Phase 3 §7 —
+  the buyer is a college/institute, not an employer bidding for candidate attention.)
+- ❌ Display ads / data sales — poisons the trust-based positioning.
 - ⏸️ In-app apply / autofill, mobile native apps — revisit only after PMF.
+- ⏸️ Serving senior / experienced / non-India hires — out of the v2 audience.
 
 ---
 
