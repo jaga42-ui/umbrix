@@ -64,5 +64,8 @@ const JobSchema = new Schema<IJob>(
 // The feed's hot path: active jobs for a company, freshest first.
 JobSchema.index({ status: 1, lastSeenAt: -1 });
 
+// Feed candidate query: newest active postings first, bounded by limit.
+JobSchema.index({ status: 1, createdAt: -1 });
+
 export const Job: Model<IJob> =
   mongoose.models.Job || mongoose.model<IJob>('Job', JobSchema);

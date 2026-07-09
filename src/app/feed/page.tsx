@@ -451,8 +451,8 @@ export default function FeedPage() {
                   <ArrowRight className="w-4 h-4" />
                 </button>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Showing {Math.min(visibleCount, jobs.length)} of {jobs.length}
-                  {total > jobs.length ? ` best matches — refine filters to see the other ${total - jobs.length}` : ""}
+                  Showing {Math.min(visibleCount, jobs.length)} of your top {jobs.length} matches
+                  {total > jobs.length ? ` · ${total.toLocaleString()} roles match — refine filters to narrow` : ""}
                 </p>
               </div>
             )}

@@ -56,9 +56,15 @@ Employer/marketplace features are **off-strategy** and deliberately not built (�
   across companies.
 - ✅ **Feed organization** — grouped into match tiers (Strong / Good / More roles) with
   per-section counts, top-30 render + "Load more", and a slimmed payload (drops unused
-  `descriptionHtml`, caps to top `FEED_MAX=120` with `total`). Follow-up: the API still
-  scores *all* active jobs (~12.4k) in JS per request before slicing — pre-limit the
-  candidate set or paginate at the DB level so the default unfiltered feed scales.
+  `descriptionHtml`, caps to top `FEED_MAX=120` with `total`).
+- ✅ **Feed performance at scale** — the old query sorted *all* active jobs in memory and
+  at ~12.4k **exceeded MongoDB's 32MB sort limit** (feed was erroring into the mock
+  fallback). Fixed with a `{status, createdAt}` index (declared + created in DB), plus
+  `.select()` (no `descriptionHtml`), `.lean()`, and a bounded candidate window
+  (`.limit()`: `FEED_MAX` for no-resume/recency users, `CANDIDATE_LIMIT=2000` newest for
+  resume users) with a conditional `countDocuments`. Payload ~100MB→0.58MB. Trade-off:
+  resume users score the 2000 most-recent postings (freshness-biased; tunable). Follow-up:
+  for very large catalogs, a skill-tag-targeted candidate query would beat a recency window.
 - 🟡 Advanced filters & search — Premium gate: remote, seniority, tags, location.
 - 🟢 Save/hide/dismiss signals to inform future ranking.
 

@@ -9,6 +9,10 @@ import { calculateMatch, rankByMatch, type MatchProfile } from "@/lib/matchScore
 // Bounds the payload as the ingested job set grows across ATS sources.
 const FEED_MAX = 120;
 
+// Most-recent active postings scored per request for users with a resume.
+// Bounds CPU/DB work to O(window) instead of O(all active jobs). Tunable.
+const CANDIDATE_LIMIT = 2000;
+
 // A robust set of mock jobs to fall back to when MongoDB is offline
 const MOCK_JOBS = [
   {
@@ -195,7 +199,26 @@ export async function GET(request: Request) {
         query.tags = { $regex: new RegExp(`^${tag}$`, "i") };
       }
 
-      const jobs = await Job.find(query).sort({ createdAt: -1 });
+      // Bound the work per request. We never load descriptionHtml (large, and
+      // only a minor scoring signal) and never hydrate full Mongoose docs.
+      //
+      // Candidate window: for users with no resume the ranking IS recency, so
+      // the newest FEED_MAX is exactly the answer — no need to scan the whole
+      // collection. For users with skills we score a generous window of the most
+      // recent CANDIDATE_LIMIT active postings (a deliberate freshness-biased
+      // trade-off so cost stays O(window), not O(all active jobs)).
+      const candidateLimit = hasSkills ? CANDIDATE_LIMIT : FEED_MAX;
+      const jobs = await Job.find(query)
+        .select("companySlug title location tags applyUrl createdAt")
+        .sort({ createdAt: -1 })
+        .limit(candidateLimit)
+        .lean();
+
+      // If we didn't fill the candidate window we already have every match, so
+      // skip the extra count. Only pay for countDocuments when the window is
+      // full and there may be more.
+      const total =
+        jobs.length < candidateLimit ? jobs.length : await Job.countDocuments(query);
 
       // Format jobs with computed match summaries and scores, then rank by fit.
       // descriptionHtml is used only for server-side scoring, not by the card, so
@@ -223,11 +246,13 @@ export async function GET(request: Request) {
 
       // Rank by fit, then return the best FEED_MAX to bound the payload. `total`
       // lets the client show "N of M" and hint that filters reveal the rest.
+      // `total` is the true count of matching active jobs (not just the scored
+      // window), so the UI can honestly say how many roles the filters match.
       const ranked = rankByMatch(formattedJobs);
       return NextResponse.json({
         success: true,
         jobs: ranked.slice(0, FEED_MAX),
-        total: ranked.length,
+        total,
         isDemo: false,
         hasSkills,
       });
