@@ -5,6 +5,10 @@ import UserProfile from "@/models/UserProfile";
 import { resolveUserId } from "@/lib/serverAuth";
 import { calculateMatch, rankByMatch, type MatchProfile } from "@/lib/matchScore";
 
+// Max jobs returned to the feed. Ranked by match, so this is "your best N".
+// Bounds the payload as the ingested job set grows across ATS sources.
+const FEED_MAX = 120;
+
 // A robust set of mock jobs to fall back to when MongoDB is offline
 const MOCK_JOBS = [
   {
@@ -151,9 +155,11 @@ export async function GET(request: Request) {
         };
       });
 
+      const rankedMock = rankByMatch(formattedMockJobs);
       return NextResponse.json({
         success: true,
-        jobs: rankByMatch(formattedMockJobs),
+        jobs: rankedMock,
+        total: rankedMock.length,
         isDemo: true,
         hasSkills,
       });
@@ -192,6 +198,8 @@ export async function GET(request: Request) {
       const jobs = await Job.find(query).sort({ createdAt: -1 });
 
       // Format jobs with computed match summaries and scores, then rank by fit.
+      // descriptionHtml is used only for server-side scoring, not by the card, so
+      // it is deliberately omitted from the response to keep the payload small.
       const formattedJobs = jobs.map((job) => {
         const companyCapitalized = job.companySlug.charAt(0).toUpperCase() + job.companySlug.slice(1);
         const match = calculateMatch(matchProfile, job);
@@ -204,7 +212,6 @@ export async function GET(request: Request) {
           location: job.location,
           tags: job.tags,
           applyUrl: job.applyUrl,
-          descriptionHtml: job.descriptionHtml,
           matchScore: match.score,
           matchingSkills: match.matchingSkills,
           missingSkills: match.missingSkills,
@@ -214,9 +221,13 @@ export async function GET(request: Request) {
         };
       });
 
+      // Rank by fit, then return the best FEED_MAX to bound the payload. `total`
+      // lets the client show "N of M" and hint that filters reveal the rest.
+      const ranked = rankByMatch(formattedJobs);
       return NextResponse.json({
         success: true,
-        jobs: rankByMatch(formattedJobs),
+        jobs: ranked.slice(0, FEED_MAX),
+        total: ranked.length,
         isDemo: false,
         hasSkills,
       });

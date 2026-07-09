@@ -7,13 +7,31 @@ import { authedFetch } from "@/lib/authedFetch";
 import { Header } from "@/components/Header";
 import { JobCard } from "@/components/JobCard";
 import { Compass, Search, MapPin, Tag, SlidersHorizontal, Sparkles, Loader2, ArrowRight } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+
+const INITIAL_VISIBLE = 30;
+const LOAD_MORE_STEP = 30;
+
+// Feed grouping tiers by match score (only used when the user has a resume).
+// Checked in order, so the first tier whose `min` a score meets wins.
+const FEED_TIERS = [
+  { key: "strong", label: "Strong matches", hint: "Closest fits to your profile", min: 85 },
+  { key: "good", label: "Good matches", hint: "Solid overlap with your skills", min: 70 },
+  { key: "explore", label: "More roles to explore", hint: "Worth a look", min: 0 },
+] as const;
+
+function tierOf(score: number): string {
+  for (const t of FEED_TIERS) if (score >= t.min) return t.key;
+  return "explore";
+}
 
 export default function FeedPage() {
   const { user, loading, isDemoMode } = useAuth();
   const router = useRouter();
 
   const [jobs, setJobs] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE);
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
   const [fetchingJobs, setFetchingJobs] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +74,10 @@ export default function FeedPage() {
       const jobsData = await jobsRes.json();
 
       if (jobsData.success) {
-        setJobs(jobsData.jobs || []);
+        const list = jobsData.jobs || [];
+        setJobs(list);
+        setTotal(jobsData.total ?? list.length);
+        setVisibleCount(INITIAL_VISIBLE);
         setHasSkills(jobsData.hasSkills !== false);
       } else {
         throw new Error(jobsData.error || "Failed to fetch jobs");
@@ -331,46 +352,47 @@ export default function FeedPage() {
         )}
 
         {/* Jobs Feed List */}
-        <div className="space-y-4">
-          <AnimatePresence mode="popLayout">
-            {fetchingJobs ? (
-              // Visual skeletons for loading state
-              Array.from({ length: 3 }).map((_, idx) => (
-                <div
-                  key={`skeleton-${idx}`}
-                  className="bg-card border border-border/80 p-6 rounded-2xl space-y-4 animate-pulse"
-                >
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="space-y-2.5 flex-1">
-                      <div className="h-6 bg-secondary/80 rounded-lg w-1/3" />
-                      <div className="h-4 bg-secondary/60 rounded-lg w-1/4" />
-                    </div>
-                    <div className="h-10 bg-secondary/80 rounded-xl w-24" />
-                  </div>
-                  <div className="flex gap-2">
-                    <div className="h-5 bg-secondary/60 rounded-md w-16" />
-                    <div className="h-5 bg-secondary/60 rounded-md w-20" />
-                  </div>
-                  <div className="h-16 bg-secondary/40 rounded-xl w-full" />
-                </div>
-              ))
-            ) : jobs.length === 0 ? (
-              // Empty State
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-center py-16 bg-secondary/20 rounded-2xl border border-dashed border-border"
+        {fetchingJobs ? (
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <div
+                key={`skeleton-${idx}`}
+                className="bg-card border border-border/80 p-6 rounded-2xl space-y-4 animate-pulse"
               >
-                <div className="inline-flex p-3 bg-secondary/80 rounded-2xl border border-border text-muted-foreground mb-4">
-                  <Search className="w-6 h-6" />
+                <div className="flex justify-between items-start gap-4">
+                  <div className="space-y-2.5 flex-1">
+                    <div className="h-6 bg-secondary/80 rounded-lg w-1/3" />
+                    <div className="h-4 bg-secondary/60 rounded-lg w-1/4" />
+                  </div>
+                  <div className="h-10 bg-secondary/80 rounded-xl w-24" />
                 </div>
-                <h3 className="text-lg font-bold mb-1">No matches found</h3>
-                <p className="text-muted-foreground text-sm max-w-sm mx-auto px-4">
-                  We couldn't find any opportunities matching your current search parameters. Try expanding your filters.
-                </p>
-              </motion.div>
-            ) : (
-              jobs.map((job) => (
+                <div className="flex gap-2">
+                  <div className="h-5 bg-secondary/60 rounded-md w-16" />
+                  <div className="h-5 bg-secondary/60 rounded-md w-20" />
+                </div>
+                <div className="h-16 bg-secondary/40 rounded-xl w-full" />
+              </div>
+            ))}
+          </div>
+        ) : jobs.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-16 bg-secondary/20 rounded-2xl border border-dashed border-border"
+          >
+            <div className="inline-flex p-3 bg-secondary/80 rounded-2xl border border-border text-muted-foreground mb-4">
+              <Search className="w-6 h-6" />
+            </div>
+            <h3 className="text-lg font-bold mb-1">No matches found</h3>
+            <p className="text-muted-foreground text-sm max-w-sm mx-auto px-4">
+              We couldn't find any opportunities matching your current search parameters. Try expanding your filters.
+            </p>
+          </motion.div>
+        ) : (
+          <>
+            {(() => {
+              const visibleJobs = jobs.slice(0, visibleCount);
+              const renderCard = (job: any) => (
                 <JobCard
                   key={job._id || job.id}
                   id={job._id || job.id}
@@ -387,13 +409,58 @@ export default function FeedPage() {
                   isSaved={savedJobIds.has(job._id || job.id)}
                   onSave={() => handleSaveJob(job)}
                 />
-              ))
-            )}
-          </AnimatePresence>
-        </div>
+              );
 
-        {/* End of Feed Sign */}
-        {!fetchingJobs && jobs.length > 0 && (
+              // Without a resume, scores are a flat baseline — grouping is
+              // meaningless, so show one clean list.
+              if (!hasSkills) {
+                return <div className="space-y-4">{visibleJobs.map(renderCard)}</div>;
+              }
+
+              return (
+                <div className="space-y-10">
+                  {FEED_TIERS.map((tier) => {
+                    const group = visibleJobs.filter((j) => tierOf(j.matchScore) === tier.key);
+                    if (group.length === 0) return null;
+                    return (
+                      <section key={tier.key} className="space-y-4">
+                        <div className="flex items-baseline gap-2 border-b border-border/50 pb-2">
+                          <h2 className="font-serif text-lg tracking-tight">{tier.label}</h2>
+                          <span className="text-xs font-mono font-semibold text-muted-foreground bg-secondary border border-border px-1.5 py-0.5 rounded-full">
+                            {group.length}
+                          </span>
+                          <span className="text-xs text-muted-foreground/70 ml-auto hidden sm:block">
+                            {tier.hint}
+                          </span>
+                        </div>
+                        <div className="space-y-4">{group.map(renderCard)}</div>
+                      </section>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+
+            {visibleCount < jobs.length && (
+              <div className="mt-8 text-center">
+                <button
+                  onClick={() => setVisibleCount((c) => c + LOAD_MORE_STEP)}
+                  className="inline-flex items-center gap-2 bg-secondary hover:bg-secondary/80 border border-border text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors cursor-pointer"
+                >
+                  Load more roles
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Showing {Math.min(visibleCount, jobs.length)} of {jobs.length}
+                  {total > jobs.length ? ` best matches — refine filters to see the other ${total - jobs.length}` : ""}
+                </p>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* End of Feed Sign — only once everything visible is shown */}
+        {!fetchingJobs && jobs.length > 0 && visibleCount >= jobs.length && (
           <div className="mt-14 text-center border-t border-border/50 pt-8">
             <div className="inline-flex p-2 bg-secondary/30 rounded-xl border border-border/50 text-primary mb-3">
               <Sparkles className="w-4 h-4 animate-pulse" />
@@ -402,7 +469,7 @@ export default function FeedPage() {
               You have completed today's discovery review.
             </p>
             <p className="text-xs text-muted-foreground/75 mt-1">
-              New matching opportunities ingest daily from partner ATS boards (Greenhouse, Lever).
+              New matching opportunities ingest daily from partner ATS boards (Greenhouse, Lever, Ashby).
             </p>
           </div>
         )}

@@ -126,5 +126,14 @@
   { "slug": "wealthfront", "ats": "lever" },
   { "slug": "whoop", "ats": "lever" },
   { "slug": "tala", "ats": "lever" },
-  { "slug": "dreamsports", "ats": "lever" }
+  { "slug": "dreamsports", "ats": "lever" },
+  { "slug": "Ramp", "ats": "ashby" },
+  { "slug": "Vanta", "ats": "ashby" },
+  { "slug": "Cursor", "ats": "ashby" },
+  { "slug": "Replit", "ats": "ashby" },
+  { "slug": "ElevenLabs", "ats": "ashby" },
+  { "slug": "Suno", "ats": "ashby" },
+  { "slug": "Posthog", "ats": "ashby" },
+  { "slug": "Linear", "ats": "ashby" },
+  { "slug": "Runway", "ats": "ashby" }
 ]

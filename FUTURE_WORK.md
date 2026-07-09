@@ -24,7 +24,8 @@ The current top of the list, in order:
    due-soon/overdue badge.
 4. 🟡 **Billing infrastructure** (§7) — entitlement foundation shipped; still needs a
    payment provider + checkout/webhooks before revenue can be collected.
-5. 🟡 **More ATS sources** (§3) — Greenhouse + Lever ship today; extend breadth further.
+5. ✅ **More ATS sources** (§3) — Ashby added (9 boards, ~727 jobs); ~12.4k active jobs
+   across 3 ATSs. Feed now grouped into match tiers with load-more.
 
 Employer/marketplace features are **off-strategy** and deliberately not built (§8).
 
@@ -53,12 +54,22 @@ Employer/marketplace features are **off-strategy** and deliberately not built (�
   a global TTL sweep to close "zombie" jobs from companies *removed* from
   `companies.json` (no longer reconciled per-company); dedup near-identical postings
   across companies.
+- ✅ **Feed organization** — grouped into match tiers (Strong / Good / More roles) with
+  per-section counts, top-30 render + "Load more", and a slimmed payload (drops unused
+  `descriptionHtml`, caps to top `FEED_MAX=120` with `total`). Follow-up: the API still
+  scores *all* active jobs (~12.4k) in JS per request before slicing — pre-limit the
+  candidate set or paginate at the DB level so the default unfiltered feed scales.
 - 🟡 Advanced filters & search — Premium gate: remote, seniority, tags, location.
 - 🟢 Save/hide/dismiss signals to inform future ranking.
 
 ## 3. Data ingestion  ⭐ moat
-- 🟡 **Add more ATS sources** — Greenhouse and Lever ship today (128 companies). Extend
-  to Ashby, Workday, and others. Feed breadth gates perceived value and conversion.
+- ✅ **More ATS sources** — Greenhouse + Lever + **Ashby** now ship (`fetchAshbyJobs`,
+  case-sensitive board slugs, drops unlisted postings). 137 companies, ~12.4k active jobs.
+  Follow-ups: add Workday / SmartRecruiters / Recruitee (the `ATS_FETCHERS` registry makes
+  this a one-function add); the last ingest had **19/137 companies fail** on transient
+  fetch errors + MongoDB connection saturation late in a heavier run — consider lowering
+  `FETCH_CONCURRENCY` or hardening the DB connection. Failed companies are not wrongly
+  closed (reconciliation only runs after a successful fetch).
 - ✅ **Scam-filter heuristic (moat)** — weighted, auditable rules in
   `scripts/scamFilter.js` (pay-to-apply, deposits, WhatsApp/Telegram funnels, personal
   emails, suspicious apply hosts) with disclaimer-stripping and 20 pinned tests. Blocked
