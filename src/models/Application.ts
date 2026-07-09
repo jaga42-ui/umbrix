@@ -10,6 +10,8 @@ export interface IApplication extends Document {
   applyUrl?: string;
   notes?: string;
   jobId?: string;
+  /** Optional follow-up date; drives the "due soon / overdue" reminder badge. */
+  reminderAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -52,6 +54,10 @@ const ApplicationSchema = new Schema<IApplication>(
     },
     jobId: {
       type: String,
+    },
+    reminderAt: {
+      type: Date,
+      default: null,
     },
   },
   {

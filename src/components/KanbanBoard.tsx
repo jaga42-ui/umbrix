@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
-import { Building2, GripVertical, MapPin, Plus, Trash2, X, ExternalLink, FileText, Loader2, Save, PenSquare, Sparkles, Lock } from "lucide-react";
+import { Building2, GripVertical, MapPin, Plus, Trash2, X, ExternalLink, FileText, Loader2, Save, PenSquare, Sparkles, Lock, Bell, CalendarClock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/components/AuthProvider";
 import { authedFetch } from "@/lib/authedFetch";
 import { useEntitlement } from "@/hooks/useEntitlement";
 import { isActiveTrackerStage } from "@/lib/entitlements";
+import { reminderStatus, formatReminderDate, type ReminderStatus } from "@/lib/reminders";
 
 type Stage = "Saved" | "Applied" | "Interview" | "Rejected";
 const STAGES: Stage[] = ["Saved", "Applied", "Interview", "Rejected"];
@@ -37,7 +38,31 @@ interface KanbanTask {
   order: number;
   notes?: string;
   applyUrl?: string;
+  reminderAt?: string | null;
   createdAt?: string;
+}
+
+// Reminder badge styling per status. Real pipeline signal, so colors are
+// deliberate: overdue = destructive, due-soon = accent, upcoming = muted.
+const REMINDER_BADGE: Record<Exclude<ReminderStatus, "none">, string> = {
+  overdue: "bg-destructive/10 text-destructive border-destructive/20",
+  soon: "bg-accent/10 text-accent border-accent/25",
+  upcoming: "bg-secondary text-muted-foreground border-border",
+};
+
+function ReminderBadge({ reminderAt }: { reminderAt?: string | null }) {
+  const status = reminderStatus(reminderAt);
+  if (status === "none") return null;
+  return (
+    <div
+      className={`mt-2 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${REMINDER_BADGE[status]}`}
+    >
+      <Bell className="w-3 h-3" />
+      <span>
+        {status === "overdue" ? "Overdue" : "Follow-up"} · {formatReminderDate(reminderAt!)}
+      </span>
+    </div>
+  );
 }
 
 const DEFAULT_MOCK_APPS: KanbanTask[] = [
@@ -70,6 +95,7 @@ export function KanbanBoard() {
   const [formApplyUrl, setFormApplyUrl] = useState("");
   const [formNotes, setFormNotes] = useState("");
   const [formStage, setFormStage] = useState<Stage>("Saved");
+  const [formReminderAt, setFormReminderAt] = useState(""); // yyyy-mm-dd or ""
 
   const [savingForm, setSavingForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -217,6 +243,7 @@ export function KanbanBoard() {
     setFormLocation("");
     setFormApplyUrl("");
     setFormNotes("");
+    setFormReminderAt("");
     setCapError(null);
     setIsAddModalOpen(true);
   };
@@ -244,6 +271,7 @@ export function KanbanBoard() {
       stage: formStage,
       applyUrl: formApplyUrl,
       notes: formNotes,
+      reminderAt: formReminderAt || null,
     };
 
     try {
@@ -297,6 +325,7 @@ export function KanbanBoard() {
     setFormApplyUrl(task.applyUrl || "");
     setFormNotes(task.notes || "");
     setFormStage(task.stage);
+    setFormReminderAt(task.reminderAt ? new Date(task.reminderAt).toISOString().slice(0, 10) : "");
     setIsEditing(false);
     setIsDetailModalOpen(true);
   };
@@ -315,6 +344,7 @@ export function KanbanBoard() {
       applyUrl: formApplyUrl,
       notes: formNotes,
       stage: formStage,
+      reminderAt: formReminderAt || null,
     };
 
     try {
@@ -339,6 +369,7 @@ export function KanbanBoard() {
               applyUrl: formApplyUrl,
               notes: formNotes,
               stage: formStage,
+              reminderAt: formReminderAt || null,
             };
           }
           return t;
@@ -544,6 +575,9 @@ export function KanbanBoard() {
                                         <span className="truncate">Notes attached</span>
                                       </div>
                                     )}
+
+                                    {/* Follow-up reminder badge */}
+                                    <ReminderBadge reminderAt={task.reminderAt} />
                                   </div>
                                 </div>
                               </div>
@@ -652,6 +686,19 @@ export function KanbanBoard() {
                     value={formNotes}
                     onChange={(e) => setFormNotes(e.target.value)}
                     className="w-full bg-secondary/30 border border-border h-24 p-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary/45 resize-none transition-all"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <CalendarClock className="w-3.5 h-3.5" />
+                    Follow-up reminder (Optional)
+                  </label>
+                  <input
+                    type="date"
+                    value={formReminderAt}
+                    onChange={(e) => setFormReminderAt(e.target.value)}
+                    className="w-full bg-secondary/30 border border-border h-10 px-3.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary/45 transition-all"
                   />
                 </div>
 
@@ -794,6 +841,30 @@ export function KanbanBoard() {
                     />
                   </div>
 
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                      <CalendarClock className="w-3.5 h-3.5" />
+                      Follow-up reminder
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="date"
+                        value={formReminderAt}
+                        onChange={(e) => setFormReminderAt(e.target.value)}
+                        className="flex-1 bg-secondary/30 border border-border h-10 px-3.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all"
+                      />
+                      {formReminderAt && (
+                        <button
+                          type="button"
+                          onClick={() => setFormReminderAt("")}
+                          className="px-3 h-10 text-xs font-semibold text-muted-foreground hover:text-foreground bg-secondary/50 border border-border rounded-xl transition-colors"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="flex gap-2 pt-2">
                     <button
                       type="button"
@@ -845,6 +916,16 @@ export function KanbanBoard() {
                           {selectedTask.applyUrl}
                           <ExternalLink className="w-3 h-3" />
                         </a>
+                      </div>
+                    )}
+                    {selectedTask.reminderAt && (
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <CalendarClock className="w-4 h-4 mr-2 text-muted-foreground/80 shrink-0" />
+                        <span className="font-medium text-foreground mr-1">Follow-up:</span>
+                        {formatReminderDate(selectedTask.reminderAt)}
+                        <span className="ml-2">
+                          <ReminderBadge reminderAt={selectedTask.reminderAt} />
+                        </span>
                       </div>
                     )}
                   </div>

@@ -19,8 +19,9 @@ The current top of the list, in order:
    score (skills, domain, seniority, description) via `src/lib/matchScore.ts`.
 2. ✅ **Scam filter + feed freshness** (§2, §3) — shipped. Weighted scam heuristic
    (`scripts/scamFilter.js`, 20 tests) + ingest-time stale-role reconciliation.
-3. 🟡 **Tracker free-cap + reminders** (§4) — free active-app cap ✅ (first consumer of
-   the entitlement layer); reminders / follow-up dates still to build.
+3. ✅ **Tracker free-cap + reminders** (§4) — shipped. Free active-app cap (first
+   consumer of the entitlement layer) + per-application follow-up dates with a
+   due-soon/overdue badge.
 4. 🟡 **Billing infrastructure** (§7) — entitlement foundation shipped; still needs a
    payment provider + checkout/webhooks before revenue can be collected.
 5. 🟡 **More ATS sources** (§3) — Greenhouse + Lever ship today; extend breadth further.
@@ -73,7 +74,11 @@ Employer/marketplace features are **off-strategy** and deliberately not built (�
   entitlement layer. Follow-ups: wire the upgrade CTA to checkout once a provider exists
   (§7); optional opt-in DB test for the 403 path; PUT-reactivation of a Rejected card is a
   minor, un-enforced cap bypass (soft conversion nudge, not a security boundary).
-- 🟡 Reminders / follow-up dates per application (Premium) — e.g. "nudge after 7 days".
+- ✅ **Reminders / follow-up dates per application** — optional `reminderAt` with a
+  color-coded overdue/due-soon badge (`src/lib/reminders.ts`, 10 tests); set/clear in the
+  add & edit modals. Shipped ungated (Premium-gate deferred with billing, §7). Follow-ups:
+  active *notification* (email/push when due — pairs with the §7 email digest); recurring
+  "nudge after N days".
 - 🟡 Bulk actions and archiving for old applications.
 - 🟢 Customizable pipeline stages beyond the fixed four.
 - 🟢 Activity timeline / notes history per application (durable value → retention).

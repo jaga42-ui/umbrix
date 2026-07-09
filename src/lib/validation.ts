@@ -38,6 +38,21 @@ export function optStringArray(
   return value.map((item, i) => reqString(item, `${field}[${i}]`, maxItemLen));
 }
 
+/**
+ * Optional date. Distinguishes three cases so callers can support "clear":
+ *   - `undefined` → field absent, don't change it
+ *   - `null` / "" → explicit clear
+ *   - ISO string / yyyy-mm-dd → parsed Date
+ */
+export function optDate(value: unknown, field: string): Date | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null || value === "") return null;
+  if (typeof value !== "string") throw new ValidationError(`${field} must be a date string`);
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) throw new ValidationError(`${field} must be a valid date`);
+  return d;
+}
+
 /** Required value that must be one of `allowed`. */
 export function reqEnum<T extends string>(value: unknown, field: string, allowed: readonly T[]): T {
   if (typeof value !== "string" || !allowed.includes(value as T)) {

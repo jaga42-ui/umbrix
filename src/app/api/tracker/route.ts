@@ -9,6 +9,7 @@ import {
   ValidationError,
   reqString,
   optString,
+  optDate,
   reqEnum,
 } from "@/lib/validation";
 
@@ -68,6 +69,7 @@ export async function POST(request: Request) {
         applyUrl: optString(body.applyUrl, "applyUrl", 2000),
         notes: optString(body.notes, "notes", 5000),
         jobId: optString(body.jobId, "jobId", 100),
+        reminderAt: optDate(body.reminderAt, "reminderAt"),
       };
     } catch (e) {
       if (e instanceof ValidationError) {
@@ -119,6 +121,7 @@ export async function POST(request: Request) {
         applyUrl: fields.applyUrl,
         notes: fields.notes || "",
         jobId: fields.jobId,
+        reminderAt: fields.reminderAt ?? null,
       });
 
       await newApp.save();
@@ -136,7 +139,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
-    const { id, stage, order, title, company, location, notes, applyUrl } = body;
+    const { id, stage, order, title, company, location, notes, applyUrl, reminderAt } = body;
 
     if (!id || typeof id !== "string") {
       return NextResponse.json({ success: false, error: "Application ID is required" }, { status: 400 });
@@ -162,6 +165,8 @@ export async function PUT(request: Request) {
       if (location !== undefined) updateFields.location = reqString(location, "location", 160);
       if (notes !== undefined) updateFields.notes = optString(notes, "notes", 5000) ?? "";
       if (applyUrl !== undefined) updateFields.applyUrl = optString(applyUrl, "applyUrl", 2000);
+      // optDate returns null for an explicit clear, which we persist as-is.
+      if (reminderAt !== undefined) updateFields.reminderAt = optDate(reminderAt, "reminderAt");
     } catch (e) {
       if (e instanceof ValidationError) {
         return NextResponse.json({ success: false, error: e.message }, { status: 400 });
