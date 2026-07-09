@@ -2,10 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
-import { Building2, GripVertical, MapPin, Plus, Trash2, X, ExternalLink, FileText, Loader2, Save, PenSquare } from "lucide-react";
+import { Building2, GripVertical, MapPin, Plus, Trash2, X, ExternalLink, FileText, Loader2, Save, PenSquare, Sparkles, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/components/AuthProvider";
 import { authedFetch } from "@/lib/authedFetch";
+import { useEntitlement } from "@/hooks/useEntitlement";
+import { isActiveTrackerStage } from "@/lib/entitlements";
 
 type Stage = "Saved" | "Applied" | "Interview" | "Rejected";
 const STAGES: Stage[] = ["Saved", "Applied", "Interview", "Rejected"];
@@ -47,10 +49,13 @@ const DEFAULT_MOCK_APPS: KanbanTask[] = [
 
 export function KanbanBoard() {
   const { user, isDemoMode } = useAuth();
-  
+  const { isPremium, limits } = useEntitlement();
+
   const [tasks, setTasks] = useState<KanbanTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [isBrowser, setIsBrowser] = useState(false);
+  // Message shown when the free-tier active-application cap is hit.
+  const [capError, setCapError] = useState<string | null>(null);
 
   // Modal States
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -118,6 +123,12 @@ export function KanbanBoard() {
       .filter((t) => t.stage === stage)
       .sort((a, b) => a.order - b.order);
   };
+
+  // Free-tier active-application cap (mirrors the server enforcement in
+  // POST /api/tracker). null limit == unlimited (premium).
+  const activeLimit = limits.trackerActiveApplications;
+  const activeCount = tasks.filter((t) => isActiveTrackerStage(t.stage)).length;
+  const atActiveCap = activeLimit !== null && activeCount >= activeLimit;
 
   const persistTasksUpdate = async (updatedItems: KanbanTask[], fullUpdatedList: KanbanTask[]) => {
     if (isDemoMode) {
@@ -206,12 +217,23 @@ export function KanbanBoard() {
     setFormLocation("");
     setFormApplyUrl("");
     setFormNotes("");
+    setCapError(null);
     setIsAddModalOpen(true);
   };
 
   const handleAddApplication = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formTitle || !formCompany || !formLocation) return;
+
+    // Client-side pre-check for instant feedback (and to gate demo mode, which
+    // the server can't enforce). The server remains the authoritative gate.
+    if (isActiveTrackerStage(formStage) && atActiveCap) {
+      setCapError(
+        `Your free plan tracks up to ${activeLimit} active applications. Upgrade to Premium for unlimited tracking.`
+      );
+      return;
+    }
+
     setSavingForm(true);
 
     const payload = {
@@ -231,6 +253,12 @@ export function KanbanBoard() {
         body: JSON.stringify(payload),
       });
       const data = await res.json();
+
+      if (!data.success && data.code === "LIMIT_REACHED") {
+        // Server backstop for the cap (e.g. a second tab raced past the client check).
+        setCapError(data.error);
+        return;
+      }
 
       if (data.success) {
         if (data.isDemo) {
@@ -397,6 +425,30 @@ export function KanbanBoard() {
 
   return (
     <div className="h-full flex flex-col">
+      {/* Free-tier usage meter — hidden for premium (unlimited). */}
+      {!isPremium && activeLimit !== null && (
+        <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-xl border border-border bg-secondary/30 px-4 py-2.5">
+          <div className="flex items-center gap-2 text-xs">
+            <span className="font-mono font-semibold text-foreground">
+              {activeCount} / {activeLimit}
+            </span>
+            <span className="text-muted-foreground">active applications on the free plan</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs">
+            {atActiveCap ? (
+              <Lock className="w-3.5 h-3.5 text-accent" />
+            ) : (
+              <Sparkles className="w-3.5 h-3.5 text-primary" />
+            )}
+            <span className={atActiveCap ? "text-accent font-medium" : "text-muted-foreground"}>
+              {atActiveCap
+                ? "Limit reached — Premium unlocks unlimited tracking"
+                : "Premium removes this limit"}
+            </span>
+          </div>
+        </div>
+      )}
+
       <DragDropContext onDragEnd={onDragEnd}>
         <div className="flex h-full gap-6 overflow-x-auto pb-8 scrollbar-thin">
           {STAGES.map((columnId) => {
@@ -603,6 +655,16 @@ export function KanbanBoard() {
                   />
                 </div>
 
+                {capError && (
+                  <div className="rounded-xl border border-accent/30 bg-accent/5 p-3 flex items-start gap-2.5">
+                    <Lock className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+                    <div className="text-xs">
+                      <p className="font-semibold text-foreground">Free plan limit reached</p>
+                      <p className="text-muted-foreground mt-0.5 leading-normal">{capError}</p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex gap-2 pt-2">
                   <button
                     type="button"
@@ -613,11 +675,13 @@ export function KanbanBoard() {
                   </button>
                   <button
                     type="submit"
-                    disabled={savingForm}
-                    className="flex-1 h-11 bg-primary text-primary-foreground rounded-xl text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-all cursor-pointer"
+                    disabled={savingForm || (atActiveCap && isActiveTrackerStage(formStage))}
+                    className="flex-1 h-11 bg-primary text-primary-foreground rounded-xl text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {savingForm ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : atActiveCap && isActiveTrackerStage(formStage) ? (
+                      "Free limit reached"
                     ) : (
                       "Add Opportunity"
                     )}

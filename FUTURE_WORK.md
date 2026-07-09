@@ -19,7 +19,8 @@ The current top of the list, in order:
    score (skills, domain, seniority, description) via `src/lib/matchScore.ts`.
 2. ✅ **Scam filter + feed freshness** (§2, §3) — shipped. Weighted scam heuristic
    (`scripts/scamFilter.js`, 20 tests) + ingest-time stale-role reconciliation.
-3. 🟡 **Tracker free-cap + reminders** (§4) — second conversion lever (free → unlimited).
+3. 🟡 **Tracker free-cap + reminders** (§4) — free active-app cap ✅ (first consumer of
+   the entitlement layer); reminders / follow-up dates still to build.
 4. 🟡 **Billing infrastructure** (§7) — entitlement foundation shipped; still needs a
    payment provider + checkout/webhooks before revenue can be collected.
 5. 🟡 **More ATS sources** (§3) — Greenhouse + Lever ship today; extend breadth further.
@@ -65,8 +66,13 @@ Employer/marketplace features are **off-strategy** and deliberately not built (�
 - 🟢 Company management UI/config instead of hand-edited `scripts/companies.json`.
 
 ## 4. Application tracker  ⭐ conversion
-- 🟡 **Free-tier cap + Premium unlimited** — enforce a free active-role limit
-  (hypothesis: ~10) as the second conversion lever. See BUSINESS_MODEL §5.
+- ✅ **Free-tier cap + Premium unlimited** — `POST /api/tracker` enforces a free cap of
+  `FREE_TRACKER_ACTIVE_LIMIT` (10) active apps (Saved/Applied/Interview; Rejected is
+  free), returning 403 `LIMIT_REACHED`. The board shows a usage meter + upgrade nudge and
+  both entry points (tracker add, feed save) handle the cap. First consumer of the
+  entitlement layer. Follow-ups: wire the upgrade CTA to checkout once a provider exists
+  (§7); optional opt-in DB test for the 403 path; PUT-reactivation of a Rejected card is a
+  minor, un-enforced cap bypass (soft conversion nudge, not a security boundary).
 - 🟡 Reminders / follow-up dates per application (Premium) — e.g. "nudge after 7 days".
 - 🟡 Bulk actions and archiving for old applications.
 - 🟢 Customizable pipeline stages beyond the fixed four.

@@ -3,6 +3,8 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { Application } from "@/models/Application";
 import { resolveUserId } from "@/lib/serverAuth";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { getEntitlement } from "@/lib/entitlements.server";
+import { isActiveTrackerStage, exceedsTrackerActiveLimit } from "@/lib/entitlements";
 import {
   ValidationError,
   reqString,
@@ -78,6 +80,30 @@ export async function POST(request: Request) {
       const db = await connectToDatabase();
       if (!db) {
         return NextResponse.json({ success: true, isDemo: true });
+      }
+
+      // Free-tier cap: block a new *active* application (Saved/Applied/Interview)
+      // once the user is at their limit. Premium (limit === null) is unlimited;
+      // Rejected additions never count. Only enforced for real, authed users.
+      if (auth.enforced && isActiveTrackerStage(fields.stage)) {
+        const { limits, plan } = await getEntitlement(userId);
+        const limit = limits.trackerActiveApplications;
+        const activeCount = await Application.countDocuments({
+          userId,
+          stage: { $ne: "Rejected" },
+        });
+        if (exceedsTrackerActiveLimit(activeCount, limit)) {
+          return NextResponse.json(
+            {
+              success: false,
+              code: "LIMIT_REACHED",
+              error: `Your free plan tracks up to ${limit} active applications. Upgrade to Premium for unlimited tracking.`,
+              limit,
+              plan,
+            },
+            { status: 403 }
+          );
+        }
       }
 
       // Determine current order count to put it at the bottom of the column

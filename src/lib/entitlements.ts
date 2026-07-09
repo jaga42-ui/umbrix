@@ -30,6 +30,26 @@ export interface SubscriptionLike {
 /** Free-tier limit for active tracker applications (null elsewhere == unlimited). */
 export const FREE_TRACKER_ACTIVE_LIMIT = 10;
 
+/**
+ * A tracker application counts against the free cap unless it is Rejected —
+ * a dead lead shouldn't consume a slot. "active" here means still in the
+ * pipeline (Saved / Applied / Interview).
+ */
+export function isActiveTrackerStage(stage: string): boolean {
+  return stage !== "Rejected";
+}
+
+/**
+ * Whether adding one more active application would exceed the plan's cap.
+ * `limit === null` means unlimited (premium), so it never exceeds.
+ */
+export function exceedsTrackerActiveLimit(
+  currentActiveCount: number,
+  limit: number | null
+): boolean {
+  return limit !== null && currentActiveCount >= limit;
+}
+
 /** Statuses that grant premium access while the paid period is still valid. */
 const ACCESS_GRANTING_STATUSES: SubscriptionStatus[] = ["active", "trialing"];
 

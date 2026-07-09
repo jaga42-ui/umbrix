@@ -120,6 +120,11 @@ export default function FeedPage() {
 
       const data = await res.json();
 
+      if (!data.success && data.code === "LIMIT_REACHED") {
+        alert(data.error);
+        return;
+      }
+
       if (data.success) {
         // Handle local storage fallback if API returned demo mode
         if (data.isDemo) {
