@@ -19,8 +19,8 @@ pivot gap**: serve real, fresher-eligible Indian inventory.
 Current build order (detail in "★ Freshers pivot" below):
 1. ✅ Generalize `Job` → **`Opportunity`** (type + eligibility scaffolding; collection
    pinned to `jobs`, existing docs backfilled). Eligibility population/matching still to come.
-2. ✅ **Indian coverage, phase A** — 15 Indian companies curated + `isIndia` location
-   filter (feed defaults to India-only). ~990 active India roles live.
+2. ✅ **Indian coverage, phase A** — Indian companies curated + `isIndia` location
+   filter (feed defaults to India-only). ~1,093 active India roles live.
 3. 🔴 **Indian ATS adapters** — Freshteam / Keka / Darwinbox / Zoho / SmartRecruiters / Workday.
 4. 🔴 **Eligibility metadata + eligibility-aware matching** (batch / branch / exp / CGPA).
 5. 🟡 **Internships** as a first-class type (filter existing sources).
@@ -50,11 +50,13 @@ serve the wrong inventory until the pivot gap closes.
   unused so far.
 
 ### Indian inventory (ATS-adapters-first)
-- ✅ **Indian coverage, phase A** — 15 Indian companies on Greenhouse/Lever/Ashby now
-  curated (~669 jobs: Paytm, Postman, Slice, Sarvam, PhonePe, Meesho, Mindtickle, Porter,
-  Observe.ai, Groww, Navi, Epifi, Atlan, CRED, Kiwi). `isIndiaLocation` populates `isIndia`
-  (false-positive-safe, tested); backfilled → **990 active India roles**. Feed defaults to
-  **India-only** (`india` param + 🇮🇳 toggle) with an Indian-metro location dropdown.
+- ✅ **Indian coverage, phase A** — Indian companies on Greenhouse/Lever/Ashby curated
+  (Paytm, PhonePe, Meesho, Groww, CRED, Sarvam, Mindtickle, Epifi, Atlan + India offices of
+  Postman/Observe.ai). `isIndiaLocation` populates `isIndia` (false-positive-safe, tested);
+  the ingest run yielded **~1,093 active India roles**. Feed defaults to **India-only**
+  (`india` param + 🇮🇳 toggle) with an Indian-metro location dropdown. Lesson: ATS slugs
+  **collide** — porter/navi/kiwi returned foreign companies with the same slug (0 India);
+  removed. Verify India ratio before curating.
 - 🔴 **Indian ATS adapters** — Freshteam (Freshworks), Keka, Darwinbox, Zoho Recruit,
   SmartRecruiters, Workday. These back most Indian company career pages; each is a
   one-function add to `ATS_FETCHERS`. Slug discovery is the real effort.

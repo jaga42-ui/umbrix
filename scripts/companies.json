@@ -136,12 +136,9 @@
   { "slug": "Posthog", "ats": "ashby" },
   { "slug": "Linear", "ats": "ashby" },
   { "slug": "Runway", "ats": "ashby" },
-  { "slug": "navi", "ats": "ashby" },
   { "slug": "epifi", "ats": "lever" },
   { "slug": "mindtickle", "ats": "lever" },
-  { "slug": "porter", "ats": "lever" },
   { "slug": "observeai", "ats": "greenhouse" },
   { "slug": "atlan", "ats": "ashby" },
-  { "slug": "sarvam", "ats": "ashby" },
-  { "slug": "kiwi", "ats": "ashby" }
+  { "slug": "sarvam", "ats": "ashby" }
 ]
