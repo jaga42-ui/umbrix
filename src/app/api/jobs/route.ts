@@ -79,6 +79,8 @@ export async function GET(request: Request) {
     const search = searchParams.get("search");
     const location = searchParams.get("location");
     const tag = searchParams.get("tag");
+    // Default the feed to India roles (the audience); client can opt out.
+    const indiaOnly = searchParams.get("india") !== "0";
 
     const auth = await resolveUserId(request, searchParams.get("userId") || "demo-user-123");
     if (auth.errorResponse) return auth.errorResponse;
@@ -181,6 +183,7 @@ export async function GET(request: Request) {
       // escaped + length-capped before entering a $regex to avoid regex
       // injection / ReDoS.
       const query: any = { status: "Active" };
+      if (indiaOnly) query.isIndia = true;
 
       const searchTerm = safeRegexTerm(search);
       if (searchTerm) {

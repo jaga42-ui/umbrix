@@ -44,6 +44,16 @@ function classifyType(title) {
   return /\b(intern|internship|trainee|apprentice)\b/i.test(title || '') ? 'internship' : 'job';
 }
 
+// India + major Indian metros. Word boundaries keep "India" from matching
+// "Indiana"/"Indianapolis". Powers the `isIndia` flag and the feed's India filter.
+const INDIA_LOCATION_REGEX =
+  /\b(india|bharat|bengaluru|bangalore|mumbai|new delhi|delhi|gurgaon|gurugram|hyderabad|chennai|pune|noida|kolkata|ahmedabad|jaipur|kochi|cochin|chandigarh|indore|coimbatore|thiruvananthapuram|trivandrum|mysore|mysuru|nagpur|visakhapatnam|vadodara|surat|gandhinagar|gift city)\b/i;
+
+/** Whether a location string denotes India (or a major Indian city). */
+function isIndiaLocation(location) {
+  return INDIA_LOCATION_REGEX.test(String(location || ''));
+}
+
 // How many companies to fetch concurrently. Kept moderate to stay a
 // courteous, well-behaved client of two free public APIs rather than
 // hammering them -- not a hard rate limit either has published.
@@ -286,6 +296,7 @@ async function processCompany({ slug, ats }) {
         applyUrl: job.applyUrl,
         status: 'Active',
         type: classifyType(job.title),
+        isIndia: isIndiaLocation(job.location),
         lastSeenAt: now,
       });
     }
@@ -411,6 +422,8 @@ module.exports = {
   Opportunity,
   OpportunitySchema,
   classifyType,
+  isIndiaLocation,
+  INDIA_LOCATION_REGEX,
   reconcileStaleJobs,
   extractTags,
   interleaveByAts,

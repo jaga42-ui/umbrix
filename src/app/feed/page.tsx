@@ -41,6 +41,7 @@ export default function FeedPage() {
   const [search, setSearch] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [selectedTag, setSelectedTag] = useState("");
+  const [indiaOnly, setIndiaOnly] = useState(true); // audience default: India roles
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -59,6 +60,7 @@ export default function FeedPage() {
       if (search) queryParams.set("search", search);
       if (locationFilter) queryParams.set("location", locationFilter);
       if (selectedTag) queryParams.set("tag", selectedTag);
+      queryParams.set("india", indiaOnly ? "1" : "0");
 
       const headers: { [key: string]: string } = {};
       if (isDemoMode) {
@@ -116,7 +118,7 @@ export default function FeedPage() {
     if (user && !loading) {
       fetchJobsAndSaved();
     }
-  }, [user, loading, search, locationFilter, selectedTag]);
+  }, [user, loading, search, locationFilter, selectedTag, indiaOnly]);
 
   const handleSaveJob = async (job: any) => {
     if (!user) return;
@@ -272,8 +274,13 @@ export default function FeedPage() {
                   className="w-full md:w-44 bg-secondary/30 border border-border h-11 pl-3 pr-8 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary/15 appearance-none cursor-pointer"
                 >
                   <option value="">All Locations</option>
-                  <option value="remote">Remote Only</option>
-                  <option value="San Francisco">San Francisco, CA</option>
+                  <option value="remote">Remote</option>
+                  <option value="bengaluru">Bengaluru</option>
+                  <option value="mumbai">Mumbai</option>
+                  <option value="delhi">Delhi NCR</option>
+                  <option value="hyderabad">Hyderabad</option>
+                  <option value="pune">Pune</option>
+                  <option value="chennai">Chennai</option>
                 </select>
                 <MapPin className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               </div>
@@ -303,6 +310,18 @@ export default function FeedPage() {
               <SlidersHorizontal className="w-3 h-3 mr-1.5" />
               Quick Filters:
             </span>
+            <button
+              onClick={() => setIndiaOnly((v) => !v)}
+              aria-pressed={indiaOnly}
+              className={`text-xs px-3 py-1 rounded-full border transition-all cursor-pointer shrink-0 flex items-center gap-1 ${
+                indiaOnly
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background text-muted-foreground border-border hover:border-foreground/30"
+              }`}
+              title={indiaOnly ? "Showing India roles — click to include global" : "Showing all locations"}
+            >
+              🇮🇳 India only
+            </button>
             <button
               onClick={() => {
                 setSelectedTag("");
