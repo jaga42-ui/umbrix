@@ -17,7 +17,8 @@ well-built but was built for the wrong audience — so the current focus is **cl
 pivot gap**: serve real, fresher-eligible Indian inventory.
 
 Current build order (detail in "★ Freshers pivot" below):
-1. 🔴 Generalize `Job` → **`Opportunity`** (type: job | internship; extensible to hackathon).
+1. ✅ Generalize `Job` → **`Opportunity`** (type + eligibility scaffolding; collection
+   pinned to `jobs`, existing docs backfilled). Eligibility population/matching still to come.
 2. 🔴 **Indian coverage, phase A** — curate Indian companies on existing ATS + location filter.
 3. 🔴 **Indian ATS adapters** — Freshteam / Keka / Darwinbox / Zoho / SmartRecruiters / Workday.
 4. 🔴 **Eligibility metadata + eligibility-aware matching** (batch / branch / exp / CGPA).
@@ -38,10 +39,14 @@ serve the wrong inventory until the pivot gap closes.
 ## ★ Freshers pivot — current focus (v2)
 
 ### Data model
-- 🔴 **Generalize `Job` → `Opportunity`** — add `type` (`job` | `internship`; reserve
-  `hackathon` | `competition`) plus eligibility fields (`batchYears[]`, `branches[]`,
-  `minExperience`, `cgpaCutoff`, `roleType`, India-location flag). Migrate existing `Job`
-  usage (feed, ingest, tracker `jobId`). Foundational — do first so breadth needs no rewrite.
+- ✅ **Generalize `Job` → `Opportunity`** — `src/models/Opportunity.ts` (collection pinned
+  to `jobs`, so no data migration) with `type` (`job` | `internship`; `hackathon` |
+  `competition` reserved) + eligibility scaffolding (`batchYears[]`, `branches[]`,
+  `minExperience`, `cgpaCutoff`, `roleType`, `isIndia`). Ingest tags `type` via
+  `classifyType` (title heuristic); 13,022 existing docs backfilled (12,963 job / 59
+  internship). Feed + ingest + tests migrated; verified (tests, build, live DB). Next:
+  **populate** eligibility fields (extraction) and **use** them in matching — both empty/
+  unused so far.
 
 ### Indian inventory (ATS-adapters-first)
 - 🔴 **Indian coverage, phase A** — curate Indian companies already on Greenhouse/Lever/

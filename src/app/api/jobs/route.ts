@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
-import { Job } from "@/models/Job";
+import { Opportunity } from "@/models/Opportunity";
 import UserProfile from "@/models/UserProfile";
 import { resolveUserId } from "@/lib/serverAuth";
 import { calculateMatch, rankByMatch, type MatchProfile } from "@/lib/matchScore";
@@ -210,7 +210,7 @@ export async function GET(request: Request) {
       // recent CANDIDATE_LIMIT active postings (a deliberate freshness-biased
       // trade-off so cost stays O(window), not O(all active jobs)).
       const candidateLimit = hasSkills ? CANDIDATE_LIMIT : FEED_MAX;
-      const jobs = await Job.find(query)
+      const jobs = await Opportunity.find(query)
         .select("companySlug title location tags applyUrl createdAt")
         .sort({ createdAt: -1 })
         .limit(candidateLimit)
@@ -220,7 +220,7 @@ export async function GET(request: Request) {
       // skip the extra count. Only pay for countDocuments when the window is
       // full and there may be more.
       const total =
-        jobs.length < candidateLimit ? jobs.length : await Job.countDocuments(query);
+        jobs.length < candidateLimit ? jobs.length : await Opportunity.countDocuments(query);
 
       // Format jobs with computed match summaries and scores, then rank by fit.
       // descriptionHtml is used only for server-side scoring, not by the card, so

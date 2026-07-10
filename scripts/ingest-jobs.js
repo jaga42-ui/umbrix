@@ -4,8 +4,9 @@ const fs = require('fs');
 const path = require('path');
 const { evaluate: evaluateScam } = require('./scamFilter');
 
-// Basic Job Schema since we're running outside Next.js compile context
-const JobSchema = new mongoose.Schema(
+// Opportunity schema, mirrored here since the script runs outside the Next.js
+// compile context. Collection is pinned to "jobs" (same data as the app model).
+const OpportunitySchema = new mongoose.Schema(
   {
     companySlug: { type: String, required: true, index: true },
     title: { type: String, required: true },
@@ -14,13 +15,34 @@ const JobSchema = new mongoose.Schema(
     tags: { type: [String], default: [] },
     applyUrl: { type: String, required: true },
     status: { type: String, enum: ['Active', 'Closed'], default: 'Active' },
+    type: {
+      type: String,
+      enum: ['job', 'internship', 'hackathon', 'competition'],
+      default: 'job',
+    },
+    batchYears: { type: [Number], default: [] },
+    branches: { type: [String], default: [] },
+    minExperience: { type: Number },
+    cgpaCutoff: { type: Number },
+    roleType: { type: String },
+    isIndia: { type: Boolean },
     lastSeenAt: { type: Date },
     closedAt: { type: Date },
   },
   { timestamps: true }
 );
 
-const Job = mongoose.models.Job || mongoose.model('Job', JobSchema);
+const Opportunity =
+  mongoose.models.Opportunity ||
+  mongoose.model('Opportunity', OpportunitySchema, 'jobs');
+
+/**
+ * Classify an opportunity from its title. Coarse but zero-cost — a proper
+ * type/eligibility extraction pass lands with the freshers-pivot work.
+ */
+function classifyType(title) {
+  return /\b(intern|internship|trainee|apprentice)\b/i.test(title || '') ? 'internship' : 'job';
+}
 
 // How many companies to fetch concurrently. Kept moderate to stay a
 // courteous, well-behaved client of two free public APIs rather than
@@ -263,6 +285,7 @@ async function processCompany({ slug, ats }) {
         tags: extractTags(job),
         applyUrl: job.applyUrl,
         status: 'Active',
+        type: classifyType(job.title),
         lastSeenAt: now,
       });
     }
@@ -278,7 +301,7 @@ async function processCompany({ slug, ats }) {
           // One round-trip per company instead of one per job. Reviving a job
           // that reappears after being closed is automatic: status flips back
           // to Active via $set and closedAt is cleared.
-          await Job.bulkWrite(
+          await Opportunity.bulkWrite(
             jobDocs.map((jobDoc) => ({
               updateOne: {
                 filter: { applyUrl: jobDoc.applyUrl },
@@ -290,7 +313,7 @@ async function processCompany({ slug, ats }) {
         }
         // Close anything for this company we no longer see on the board.
         const seenUrls = jobDocs.map((d) => d.applyUrl);
-        return reconcileStaleJobs(Job, slug, seenUrls, now);
+        return reconcileStaleJobs(Opportunity, slug, seenUrls, now);
       });
     }
 
@@ -385,8 +408,9 @@ if (require.main === module) {
 }
 
 module.exports = {
-  Job,
-  JobSchema,
+  Opportunity,
+  OpportunitySchema,
+  classifyType,
   reconcileStaleJobs,
   extractTags,
   interleaveByAts,
