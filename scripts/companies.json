@@ -140,5 +140,9 @@
   { "slug": "mindtickle", "ats": "lever" },
   { "slug": "observeai", "ats": "greenhouse" },
   { "slug": "atlan", "ats": "ashby" },
-  { "slug": "sarvam", "ats": "ashby" }
+  { "slug": "sarvam", "ats": "ashby" },
+  { "slug": "freshworks", "ats": "smartrecruiters" },
+  { "slug": "servicenow", "ats": "smartrecruiters" },
+  { "slug": "netskope", "ats": "smartrecruiters" },
+  { "slug": "gainsight", "ats": "smartrecruiters" }
 ]

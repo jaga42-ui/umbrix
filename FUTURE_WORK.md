@@ -57,9 +57,15 @@ serve the wrong inventory until the pivot gap closes.
   (`india` param + 🇮🇳 toggle) with an Indian-metro location dropdown. Lesson: ATS slugs
   **collide** — porter/navi/kiwi returned foreign companies with the same slug (0 India);
   removed. Verify India ratio before curating.
-- 🔴 **Indian ATS adapters** — Freshteam (Freshworks), Keka, Darwinbox, Zoho Recruit,
-  SmartRecruiters, Workday. These back most Indian company career pages; each is a
-  one-function add to `ATS_FETCHERS`. Slug discovery is the real effort.
+- 🟡 **Indian ATS adapters** — **SmartRecruiters ✅** (`fetchSmartRecruitersJobs`, paginated,
+  apply URL constructed from posting id; added Freshworks/ServiceNow/Netskope/Gainsight →
+  ~73 India roles). **Finding:** Freshteam's public endpoint didn't respond; the big Indian
+  consumer-tech employers (Razorpay, Zerodha, Swiggy, Zomato, Flipkart) are **not** on any
+  easy ATS — they use **Workday** (per-company tenant+datacenter+site, POST API, N+1 for
+  apply URLs — doesn't fit the slug model), **Darwinbox / Keka** (no clean public API →
+  scraping), or custom pages. The reachable ATS pool (GLA + SmartRecruiters) skews to
+  startups/product/SaaS — which *fits the tech-grad beachhead*. Workday is buildable but its
+  own focused task; Darwinbox/Keka need scraping (expansion, not beachhead).
 - 🟢 **Bespoke career-page scraping** — only for a curated few high-value custom pages;
   brittle + high-maintenance + ToS risk, so last resort, not the strategy.
 
@@ -69,6 +75,14 @@ serve the wrong inventory until the pivot gap closes.
   on the card.
 - 🟡 **Internships** — surface as an `Opportunity` type (filter existing sources for
   intern/trainee) with a job/internship toggle on the feed.
+
+### Expansion capture (the "LinkedIn problem" — BUSINESS_MODEL §1)
+- 🟡 **Field waitlist** — the mission is universal but the beachhead is tech, so public
+  channels attract non-beachhead jobseekers. When the feed is empty/sparse for a user, show
+  *"strongest in tech/startup roles today — tell us your field, we'll notify you"* + capture
+  their field. Keep the **tracker + scam-check field-agnostic** so they're usable anyway.
+  Each signup = good impression + a **ranked demand signal** for which stream to expand to
+  next + a warm launch list. Ship with the first public marketing push.
 
 ### Deferred (post-beachhead)
 - ⏸️ **Hackathons / competitions** — new event data model + sources (Devfolio, Devpost,
