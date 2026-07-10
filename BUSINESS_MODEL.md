@@ -29,13 +29,37 @@ The lesson: value has to be leverage a fresher *can't get free*, on inventory th
 
 ---
 
-## 1. Who this is for
+## 1. Mission, beachhead, and audience
 
-**Indian students and freshers (0–2 yrs) looking for their first real job / internship.**
+**Mission (who it's ultimately for — universal, public):**
+> UMBRIX helps anyone in India find **real, stable work** — no scams, only opportunities
+> you're actually eligible for. Financial stability, for everyone.
 
-A massive market (millions of graduates/year) with acute, specific pain — and, critically,
-one where UMBRIX's existing assets (scam detection, freshness/ingestion, matching) finally
-line up with the user.
+This is the north star and the public positioning. It is deliberately broad. UMBRIX is
+**never** branded "for tech freshers" — that would be a small, exclusionary mindset.
+
+**Beachhead (who we WIN FIRST — focused, internal):**
+> Recent CS/tech grads still hunting their first software / product-company job — reachable
+> today through dev communities (r/developersIndia, coding Discords/Telegram, dev Twitter).
+
+The beachhead is **not a ceiling — it's the door.** Amazon started with books; Facebook with
+one campus. A narrow first beach is *how* you take the whole coast, not instead of it. It's a
+go-to-market choice invisible to users, chosen because it's where the founder has an unfair
+advantage: **the founder is a recent job-hunting dev**, the reachable channel is dev
+communities, and the current product (ATS-sourced tech roles, skill matching) already fits.
+Focus here is the *means* to "for everyone" — win these first thousands, then expand outward
+to other streams (the expansion market) from a position of strength.
+
+**Handling non-beachhead arrivals (the LinkedIn problem):** a universal mission on public
+channels *will* attract non-tech jobseekers. Do **not** hand them an empty feed (bad first
+impression) or narrow the mission to avoid them (kills the vision). Instead **capture** them:
+show *"strongest in tech/startup roles today — tell us your field and we'll notify you when we
+cover it,"* and let them use the field-agnostic **tracker + scam-checking** immediately. Every
+such signup becomes (a) a good impression, (b) a ranked demand signal for which field to
+expand to next, and (c) a warm launch list for it. The mismatch is fuel, not a leak.
+
+**The market:** millions of graduates/year with acute, specific pain — and where UMBRIX's
+existing assets (scam detection, freshness/ingestion, matching) finally line up with the user.
 
 Their real pains (this is where value lives):
 1. **Fraud & noise** — flooded with pay-to-apply scams, fake HR on WhatsApp, "₹40k WFH" bait.
@@ -116,9 +140,10 @@ You are entering an occupied, well-funded space: **Internshala, Unstop, Naukri, 
 LinkedIn.** "Another fresher job board" loses. UMBRIX wins only by being **sharper**: a
 cleaner, *safer*, *actually-eligible* feed for a specific slice — not a broad board.
 
-Pick a narrow beachhead first (candidate: **off-campus software/tech roles for CS/IT
-freshers**, or **a specific set of colleges**). Own that, then expand streams. Trying to
-serve every fresher on day one is how you lose to incumbents with more inventory.
+The beachhead is chosen (§1): **recent CS/tech grads chasing first software/product-company
+roles, reached via dev communities.** Own that, then expand streams. Trying to serve every
+fresher on day one is how you lose to incumbents with more inventory — and, per §1, expansion
+is *demand-pulled* (capture non-beachhead arrivals → build what they ask for next).
 
 ---
 
@@ -164,7 +189,8 @@ management. But the immediate priorities change:
 ---
 
 ## 9. Open questions to resolve next
-- Which **narrow beachhead** first (which streams / colleges / role types)?
+- ~~Which narrow beachhead first?~~ **Decided (§1):** recent CS/tech grads chasing first
+  software/product-company roles, via dev communities.
 - Where do we ingest **fresher-eligible + messy** inventory (Internshala-style boards,
   Telegram channels, company fresher pages, government/PSU drives)? What's legal/ToS-safe?
 - What eligibility fields do freshers filter on most (validate with real users)?
