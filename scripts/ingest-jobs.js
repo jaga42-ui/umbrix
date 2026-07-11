@@ -114,11 +114,26 @@ function parseCgpa(text) {
   return undefined;
 }
 
+// Titles that are fresher-eligible on their own. "associate" is deliberately
+// excluded — it's ambiguous (Associate Director/Principal are senior). Guarded
+// against senior modifiers so "Senior Graduate Recruiter" doesn't slip through.
+const FRESHER_TITLE_RE =
+  /\b(intern|internship|trainee|apprentice|junior|jr\.?|graduate|new\s?grad|entry[ -]level|campus)\b/i;
+const SENIOR_TITLE_RE = /\b(senior|sr\.?|staff|lead|principal|manager|director|head|vp|chief)\b/i;
+
+/** A title that, on its own, signals an early-career / fresher-eligible role. */
+function isFresherTitle(title) {
+  const t = String(title || '');
+  return FRESHER_TITLE_RE.test(t) && !SENIOR_TITLE_RE.test(t);
+}
+
 /** Extracts the eligibility fields from a posting. Omits unknown fields. */
 function extractEligibility(title, content) {
   const text = (String(title || '') + ' ' + stripTagsSimple(content)).slice(0, 20000);
   const elig = { batchYears: parseBatchYears(text) };
-  const me = parseMinExperience(text);
+  // A clearly early-career title (intern/junior/graduate/trainee) is authoritative
+  // for fresher-eligibility even when the body doesn't spell out "0 years".
+  const me = isFresherTitle(title) ? 0 : parseMinExperience(text);
   if (me !== undefined) elig.minExperience = me;
   const cg = parseCgpa(text);
   if (cg !== undefined) elig.cgpaCutoff = cg;
@@ -540,6 +555,7 @@ module.exports = {
   isIndiaLocation,
   INDIA_LOCATION_REGEX,
   parseMinExperience,
+  isFresherTitle,
   extractEligibility,
   reconcileStaleJobs,
   extractTags,

@@ -2,7 +2,24 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
-const { parseMinExperience, extractEligibility } = require('./ingest-jobs');
+const { parseMinExperience, extractEligibility, isFresherTitle } = require('./ingest-jobs');
+
+test('isFresherTitle: early-career titles yes, ambiguous/senior no', () => {
+  for (const t of ['Software Engineering Intern', 'Junior Developer', 'Graduate Software Engineer', 'Trainee Analyst', 'New Grad Engineer', 'Apprentice Developer']) {
+    assert.equal(isFresherTitle(t), true, t);
+  }
+  for (const t of ['Associate Product Manager', 'Associate Director', 'Senior Graduate Recruiter', 'Software Engineer', 'Staff Engineer', 'Lead Designer']) {
+    assert.equal(isFresherTitle(t), false, t);
+  }
+});
+
+test('extractEligibility: a fresher title forces minExperience 0', () => {
+  // Body says nothing about years, but the title is clearly early-career.
+  assert.equal(extractEligibility('Junior Backend Engineer', 'Build APIs.').minExperience, 0);
+  assert.equal(extractEligibility('Software Engineering Intern', 'Ship features.').minExperience, 0);
+  // Ambiguous "Associate" is NOT forced to fresher.
+  assert.ok(!('minExperience' in extractEligibility('Associate Product Manager', 'Own the roadmap.')));
+});
 
 test('parseMinExperience: fresher / entry-level -> 0', () => {
   assert.equal(parseMinExperience('We are hiring freshers'), 0);
