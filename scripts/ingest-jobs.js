@@ -9,6 +9,8 @@ const { evaluate: evaluateScam } = require('./scamFilter');
 const OpportunitySchema = new mongoose.Schema(
   {
     companySlug: { type: String, required: true, index: true },
+    companyName: { type: String },
+    source: { type: String, enum: ['ats', 'telegram'], default: 'ats' },
     title: { type: String, required: true },
     location: { type: String, required: true },
     descriptionHtml: { type: String, required: true },
@@ -257,11 +259,123 @@ async function fetchSmartRecruitersJobs(slug) {
   return out;
 }
 
+// --- Telegram (off-campus fresher-job channels) ----------------------------
+// Public channels expose a login-free web preview at t.me/s/<channel>. These
+// posts are semi-structured ("Company name:", "Role:", "Batch Eligible:",
+// "Apply Link:") and are where Indian freshers actually find off-campus roles —
+// and where the scams live, so the scam filter finally earns its keep.
+
+function decodeEntities(s) {
+  return String(s || '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#(\d+);/g, (_, c) => String.fromCharCode(Number(c)));
+}
+
+const LINK_SHORTENERS =
+  /(?:^|\.)(bit\.ly|tinyurl\.com|cutt\.ly|rb\.gy|t\.co|lnkd\.in|shorturl\.at|is\.gd|rebrand\.ly|shorturl\.gg|urlis\.net)$/i;
+
+/** Follow a known short link to its real destination (per the user's choice). */
+async function resolveShortLink(url) {
+  try {
+    const host = new URL(url).host;
+    if (!LINK_SHORTENERS.test(host)) return url;
+    const res = await withRetry(
+      () => fetch(url, { method: 'HEAD', redirect: 'follow' }),
+      1,
+      800
+    );
+    return res && res.url ? res.url : url;
+  } catch {
+    return url;
+  }
+}
+
+const TG_SOCIAL_HOST = /t\.me|telegram\.org|whatsapp\.com|wa\.me|chat\.whatsapp/i;
+
+// All field labels these channels use — a value ends where the next one begins
+// (handles both multi-line posts and single-line "pinned" reposts).
+const TG_LABELS =
+  'company name|company|organization|organisation|hiring at|role|position|profile|job title|designation|post|location|job location|work location|based in|based at|batch eligible|batch|salary|ctc|expected ctc|stipend|apply link|application link|apply here|apply now|apply|link|registration link|experience|qualification|eligibility|skills';
+
+/** Parse one channel message into a normalized job, or null if it isn't one. */
+function parseTelegramMessage(text, links, channel) {
+  const external = links.filter((u) => !TG_SOCIAL_HOST.test(u));
+  const field = (labels) => {
+    const m = text.match(
+      new RegExp(
+        '\\b(?:' + labels + ')\\s*[:\\-]\\s*([^\\n]+?)(?=\\s*(?:' + TG_LABELS + ')\\s*[:\\-]|\\s*$)',
+        'im'
+      )
+    );
+    return m ? m[1].trim() : undefined;
+  };
+  const company = field('company name|company|organization|organisation|hiring at');
+  const role = field('role|position|profile|job title|designation|post');
+  const location = field('location|job location|work location|based (?:in|at)');
+  const applyField = field('apply link|application link|apply here|apply now|apply|link|registration link');
+  const applyUrl =
+    (applyField && (applyField.match(/https?:\/\/\S+/) || [])[0]) || external[0];
+
+  if (!applyUrl) return null;
+  // If unlabeled, require job-ish keywords so we skip memes / announcements.
+  if (!company && !role &&
+    !/\b(hiring|opening|off[\s-]?campus|batch|fresher|internship|intern|sde|engineer|developer|graduate|apply|vacancy)\b/i.test(text)) {
+    return null;
+  }
+
+  const title = (role || (company ? `${company} — Opportunity` : text.split('\n')[0]) || 'Opportunity').slice(0, 200);
+  return {
+    title,
+    companyName: company || undefined,
+    // These channels are India-focused; default to India when unstated.
+    location: location || 'India',
+    content: text.slice(0, 4000),
+    applyUrl: applyUrl.replace(/[)\].,]+$/, ''),
+    department: null,
+  };
+}
+
+/** Fetch + parse a public Telegram channel's recent posts into jobs. */
+async function fetchTelegramChannel(channel) {
+  const res = await fetch(`https://t.me/s/${channel}`, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; UmbrixBot/1.0)' },
+  });
+  if (!res.ok) throw new Error(`Telegram ${res.status} ${res.statusText}`);
+  const html = await res.text();
+  const blocks = [...html.matchAll(/<div class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>/g)];
+
+  const jobs = [];
+  const seen = new Set();
+  for (const b of blocks) {
+    const raw = b[1];
+    const links = [...raw.matchAll(/href="(https?:\/\/[^"]+)"/g)].map((m) => decodeEntities(m[1]));
+    const text = decodeEntities(raw.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '')).trim();
+    const job = parseTelegramMessage(text, links, channel);
+    if (job && !seen.has(job.applyUrl)) {
+      seen.add(job.applyUrl);
+      jobs.push(job);
+    }
+  }
+  // Resolve short links to their real destination, then dedup on the resolved
+  // URL (a direct post and its pinned bit.ly repost collapse to one).
+  const byUrl = new Map();
+  for (const j of jobs) {
+    j.applyUrl = await resolveShortLink(j.applyUrl);
+    if (!byUrl.has(j.applyUrl)) byUrl.set(j.applyUrl, j);
+  }
+  return [...byUrl.values()];
+}
+
 const ATS_FETCHERS = {
   greenhouse: fetchGreenhouseJobs,
   lever: fetchLeverJobs,
   ashby: fetchAshbyJobs,
   smartrecruiters: fetchSmartRecruitersJobs,
+  telegram: fetchTelegramChannel,
 };
 
 function extractTags(job) {
@@ -414,6 +528,8 @@ async function processCompany({ slug, ats }) {
       }
       jobDocs.push({
         companySlug: slug,
+        companyName: job.companyName,
+        source: ats === 'telegram' ? 'telegram' : 'ats',
         title: job.title,
         location: job.location,
         descriptionHtml: job.content,
@@ -557,6 +673,8 @@ module.exports = {
   parseMinExperience,
   isFresherTitle,
   extractEligibility,
+  parseTelegramMessage,
+  fetchTelegramChannel,
   reconcileStaleJobs,
   extractTags,
   interleaveByAts,

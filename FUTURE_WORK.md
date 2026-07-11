@@ -52,6 +52,16 @@ serve the wrong inventory until the pivot gap closes.
   unused so far.
 
 ### Indian inventory (ATS-adapters-first)
+- 🟡 **Telegram fresher channels (the real fresher-inventory unlock)** — clean ATS feeds
+  are a senior-role pool (only ~41 India fresher roles even with full eligibility
+  detection). The fresher jobs live on off-campus Telegram channels, read login-free via
+  the `t.me/s/<channel>` web preview. `fetchTelegramChannel` parses the semi-structured
+  posts (Company/Role/Batch/Location/Apply Link), resolves short links to the real
+  destination + dedups, and runs the scam filter — **this is where the scam filter finally
+  earns its keep** (Telegram is where the fraud is; `forms.gle` de-flagged since legit
+  drives use it). New `Opportunity.companyName`/`source` fields. Verified: 9 real
+  batch-tagged fresher/intern roles from one channel. Next: add the founder's channel list;
+  pagination (`?before=`) for more depth; per-channel scam-block metrics.
 - ✅ **Indian coverage, phase A** — Indian companies on Greenhouse/Lever/Ashby curated
   (Paytm, PhonePe, Meesho, Groww, CRED, Sarvam, Mindtickle, Epifi, Atlan + India offices of
   Postman/Observe.ai). `isIndiaLocation` populates `isIndia` (false-positive-safe, tested);

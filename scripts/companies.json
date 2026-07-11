@@ -144,5 +144,6 @@
   { "slug": "freshworks", "ats": "smartrecruiters" },
   { "slug": "servicenow", "ats": "smartrecruiters" },
   { "slug": "netskope", "ats": "smartrecruiters" },
-  { "slug": "gainsight", "ats": "smartrecruiters" }
+  { "slug": "gainsight", "ats": "smartrecruiters" },
+  { "slug": "jobs_and_internships_updates", "ats": "telegram" }
 ]

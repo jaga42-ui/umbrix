@@ -214,7 +214,7 @@ export async function GET(request: Request) {
       // trade-off so cost stays O(window), not O(all active jobs)).
       const candidateLimit = hasSkills ? CANDIDATE_LIMIT : FEED_MAX;
       const jobs = await Opportunity.find(query)
-        .select("companySlug title location tags applyUrl createdAt minExperience")
+        .select("companySlug companyName title location tags applyUrl createdAt minExperience")
         .sort({ createdAt: -1 })
         .limit(candidateLimit)
         .lean();
@@ -236,7 +236,7 @@ export async function GET(request: Request) {
           _id: job._id.toString(),
           title: job.title,
           companySlug: job.companySlug,
-          companyName: companyCapitalized,
+          companyName: job.companyName || companyCapitalized,
           location: job.location,
           tags: job.tags,
           applyUrl: job.applyUrl,
