@@ -317,6 +317,26 @@ function companyFromTitle(s) {
   return m ? m[1].trim() : undefined;
 }
 
+// Distinguishing a real job post from the ads/promos these channels also carry
+// (credit cards, courses, referral schemes) — a strong job signal is a role
+// title; promo language without one is rejected.
+const JOB_TITLE_RE =
+  /\b(engineer|developer|analyst|intern(?:ship)?|sde|sdet|designer|manager|consultant|associate|trainee|scientist|architect|programmer|tester|devops|specialist|executive|recruiter|accountant|frontend|backend|full[\s-]?stack|qa|data\s?(?:analyst|scientist|engineer)|software|technical)\b/i;
+const HIRING_RE =
+  /\b(off[\s-]?campus|is hiring|are hiring|we'?re hiring|hiring|recruit(?:ment|ing)|walk[\s-]?in|vacancy|job alert|opening|hiring drive|batch eligible)\b/i;
+const JOB_META_RE =
+  /\b(batch|ctc|stipend|salary|package|lpa|years? of experience|eligibility|qualification|notice period)\b/i;
+const PROMO_RE =
+  /\b(credit card|debit card|cashback|webinar|enroll?(?:ment)?|course fee|referral code|refer (?:and|&) earn|sign ?up and (?:get|earn)|\bloan\b|insurance|mutual fund|demat|trading account|coupon|masterclass|earn (?:money|₹|rs|from home)|download (?:our|the) app|free (?:course|masterclass|webinar))\b/i;
+
+/** Whether a parsed message is actually a job (vs an ad/promo/announcement). */
+function isJobPost(text, role, company) {
+  const t = String(text || '');
+  const strongJob = Boolean(role) || JOB_TITLE_RE.test(t);
+  if (PROMO_RE.test(t) && !strongJob) return false; // promo/ad with no real role
+  return strongJob || HIRING_RE.test(t) || JOB_META_RE.test(t) || Boolean(company);
+}
+
 /** Parse one channel message into a normalized job, or null if it isn't one. */
 function parseTelegramMessage(text, links, channel) {
   const external = links.filter((u) => !TG_SOCIAL_HOST.test(u));
@@ -341,11 +361,8 @@ function parseTelegramMessage(text, links, channel) {
     companyFromTitle(role || firstLine);
 
   if (!applyUrl) return null;
-  // If unlabeled, require job-ish keywords so we skip memes / announcements.
-  if (!company && !role &&
-    !/\b(hiring|opening|off[\s-]?campus|batch|fresher|internship|intern|sde|engineer|developer|graduate|apply|vacancy)\b/i.test(text)) {
-    return null;
-  }
+  // Skip ads/promos/announcements that carry an apply-link but aren't jobs.
+  if (!isJobPost(text, role, company)) return null;
 
   const title = (role || firstLine || (company ? `${company} — Opportunity` : 'Opportunity')).slice(0, 200);
   return {
@@ -694,6 +711,7 @@ module.exports = {
   isFresherTitle,
   extractEligibility,
   parseTelegramMessage,
+  isJobPost,
   fetchTelegramChannel,
   reconcileStaleJobs,
   extractTags,

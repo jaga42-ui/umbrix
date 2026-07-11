@@ -2,7 +2,23 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
-const { parseTelegramMessage } = require('./ingest-jobs');
+const { parseTelegramMessage, isJobPost } = require('./ingest-jobs');
+
+test('isJobPost accepts real jobs, rejects ads/promos', () => {
+  // Real jobs
+  assert.equal(isJobPost('Company name: Google\nRole: SDE Intern', 'SDE Intern', 'Google'), true);
+  assert.equal(isJobPost('Microsoft Off Campus Hiring for freshers, batch 2026', undefined, 'Microsoft'), true);
+  assert.equal(isJobPost('We are hiring a Backend Developer, 0-2 years', undefined, undefined), true);
+  // Ads / promos with an apply link but no real role
+  assert.equal(isJobPost('Lifetime Free Scapia Credit Card – Travel Lovers ke liye must have! Apply now', undefined, undefined), false);
+  assert.equal(isJobPost('Join our free masterclass and enroll today! Referral code inside', undefined, undefined), false);
+  assert.equal(isJobPost('Open a demat account and get cashback, sign up and earn', undefined, undefined), false);
+});
+
+test('isJobPost: promo words in a real job (insurance/loan company) are not rejected', () => {
+  // A genuine role at a fintech mentioning "insurance" keeps its job signal.
+  assert.equal(isJobPost('Role: Data Analyst at an insurance firm', 'Data Analyst', 'Acme'), true);
+});
 
 test('parses a well-formed multi-line job post', () => {
   const text = [
