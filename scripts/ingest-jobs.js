@@ -386,13 +386,17 @@ async function ingestJobs() {
   } else {
     // Bound the pool and give server selection / sockets generous timeouts so a
     // brief network blip mid-run doesn't kill in-flight writes. retryWrites is
-    // on by default for Atlas URIs; set it explicitly for safety.
-    await mongoose.connect(process.env.MONGODB_URI, {
-      maxPoolSize: 10,
-      serverSelectionTimeoutMS: 15000,
-      socketTimeoutMS: 60000,
-      retryWrites: true,
-    });
+    // on by default for Atlas URIs; set it explicitly for safety. The initial
+    // connect is retried too — a transient Atlas handshake/overload blip at
+    // startup shouldn't abort the whole run (per-company writes already retry).
+    await withRetry(() =>
+      mongoose.connect(process.env.MONGODB_URI, {
+        maxPoolSize: 10,
+        serverSelectionTimeoutMS: 15000,
+        socketTimeoutMS: 60000,
+        retryWrites: true,
+      })
+    , 3, 3000);
     console.log("✅ Connected to MongoDB");
   }
 
