@@ -145,5 +145,14 @@
   { "slug": "servicenow", "ats": "smartrecruiters" },
   { "slug": "netskope", "ats": "smartrecruiters" },
   { "slug": "gainsight", "ats": "smartrecruiters" },
-  { "slug": "jobs_and_internships_updates", "ats": "telegram" }
+  { "slug": "jobs_and_internships_updates", "ats": "telegram" },
+  { "slug": "offcampus_phodenge", "ats": "telegram" },
+  { "slug": "fresher_offcampus_drives", "ats": "telegram" },
+  { "slug": "fresheroffcampus", "ats": "telegram" },
+  { "slug": "campusdrivejobs", "ats": "telegram" },
+  { "slug": "jobsandinternshipsupdates", "ats": "telegram" },
+  { "slug": "jobsinternshipswale", "ats": "telegram" },
+  { "slug": "freshershunt", "ats": "telegram" },
+  { "slug": "freshercareersdotin", "ats": "telegram" },
+  { "slug": "fresherjobsadda", "ats": "telegram" }
 ]

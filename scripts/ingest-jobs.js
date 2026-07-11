@@ -301,6 +301,22 @@ const TG_SOCIAL_HOST = /t\.me|telegram\.org|whatsapp\.com|wa\.me|chat\.whatsapp/
 const TG_LABELS =
   'company name|company|organization|organisation|hiring at|role|position|profile|job title|designation|post|location|job location|work location|based in|based at|batch eligible|batch|salary|ctc|expected ctc|stipend|apply link|application link|apply here|apply now|apply|link|registration link|experience|qualification|eligibility|skills';
 
+// Strip leading emoji/symbols from a headline for display + parsing.
+function stripLeadingSymbols(s) {
+  return String(s || '').replace(/^[^A-Za-z0-9]+/, '').trim();
+}
+
+// Many channels don't use a "Company name:" label — the company leads the
+// headline, e.g. "GE Healthcare Off Campus Hiring" / "NTT Data is hiring". Pull
+// the ASCII company name that precedes a hiring keyword (fancy-Unicode headers
+// are skipped — they're lower-quality channels anyway).
+function companyFromTitle(s) {
+  const m = stripLeadingSymbols(s).match(
+    /^([A-Za-z0-9][A-Za-z0-9&.,'\- ]{1,39}?)\s+(?:off[\s-]?campus|is\s+hiring|hiring|recruit(?:ment|ing)|walk[\s-]?in|careers?|drive)\b/i
+  );
+  return m ? m[1].trim() : undefined;
+}
+
 /** Parse one channel message into a normalized job, or null if it isn't one. */
 function parseTelegramMessage(text, links, channel) {
   const external = links.filter((u) => !TG_SOCIAL_HOST.test(u));
@@ -313,12 +329,16 @@ function parseTelegramMessage(text, links, channel) {
     );
     return m ? m[1].trim() : undefined;
   };
-  const company = field('company name|company|organization|organisation|hiring at');
   const role = field('role|position|profile|job title|designation|post');
   const location = field('location|job location|work location|based (?:in|at)');
   const applyField = field('apply link|application link|apply here|apply now|apply|link|registration link');
   const applyUrl =
     (applyField && (applyField.match(/https?:\/\/\S+/) || [])[0]) || external[0];
+
+  const firstLine = stripLeadingSymbols(text.split('\n')[0]);
+  const company =
+    field('company name|company|organization|organisation|hiring at') ||
+    companyFromTitle(role || firstLine);
 
   if (!applyUrl) return null;
   // If unlabeled, require job-ish keywords so we skip memes / announcements.
@@ -327,7 +347,7 @@ function parseTelegramMessage(text, links, channel) {
     return null;
   }
 
-  const title = (role || (company ? `${company} — Opportunity` : text.split('\n')[0]) || 'Opportunity').slice(0, 200);
+  const title = (role || firstLine || (company ? `${company} — Opportunity` : 'Opportunity')).slice(0, 200);
   return {
     title,
     companyName: company || undefined,
