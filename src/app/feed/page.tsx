@@ -425,6 +425,7 @@ export default function FeedPage() {
                   missingSkills={job.missingSkills}
                   matchExplanation={job.matchExplanation}
                   applyUrl={job.applyUrl}
+                  minExperience={job.minExperience}
                   isSaved={savedJobIds.has(job._id || job.id)}
                   onSave={() => handleSaveJob(job)}
                 />

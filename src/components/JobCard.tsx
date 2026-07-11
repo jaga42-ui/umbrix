@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Building2, MapPin, Bookmark, BookmarkCheck, ExternalLink, Loader2, X } from "lucide-react";
+import { Building2, MapPin, Bookmark, BookmarkCheck, ExternalLink, Loader2, X, GraduationCap } from "lucide-react";
 
 interface JobCardProps {
   id: string;
@@ -16,6 +16,7 @@ interface JobCardProps {
   missingSkills?: string[];
   matchExplanation?: string[];
   applyUrl: string;
+  minExperience?: number | null;
   isSaved?: boolean;
   onSave?: () => Promise<void>;
 }
@@ -32,9 +33,11 @@ export function JobCard({
   missingSkills = [],
   matchExplanation = [],
   applyUrl,
+  minExperience,
   isSaved = false,
   onSave,
 }: JobCardProps) {
+  const fresherEligible = minExperience != null && minExperience <= 1;
   const [saving, setSaving] = useState(false);
   const [showMatchModal, setShowMatchModal] = useState(false);
 
@@ -111,6 +114,15 @@ export function JobCard({
                   <MapPin className="w-4 h-4 mr-1.5 shrink-0 text-muted-foreground/80" />
                   {location}
                 </span>
+                {fresherEligible && (
+                  <span
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-accent bg-accent/10 border border-accent/25 px-2 py-0.5 rounded-full"
+                    title="Open to freshers — little or no experience required"
+                  >
+                    <GraduationCap className="w-3.5 h-3.5" />
+                    Fresher-friendly
+                  </span>
+                )}
               </div>
             </div>
 

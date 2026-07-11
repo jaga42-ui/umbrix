@@ -35,3 +35,13 @@ test("scores are capped at 99", () => {
   const ranked = rank({ skills: ["React", "TypeScript", "Next.js"], title: "Senior Frontend Engineer" });
   assert.ok(ranked.every((r) => r.matchScore <= 99));
 });
+
+test("fresher-eligible roles rank above experience-heavy ones for the same profile", () => {
+  const profile = { skills: ["React", "TypeScript"] };
+  const base = { title: "Frontend Engineer", tags: ["React", "TypeScript"] };
+  const fresher = calculateMatch(profile, { ...base, minExperience: 0 });
+  const senior = calculateMatch(profile, { ...base, minExperience: 6 });
+  assert.ok(fresher.score > senior.score, `fresher (${fresher.score}) > senior (${senior.score})`);
+  assert.ok(fresher.matchExplanation.some((e) => /fresher-friendly/i.test(e)));
+  assert.ok(senior.matchExplanation.some((e) => /stretch for a fresher/i.test(e)));
+});

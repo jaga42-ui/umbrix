@@ -54,6 +54,77 @@ function isIndiaLocation(location) {
   return INDIA_LOCATION_REGEX.test(String(location || ''));
 }
 
+function stripTagsSimple(html) {
+  return String(html || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&[a-z#0-9]+;/gi, ' ')
+    .replace(/\s+/g, ' ');
+}
+
+/**
+ * Minimum years of experience a posting requires. This is the highest-value
+ * fresher signal — "can a fresher even apply?". Returns 0 for fresher/entry
+ * roles, the stated number for experienced roles, or undefined when unknown.
+ * An explicit "N+ years experience" (N>=2) wins over a stray fresher word.
+ */
+function parseMinExperience(text) {
+  const t = String(text || '').toLowerCase();
+  const m =
+    t.match(/(\d{1,2})\s*\+?\s*(?:-|–|to)?\s*(?:\d{1,2})?\s*years?[^.]{0,24}?\bexperience\b/) ||
+    t.match(/\bexperience\b[^.]{0,12}?:?\s*(\d{1,2})\s*\+?\s*years?/) ||
+    t.match(/\bminimum\s+(?:of\s+)?(\d{1,2})\s*\+?\s*years?/);
+  const num = m ? parseInt(m[1], 10) : undefined;
+  const validNum = num !== undefined && num >= 0 && num <= 30 ? num : undefined;
+  const fresher =
+    /\b(freshers?|entry[\s-]level|new\s?grads?|no\s+(?:prior\s+|relevant\s+)?experience|0\s*(?:-|–|to)\s*[12]\s*years?)\b/.test(t);
+  if (validNum !== undefined && validNum >= 2) return validNum; // explicit requirement wins
+  if (fresher) return 0;
+  return validNum; // 0, 1, or undefined
+}
+
+/** Graduating batch years a posting names (Indian-campus convention). */
+function parseBatchYears(text) {
+  const t = String(text || '');
+  const out = new Set();
+  const add = (s) =>
+    (s.match(/20\d{2}/g) || []).forEach((y) => {
+      const n = parseInt(y, 10);
+      if (n >= 2020 && n <= 2030) out.add(n);
+    });
+  let m;
+  // keyword → year(s): "batch of 2025", "graduating in 2025/2026"
+  const re1 = /\b(?:batch|graduat\w*|class of|passing?\s*out)\b[^.]{0,40}?((?:20\d{2}[,/\s&]*(?:and\s*)?)+)/gi;
+  while ((m = re1.exec(t))) add(m[1]);
+  // year(s) → keyword: "2025 batch", "2024 & 2025 graduates"
+  const re2 = /((?:20\d{2}[,/\s&]*(?:and\s*)?)+)(?:batch|graduates?|pass\s*outs?)\b/gi;
+  while ((m = re2.exec(t))) add(m[1]);
+  return [...out].sort((a, b) => a - b);
+}
+
+/** A stated CGPA cutoff (0–10 scale), when present. */
+function parseCgpa(text) {
+  const t = String(text || '');
+  const m =
+    t.match(/(\d(?:\.\d)?)\s*(?:\+|and above|or above)?\s*(?:cgpa|gpa)\b/i) ||
+    t.match(/\b(?:cgpa|gpa)\b\s*(?:of|:|>=|above|minimum|min\.?)?\s*(\d(?:\.\d)?)/i);
+  if (m) {
+    const n = parseFloat(m[1]);
+    if (n > 0 && n <= 10) return n;
+  }
+  return undefined;
+}
+
+/** Extracts the eligibility fields from a posting. Omits unknown fields. */
+function extractEligibility(title, content) {
+  const text = (String(title || '') + ' ' + stripTagsSimple(content)).slice(0, 20000);
+  const elig = { batchYears: parseBatchYears(text) };
+  const me = parseMinExperience(text);
+  if (me !== undefined) elig.minExperience = me;
+  const cg = parseCgpa(text);
+  if (cg !== undefined) elig.cgpaCutoff = cg;
+  return elig;
+}
+
 // How many companies to fetch concurrently. Kept moderate to stay a
 // courteous, well-behaved client of two free public APIs rather than
 // hammering them -- not a hard rate limit either has published.
@@ -336,6 +407,7 @@ async function processCompany({ slug, ats }) {
         status: 'Active',
         type: classifyType(job.title),
         isIndia: isIndiaLocation(job.location),
+        ...extractEligibility(job.title, job.content),
         lastSeenAt: now,
       });
     }
@@ -467,6 +539,8 @@ module.exports = {
   classifyType,
   isIndiaLocation,
   INDIA_LOCATION_REGEX,
+  parseMinExperience,
+  extractEligibility,
   reconcileStaleJobs,
   extractTags,
   interleaveByAts,

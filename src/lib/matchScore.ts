@@ -23,6 +23,8 @@ export interface JobLike {
   title: string;
   tags: string[];
   descriptionHtml?: string;
+  /** Minimum years of experience the posting requires (0 = fresher-eligible). */
+  minExperience?: number | null;
 }
 
 export interface MatchResult {
@@ -42,6 +44,11 @@ const DOMAIN_BONUS_MAX = 8;
 const SENIORITY_EXACT = 6;
 const SENIORITY_NEAR = 3;
 const DESC_BONUS_MAX = 3;
+// Fresher eligibility — UMBRIX's audience is freshers, so open roles rank up and
+// experience-heavy roles rank down.
+const FRESHER_BONUS = 8; // minExperience 0
+const JUNIOR_BONUS = 4; // minExperience 1
+const EXPERIENCED_PENALTY = 8; // minExperience >= 3
 const SCORE_CAP = 99;
 
 // Domain/discipline keywords used for role alignment. Kept broad but meaningful;
@@ -174,7 +181,24 @@ export function calculateMatch(profile: MatchProfile, job: JobLike): MatchResult
     if (descHits > 0) score += Math.min(descHits, DESC_BONUS_MAX);
   }
 
-  score = Math.min(score, SCORE_CAP);
+  // 5. Fresher eligibility — the audience is freshers, so open roles rank up and
+  // experience-heavy roles rank down. Unknown (null) stays neutral.
+  let eligibilityNote: string | null = null;
+  const minExp = job.minExperience;
+  if (minExp != null) {
+    if (minExp <= 0) {
+      score += FRESHER_BONUS;
+      eligibilityNote = "Fresher-friendly: open to freshers / no experience required.";
+    } else if (minExp === 1) {
+      score += JUNIOR_BONUS;
+      eligibilityNote = "Junior-friendly: about a year of experience.";
+    } else if (minExp >= 3) {
+      score -= EXPERIENCED_PENALTY;
+      eligibilityNote = `Needs ~${minExp}+ years experience — a stretch for a fresher.`;
+    }
+  }
+
+  score = Math.max(0, Math.min(score, SCORE_CAP));
 
   // Build the human-readable explanation shown on each card.
   const explanation: string[] = [];
@@ -191,6 +215,7 @@ export function calculateMatch(profile: MatchProfile, job: JobLike): MatchResult
   } else if (matchingSkills.length > 0) {
     explanation.push("Full alignment: your skillset covers every core technology listed.");
   }
+  if (eligibilityNote) explanation.push(eligibilityNote);
   if (seniorityNote) explanation.push(seniorityNote);
 
   return {

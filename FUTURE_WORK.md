@@ -22,7 +22,9 @@ Current build order (detail in "★ Freshers pivot" below):
 2. ✅ **Indian coverage, phase A** — Indian companies curated + `isIndia` location
    filter (feed defaults to India-only). ~1,093 active India roles live.
 3. 🔴 **Indian ATS adapters** — Freshteam / Keka / Darwinbox / Zoho / SmartRecruiters / Workday.
-4. 🔴 **Eligibility metadata + eligibility-aware matching** (batch / branch / exp / CGPA).
+4. ✅ **Eligibility extraction + matching** — experience (thorough), batch year, CGPA
+   extracted at ingest; matching boosts fresher-eligible roles + "Fresher-friendly" badge.
+   Branch extraction still to do.
 5. 🟡 **Internships** as a first-class type (filter existing sources).
 6. ⏸️ Later: hackathons/competitions, AI resume tailoring (Phase-2 premium), billing (Phase 2).
 
@@ -70,9 +72,12 @@ serve the wrong inventory until the pivot gap closes.
   brittle + high-maintenance + ToS risk, so last resort, not the strategy.
 
 ### Relevance
-- 🔴 **Eligibility-aware matching** — extend `matchScore` beyond skills to eligibility fit
-  (batch year, branch, experience, CGPA); surface eligibility + a "fresher-eligible" signal
-  on the card.
+- ✅ **Eligibility extraction + matching** — ingest parses `minExperience` (thorough, the
+  key fresher signal), `batchYears`, and `cgpaCutoff` from postings (`extractEligibility`,
+  tested). `matchScore` boosts fresher-eligible roles (minExp 0–1) and penalizes
+  experience-heavy ones, with a **"Fresher-friendly" badge** on the card. Follow-ups:
+  **branch** extraction (needs a degree/branch dictionary); per-user experience matching
+  (currently assumes the audience is freshers, which is fine for the beachhead).
 - 🟡 **Internships** — surface as an `Opportunity` type (filter existing sources for
   intern/trainee) with a job/internship toggle on the feed.
 
