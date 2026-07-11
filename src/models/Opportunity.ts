@@ -11,12 +11,10 @@ export const OPPORTUNITY_TYPES = ['job', 'internship', 'hackathon', 'competition
 export type OpportunityType = (typeof OPPORTUNITY_TYPES)[number];
 
 export interface IOpportunity extends Document {
-  /** For ATS sources this is the company; for aggregator sources (telegram) it's the channel. */
+  /** The company slug this posting belongs to, from its ATS board. */
   companySlug: string;
-  /** Display name of the hiring company. For ATS it's derived; aggregators parse it per post. */
+  /** Display name of the hiring company, derived from the ATS. */
   companyName?: string;
-  /** Where this opportunity came from: an ATS board or an aggregator channel. */
-  source: 'ats' | 'telegram';
   title: string;
   location: string;
   descriptionHtml: string;
@@ -52,7 +50,6 @@ const OpportunitySchema = new Schema<IOpportunity>(
   {
     companySlug: { type: String, required: true, index: true },
     companyName: { type: String },
-    source: { type: String, enum: ['ats', 'telegram'], default: 'ats', index: true },
     title: { type: String, required: true },
     location: { type: String, required: true },
     descriptionHtml: { type: String, required: true },

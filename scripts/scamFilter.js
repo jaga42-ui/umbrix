@@ -155,13 +155,12 @@ const RULES = [
   },
 ];
 
-// A shortened or DM-routed application link is a structural red flag. Google
-// Forms (forms.gle) is deliberately NOT here: legit Indian off-campus/fresher
-// drives commonly collect applications via a Google Form, so flagging it would
-// be a false positive on the very source (Telegram) where freshers apply. Short
-// links (bit.ly, …) are resolved to their real destination at ingest, so an
-// unresolved shortener reaching here is itself suspicious. Routing to a Telegram
-// or WhatsApp DM stays a strong red flag.
+// A shortened or DM-routed application link is a structural red flag. A real
+// posting on a company ATS links straight to that ATS, so a link shortener
+// (bit.ly, …) or a route into a Telegram / WhatsApp DM is anomalous and treated
+// as suspicious. Google Forms (forms.gle) is deliberately NOT here — some legit
+// employers still collect applications via a Google Form, so flagging it would
+// be a false positive.
 const SUSPICIOUS_URL_HOST = /(?:^|\.)(bit\.ly|tinyurl\.com|cutt\.ly|rb\.gy|t\.me|wa\.me|chat\.whatsapp\.com)$/i;
 
 // Many reputable companies include an anti-scam disclaimer in their JD, e.g.

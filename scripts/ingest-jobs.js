@@ -10,7 +10,6 @@ const OpportunitySchema = new mongoose.Schema(
   {
     companySlug: { type: String, required: true, index: true },
     companyName: { type: String },
-    source: { type: String, enum: ['ats', 'telegram'], default: 'ats' },
     title: { type: String, required: true },
     location: { type: String, required: true },
     descriptionHtml: { type: String, required: true },
@@ -259,191 +258,30 @@ async function fetchSmartRecruitersJobs(slug) {
   return out;
 }
 
-// --- Telegram (off-campus fresher-job channels) ----------------------------
-// Public channels expose a login-free web preview at t.me/s/<channel>. These
-// posts are semi-structured ("Company name:", "Role:", "Batch Eligible:",
-// "Apply Link:") and are where Indian freshers actually find off-campus roles —
-// and where the scams live, so the scam filter finally earns its keep.
-
-function decodeEntities(s) {
-  return String(s || '')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&#(\d+);/g, (_, c) => String.fromCharCode(Number(c)));
-}
-
-const LINK_SHORTENERS =
-  /(?:^|\.)(bit\.ly|tinyurl\.com|cutt\.ly|rb\.gy|t\.co|lnkd\.in|shorturl\.at|is\.gd|rebrand\.ly|shorturl\.gg|urlis\.net)$/i;
-
-/** Follow a known short link to its real destination (per the user's choice). */
-async function resolveShortLink(url) {
-  try {
-    const host = new URL(url).host;
-    if (!LINK_SHORTENERS.test(host)) return url;
-    const res = await withRetry(
-      () => fetch(url, { method: 'HEAD', redirect: 'follow' }),
-      1,
-      800
-    );
-    return res && res.url ? res.url : url;
-  } catch {
-    return url;
-  }
-}
-
-const TG_SOCIAL_HOST = /t\.me|telegram\.org|whatsapp\.com|wa\.me|chat\.whatsapp/i;
-
-// All field labels these channels use — a value ends where the next one begins
-// (handles both multi-line posts and single-line "pinned" reposts).
-const TG_LABELS =
-  'company name|company|organization|organisation|hiring at|role|position|profile|job title|designation|post|location|job location|work location|based in|based at|batch eligible|batch|salary|ctc|expected ctc|stipend|apply link|application link|apply here|apply now|apply|link|registration link|experience|qualification|eligibility|skills';
-
-// Strip leading emoji/symbols from a headline for display + parsing.
-function stripLeadingSymbols(s) {
-  return String(s || '').replace(/^[^A-Za-z0-9]+/, '').trim();
-}
-
-// Many channels don't use a "Company name:" label — the company leads the
-// headline, e.g. "GE Healthcare Off Campus Hiring" / "NTT Data is hiring". Pull
-// the ASCII company name that precedes a hiring keyword (fancy-Unicode headers
-// are skipped — they're lower-quality channels anyway).
-function companyFromTitle(s) {
-  const m = stripLeadingSymbols(s).match(
-    /^([A-Za-z0-9][A-Za-z0-9&.,'\- ]{1,39}?)\s+(?:off[\s-]?campus|is\s+hiring|hiring|recruit(?:ment|ing)|walk[\s-]?in|careers?|drive)\b/i
-  );
-  return m ? m[1].trim() : undefined;
-}
-
-// Distinguishing a real job post from the ads/promos these channels also carry
-// (credit cards, courses, referral schemes) — a strong job signal is a role
-// title; promo language without one is rejected.
-const JOB_TITLE_RE =
-  /\b(engineer|developer|analyst|intern(?:ship)?|sde|sdet|designer|manager|consultant|associate|trainee|scientist|architect|programmer|tester|devops|specialist|executive|recruiter|accountant|frontend|backend|full[\s-]?stack|qa|data\s?(?:analyst|scientist|engineer)|software|technical)\b/i;
-const HIRING_RE =
-  /\b(off[\s-]?campus|is hiring|are hiring|we'?re hiring|hiring|recruit(?:ment|ing)|walk[\s-]?in|vacancy|job alert|opening|hiring drive|batch eligible)\b/i;
-const JOB_META_RE =
-  /\b(batch|ctc|stipend|salary|package|lpa|years? of experience|eligibility|qualification|notice period)\b/i;
-const PROMO_RE =
-  /\b(credit card|debit card|cashback|webinar|enroll?(?:ment)?|course fee|referral code|refer (?:and|&) earn|sign ?up and (?:get|earn)|\bloan\b|insurance|mutual fund|demat|trading account|coupon|masterclass|earn (?:money|₹|rs|from home)|download (?:our|the) app|free (?:course|masterclass|webinar))\b/i;
-
-/** Whether a parsed message is actually a job (vs an ad/promo/announcement). */
-function isJobPost(text, role, company) {
-  const t = String(text || '');
-  const strongJob = Boolean(role) || JOB_TITLE_RE.test(t);
-  if (PROMO_RE.test(t) && !strongJob) return false; // promo/ad with no real role
-  return strongJob || HIRING_RE.test(t) || JOB_META_RE.test(t) || Boolean(company);
-}
-
-/** Parse one channel message into a normalized job, or null if it isn't one. */
-function parseTelegramMessage(text, links, channel) {
-  const external = links.filter((u) => !TG_SOCIAL_HOST.test(u));
-  const field = (labels) => {
-    const m = text.match(
-      new RegExp(
-        '\\b(?:' + labels + ')\\s*[:\\-]\\s*([^\\n]+?)(?=\\s*(?:' + TG_LABELS + ')\\s*[:\\-]|\\s*$)',
-        'im'
-      )
-    );
-    return m ? m[1].trim() : undefined;
-  };
-  const role = field('role|position|profile|job title|designation|post');
-  const location = field('location|job location|work location|based (?:in|at)');
-  const applyField = field('apply link|application link|apply here|apply now|apply|link|registration link');
-  const applyUrl =
-    (applyField && (applyField.match(/https?:\/\/\S+/) || [])[0]) || external[0];
-
-  const firstLine = stripLeadingSymbols(text.split('\n')[0]);
-  const company =
-    field('company name|company|organization|organisation|hiring at') ||
-    companyFromTitle(role || firstLine);
-
-  if (!applyUrl) return null;
-  // Skip ads/promos/announcements that carry an apply-link but aren't jobs.
-  if (!isJobPost(text, role, company)) return null;
-
-  const title = (role || firstLine || (company ? `${company} — Opportunity` : 'Opportunity')).slice(0, 200);
-  return {
-    title,
-    companyName: company || undefined,
-    // These channels are India-focused; default to India when unstated.
-    location: location || 'India',
-    content: text.slice(0, 4000),
-    applyUrl: applyUrl.replace(/[)\].,]+$/, ''),
-    department: null,
-  };
-}
-
-// How many pages (~20 posts each) to read back per channel. Deeper = more
-// inventory but older posts are likelier already filled, so this is capped.
-const TG_MAX_PAGES = 4;
-
-/** Fetch + parse a public Telegram channel's posts (paginated) into jobs. */
-async function fetchTelegramChannel(channel) {
-  const jobs = [];
-  const seen = new Set();
-  let before = null;
-
-  for (let page = 0; page < TG_MAX_PAGES; page++) {
-    const url = `https://t.me/s/${channel}${before ? `?before=${before}` : ''}`;
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; UmbrixBot/1.0)' },
-    });
-    if (!res.ok) {
-      if (page === 0) throw new Error(`Telegram ${res.status} ${res.statusText}`);
-      break; // a later page failing shouldn't discard earlier pages
-    }
-    const html = await res.text();
-    const blocks = [...html.matchAll(/<div class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>/g)];
-    for (const b of blocks) {
-      const raw = b[1];
-      const links = [...raw.matchAll(/href="(https?:\/\/[^"]+)"/g)].map((m) => decodeEntities(m[1]));
-      const text = decodeEntities(raw.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '')).trim();
-      const job = parseTelegramMessage(text, links, channel);
-      if (job && !seen.has(job.applyUrl)) {
-        seen.add(job.applyUrl);
-        jobs.push(job);
-      }
-    }
-    // Page back using the oldest post id on this page.
-    const ids = [...html.matchAll(/data-post="[^"]*\/(\d+)"/g)].map((m) => Number(m[1]));
-    if (ids.length === 0) break;
-    const minId = Math.min(...ids);
-    if (before !== null && minId >= before) break; // no further progress
-    before = minId;
-  }
-
-  // Resolve short links to their real destination, then dedup on the resolved
-  // URL (a direct post and its pinned bit.ly repost collapse to one).
-  const byUrl = new Map();
-  for (const j of jobs) {
-    j.applyUrl = await resolveShortLink(j.applyUrl);
-    if (!byUrl.has(j.applyUrl)) byUrl.set(j.applyUrl, j);
-  }
-  return [...byUrl.values()];
-}
-
 const ATS_FETCHERS = {
   greenhouse: fetchGreenhouseJobs,
   lever: fetchLeverJobs,
   ashby: fetchAshbyJobs,
   smartrecruiters: fetchSmartRecruitersJobs,
-  telegram: fetchTelegramChannel,
 };
+
+// A skill keyword only counts as a whole token, not a substring — otherwise
+// short keywords match inside unrelated words ("AI" inside "trAInee"/"avAIlable",
+// "Go" inside "Google"), which was tagging every fresher post with a bogus "AI"
+// and rocketing it to a 99% match. Boundaries are "not an ASCII letter/digit" so
+// keywords ending in punctuation ("C++", "Node.js", "UI/UX") still match.
+const SKILL_MATCHERS = SKILL_KEYWORDS.map((keyword) => {
+  const escaped = keyword.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return { keyword, re: new RegExp(`(?<![a-z0-9])${escaped}(?![a-z0-9])`, 'i') };
+});
 
 function extractTags(job) {
   const tags = [];
   if (job.department) tags.push(job.department);
 
-  const lowerTitle = job.title.toLowerCase();
-  const lowerContent = job.content.toLowerCase();
-  for (const keyword of SKILL_KEYWORDS) {
-    const lowerKeyword = keyword.toLowerCase();
-    if (lowerTitle.includes(lowerKeyword) || lowerContent.includes(lowerKeyword)) {
-      if (!tags.includes(keyword)) tags.push(keyword);
-    }
+  const haystack = `${job.title}\n${job.content}`;
+  for (const { keyword, re } of SKILL_MATCHERS) {
+    if (re.test(haystack) && !tags.includes(keyword)) tags.push(keyword);
   }
   return tags;
 }
@@ -584,7 +422,6 @@ async function processCompany({ slug, ats }) {
       jobDocs.push({
         companySlug: slug,
         companyName: job.companyName,
-        source: ats === 'telegram' ? 'telegram' : 'ats',
         title: job.title,
         location: job.location,
         descriptionHtml: job.content,
@@ -728,9 +565,6 @@ module.exports = {
   parseMinExperience,
   isFresherTitle,
   extractEligibility,
-  parseTelegramMessage,
-  isJobPost,
-  fetchTelegramChannel,
   reconcileStaleJobs,
   extractTags,
   interleaveByAts,
