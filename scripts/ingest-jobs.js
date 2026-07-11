@@ -376,27 +376,45 @@ function parseTelegramMessage(text, links, channel) {
   };
 }
 
-/** Fetch + parse a public Telegram channel's recent posts into jobs. */
-async function fetchTelegramChannel(channel) {
-  const res = await fetch(`https://t.me/s/${channel}`, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; UmbrixBot/1.0)' },
-  });
-  if (!res.ok) throw new Error(`Telegram ${res.status} ${res.statusText}`);
-  const html = await res.text();
-  const blocks = [...html.matchAll(/<div class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>/g)];
+// How many pages (~20 posts each) to read back per channel. Deeper = more
+// inventory but older posts are likelier already filled, so this is capped.
+const TG_MAX_PAGES = 4;
 
+/** Fetch + parse a public Telegram channel's posts (paginated) into jobs. */
+async function fetchTelegramChannel(channel) {
   const jobs = [];
   const seen = new Set();
-  for (const b of blocks) {
-    const raw = b[1];
-    const links = [...raw.matchAll(/href="(https?:\/\/[^"]+)"/g)].map((m) => decodeEntities(m[1]));
-    const text = decodeEntities(raw.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '')).trim();
-    const job = parseTelegramMessage(text, links, channel);
-    if (job && !seen.has(job.applyUrl)) {
-      seen.add(job.applyUrl);
-      jobs.push(job);
+  let before = null;
+
+  for (let page = 0; page < TG_MAX_PAGES; page++) {
+    const url = `https://t.me/s/${channel}${before ? `?before=${before}` : ''}`;
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; UmbrixBot/1.0)' },
+    });
+    if (!res.ok) {
+      if (page === 0) throw new Error(`Telegram ${res.status} ${res.statusText}`);
+      break; // a later page failing shouldn't discard earlier pages
     }
+    const html = await res.text();
+    const blocks = [...html.matchAll(/<div class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>/g)];
+    for (const b of blocks) {
+      const raw = b[1];
+      const links = [...raw.matchAll(/href="(https?:\/\/[^"]+)"/g)].map((m) => decodeEntities(m[1]));
+      const text = decodeEntities(raw.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '')).trim();
+      const job = parseTelegramMessage(text, links, channel);
+      if (job && !seen.has(job.applyUrl)) {
+        seen.add(job.applyUrl);
+        jobs.push(job);
+      }
+    }
+    // Page back using the oldest post id on this page.
+    const ids = [...html.matchAll(/data-post="[^"]*\/(\d+)"/g)].map((m) => Number(m[1]));
+    if (ids.length === 0) break;
+    const minId = Math.min(...ids);
+    if (before !== null && minId >= before) break; // no further progress
+    before = minId;
   }
+
   // Resolve short links to their real destination, then dedup on the resolved
   // URL (a direct post and its pinned bit.ly repost collapse to one).
   const byUrl = new Map();
