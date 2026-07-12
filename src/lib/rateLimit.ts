@@ -5,20 +5,21 @@ import { Redis } from "@upstash/redis";
 /**
  * Distributed rate limiting backed by Upstash Redis.
  *
- * Activates automatically when UPSTASH_REDIS_REST_URL and
- * UPSTASH_REDIS_REST_TOKEN are set (provision "Upstash Redis" from the Vercel
- * Marketplace — the integration injects these env vars). When they are absent,
- * every check is allowed so local/demo development is unaffected.
+ * Activates automatically when the Upstash REST credentials are present. The
+ * Vercel Marketplace Upstash integration injects these under either the
+ * UPSTASH_REDIS_REST_* names or the KV_REST_API_* aliases depending on how it's
+ * connected, so we accept both. When neither is set, every check is allowed so
+ * local/demo development is unaffected.
  */
 
-const url = process.env.UPSTASH_REDIS_REST_URL;
-const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
 
 const redis = url && token ? new Redis({ url, token }) : null;
 
 if (!redis && process.env.NODE_ENV === "production") {
   console.warn(
-    "⚠️ Upstash Redis is not configured (UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN). Rate limiting is disabled."
+    "⚠️ Upstash Redis is not configured (UPSTASH_REDIS_REST_URL/_TOKEN or KV_REST_API_URL/_TOKEN). Rate limiting is disabled."
   );
 }
 
