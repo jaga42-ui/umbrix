@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { Compass, LayoutDashboard, LogOut, Sparkles, User } from "lucide-react";
+import { Compass, LayoutDashboard, LogOut, ShieldCheck, Sparkles, User } from "lucide-react";
 import { motion } from "framer-motion";
 
 export function Header() {
@@ -77,6 +77,25 @@ export function Header() {
                 <LayoutDashboard className="w-4 h-4" />
                 App Tracker
                 {isActive("/tracker") && (
+                  <motion.div
+                    layoutId="active-nav-indicator"
+                    className="absolute bottom-[-1px] left-4 right-4 h-0.5 bg-accent"
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  />
+                )}
+              </span>
+            </Link>
+            <Link href="/scam-check">
+              <span
+                className={`relative px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2 rounded-xl ${
+                  isActive("/scam-check")
+                    ? "text-primary bg-secondary/80"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                }`}
+              >
+                <ShieldCheck className="w-4 h-4" />
+                Scam Check
+                {isActive("/scam-check") && (
                   <motion.div
                     layoutId="active-nav-indicator"
                     className="absolute bottom-[-1px] left-4 right-4 h-0.5 bg-accent"

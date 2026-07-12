@@ -173,8 +173,11 @@ const DISCLAIMER =
   /\b(never|not|no|without|won'?t|don'?t|does\s?n'?t|do\s+not|will\s+not|free\s+of)\b[^.!?;]{0,50}\b(ask|charge|charges|charged|require|required|request|collect|seek|demand|pay|payment|fee|fees|deposit|money)/;
 
 function stripDisclaimers(text) {
+  // Split on sentence punctuation only when it's followed by whitespace / end —
+  // so a period inside an email or URL (gmail.com, wa.me) doesn't shatter the
+  // token and defeat the personal-email / untrusted-host checks downstream.
   return text
-    .split(/[.!?;]+/)
+    .split(/[.!?;]+(?=\s|$)/)
     .filter((clause) => !DISCLAIMER.test(clause))
     .join('. ');
 }

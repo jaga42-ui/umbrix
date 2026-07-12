@@ -36,6 +36,9 @@ function makeLimiter(requests: number, window: `${number} ${"s" | "m"}`) {
 const limiters = {
   upload: makeLimiter(5, "1 m"),
   write: makeLimiter(30, "1 m"),
+  // Public, unauthenticated Scam Check tool — keyed by IP, a bit generous so a
+  // curious user pasting several posts isn't blocked, but bounded against abuse.
+  scamCheck: makeLimiter(20, "1 m"),
 } as const;
 
 export type LimiterName = keyof typeof limiters;
