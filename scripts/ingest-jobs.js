@@ -554,6 +554,30 @@ async function processCompany(company) {
   }
 }
 
+// --- Once-a-day rate limit -------------------------------------------------
+// The Adzuna free tier is ~250 API calls/day and one full ingest uses ~144, so
+// two runs in a day blow the quota. We enforce "at most one run per day" at the
+// script level (not just the cron) so a manual re-run / workflow_dispatch can't
+// overshoot. State lives in a tiny `meta` doc. Default gap is 20h — under the
+// 24h cron interval (so the nightly run is never wrongly skipped) but far above
+// any accidental back-to-back run. Override with FORCE_INGEST=1 or `--force`.
+const MIN_INGEST_INTERVAL_HOURS = Number(process.env.MIN_INGEST_INTERVAL_HOURS) || 20;
+
+/** Hours since the last recorded run, or null if it's outside the window / unrecorded. */
+async function hoursSinceLastRunIfTooSoon() {
+  const doc = await mongoose.connection.db.collection('meta').findOne({ _id: 'ingest' });
+  if (!doc || !doc.lastRunAt) return null;
+  const hours = (Date.now() - new Date(doc.lastRunAt).getTime()) / 3.6e6;
+  return hours < MIN_INGEST_INTERVAL_HOURS ? hours : null;
+}
+
+/** Stamp the current run time so the next invocation can honor the daily limit. */
+async function recordRun() {
+  await mongoose.connection.db
+    .collection('meta')
+    .updateOne({ _id: 'ingest' }, { $set: { lastRunAt: new Date() } }, { upsert: true });
+}
+
 async function ingestJobs() {
   if (!process.env.MONGODB_URI) {
     if (process.env.GITHUB_ACTIONS === "true") {
@@ -579,6 +603,20 @@ async function ingestJobs() {
       })
     , 3, 3000);
     console.log("✅ Connected to MongoDB");
+
+    // Enforce the once-a-day limit before spending any API quota.
+    const force = process.argv.includes('--force') || process.env.FORCE_INGEST === '1';
+    if (!force) {
+      const since = await hoursSinceLastRunIfTooSoon();
+      if (since !== null) {
+        console.log(
+          `⏳ Last ingest ran ${since.toFixed(1)}h ago (< ${MIN_INGEST_INTERVAL_HOURS}h). ` +
+            `Skipping to stay within the once-a-day limit. Use --force (or FORCE_INGEST=1) to override.`
+        );
+        await mongoose.disconnect();
+        return;
+      }
+    }
   }
 
   const companiesPath = path.join(__dirname, 'companies.json');
@@ -626,6 +664,9 @@ async function ingestJobs() {
   );
 
   if (process.env.MONGODB_URI) {
+    // Stamp this run so the daily limit is honored next time (the run consumed
+    // API quota even if some sources failed, so record it regardless).
+    await recordRun();
     await mongoose.disconnect();
     console.log("✅ Disconnected from MongoDB");
   } else {

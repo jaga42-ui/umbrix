@@ -33,4 +33,9 @@ jobs:
       - name: Run ingestion pipeline
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          # Adzuna aggregator (all-field India fresher inventory). Add these as
+          # repo secrets (Settings > Secrets and variables > Actions). If absent,
+          # only the Adzuna shards fail; ATS sources still ingest.
+          ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
+          ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
         run: npm run ingest
