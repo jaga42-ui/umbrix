@@ -130,8 +130,8 @@ Normalizes every source into one shape, then scores, tags, and upserts. Run: `np
 | Personalized match scoring + explanations | ✅ live |
 | Resume upload → profile skills | ✅ live |
 | Application tracker | ✅ live |
-| Fresher eligibility — `minExperience` in ranking + badge | ✅ live |
-| Fresher eligibility — batch/branch/CGPA filters + matching | 🟡 extracted, not yet surfaced |
+| Fresher eligibility — `minExperience` in ranking + badge + **feed filter** | ✅ live |
+| Fresher eligibility — batch/branch/CGPA filters + matching | ⛔ extracted but ~0% populated — deferred (data-sourcing problem, not UI) |
 | Auth (Firebase) + guest mode | ✅ live |
 | Billing entitlements seam | 🟡 scaffolded; checkout/webhooks not built |
 | AI résumé/cover-letter tailoring (premium anchor) | ❌ not started |
@@ -153,6 +153,9 @@ Normalizes every source into one shape, then scores, tags, and upserts. Run: `np
   `/api/cron/match-digest` (Vercel Cron, `dryRun`/`testTo`), `/api/alerts/unsubscribe`,
   `UserProfile.emailAlerts`. Verified via dry-run against live data + rendered email preview.
   Gated on a Resend key + verified sending domain before public sends.
+- **Fresher-eligible feed filter** — a "Fresher-eligible" quick-filter surfaces roles with a
+  known `minExperience` ≤ 1 (`?fresher=1` → `{minExperience:{$ne:null,$lte:1}}`). 1,355 of
+  6,419 India roles qualify. The eligibility-first wedge, on the field that's actually populated.
 
 ---
 

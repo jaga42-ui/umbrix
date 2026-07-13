@@ -81,6 +81,10 @@ export async function GET(request: Request) {
     const tag = searchParams.get("tag");
     // Default the feed to India roles (the audience); client can opt out.
     const indiaOnly = searchParams.get("india") !== "0";
+    // "Fresher-eligible only": roles with a known minExperience of 0–1 years —
+    // the eligibility-first differentiation, using the field that's actually
+    // populated (batch/branch/CGPA are extracted but near-empty in practice).
+    const fresherOnly = searchParams.get("fresher") === "1";
 
     const auth = await resolveUserId(request, searchParams.get("userId") || "demo-user-123");
     if (auth.errorResponse) return auth.errorResponse;
@@ -184,6 +188,9 @@ export async function GET(request: Request) {
       // injection / ReDoS.
       const query: any = { status: "Active" };
       if (indiaOnly) query.isIndia = true;
+      // Known 0–1 years only. Excludes unknown (null) so we never claim a role is
+      // fresher-friendly without evidence — matches the JobCard "Fresher-friendly" badge.
+      if (fresherOnly) query.minExperience = { $ne: null, $lte: 1 };
 
       const searchTerm = safeRegexTerm(search);
       if (searchTerm) {

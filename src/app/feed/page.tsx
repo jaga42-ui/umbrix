@@ -6,7 +6,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { authedFetch } from "@/lib/authedFetch";
 import { Header } from "@/components/Header";
 import { JobCard } from "@/components/JobCard";
-import { Compass, Search, MapPin, Tag, SlidersHorizontal, Sparkles, Loader2, ArrowRight } from "lucide-react";
+import { Compass, Search, MapPin, Tag, SlidersHorizontal, Sparkles, Loader2, ArrowRight, GraduationCap } from "lucide-react";
 import { motion } from "framer-motion";
 
 const INITIAL_VISIBLE = 30;
@@ -42,6 +42,7 @@ export default function FeedPage() {
   const [locationFilter, setLocationFilter] = useState("");
   const [selectedTag, setSelectedTag] = useState("");
   const [indiaOnly, setIndiaOnly] = useState(true); // audience default: India roles
+  const [fresherOnly, setFresherOnly] = useState(false); // roles open to freshers (minExperience <= 1)
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -61,6 +62,7 @@ export default function FeedPage() {
       if (locationFilter) queryParams.set("location", locationFilter);
       if (selectedTag) queryParams.set("tag", selectedTag);
       queryParams.set("india", indiaOnly ? "1" : "0");
+      if (fresherOnly) queryParams.set("fresher", "1");
 
       const headers: { [key: string]: string } = {};
       if (isDemoMode) {
@@ -118,7 +120,7 @@ export default function FeedPage() {
     if (user && !loading) {
       fetchJobsAndSaved();
     }
-  }, [user, loading, search, locationFilter, selectedTag, indiaOnly]);
+  }, [user, loading, search, locationFilter, selectedTag, indiaOnly, fresherOnly]);
 
   const handleSaveJob = async (job: any) => {
     if (!user) return;
@@ -321,6 +323,23 @@ export default function FeedPage() {
               title={indiaOnly ? "Showing India roles — click to include global" : "Showing all locations"}
             >
               🇮🇳 India only
+            </button>
+            <button
+              onClick={() => setFresherOnly((v) => !v)}
+              aria-pressed={fresherOnly}
+              className={`text-xs px-3 py-1 rounded-full border transition-all cursor-pointer shrink-0 flex items-center gap-1 ${
+                fresherOnly
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background text-muted-foreground border-border hover:border-foreground/30"
+              }`}
+              title={
+                fresherOnly
+                  ? "Showing only roles open to freshers — click to include all"
+                  : "Only show roles you're eligible for as a fresher (no experience required)"
+              }
+            >
+              <GraduationCap className="w-3.5 h-3.5" />
+              Fresher-eligible
             </button>
             <button
               onClick={() => {
