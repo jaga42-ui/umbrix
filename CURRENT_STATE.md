@@ -136,6 +136,7 @@ Normalizes every source into one shape, then scores, tags, and upserts. Run: `np
 | Billing entitlements seam | 🟡 scaffolded; checkout/webhooks not built |
 | AI résumé/cover-letter tailoring (premium anchor) | ❌ not started |
 | "Scam Check" standalone tool (growth wedge) | ✅ live at `/scam-check` — public, shareable |
+| Match-alert emails (retention driver) | 🟡 built (cron + digest + unsubscribe); gated on Resend key + verified domain |
 
 ---
 
@@ -148,6 +149,10 @@ Normalizes every source into one shape, then scores, tags, and upserts. Run: `np
 - **Once-a-day ingest guard** added; Adzuna keys wired into CI secrets.
 - **Scam Check** shipped — public `/scam-check` tool reusing the scam filter; also fixed a
   filter bug where periods in emails/URLs defeated the personal-email / untrusted-host checks.
+- **Match-alert emails built** — daily digest via `selectDigestJobs` + Resend + template;
+  `/api/cron/match-digest` (Vercel Cron, `dryRun`/`testTo`), `/api/alerts/unsubscribe`,
+  `UserProfile.emailAlerts`. Verified via dry-run against live data + rendered email preview.
+  Gated on a Resend key + verified sending domain before public sends.
 
 ---
 
