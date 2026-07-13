@@ -18,6 +18,8 @@ interface JobCardProps {
   matchExplanation?: string[];
   applyUrl: string;
   minExperience?: number | null;
+  /** Aggregator source (e.g. "Adzuna") when the apply link goes via a redirect; omit for direct ATS links. */
+  source?: string;
   isSaved?: boolean;
   onSave?: () => Promise<void>;
 }
@@ -35,6 +37,7 @@ export function JobCard({
   matchExplanation = [],
   applyUrl,
   minExperience,
+  source,
   isSaved = false,
   onSave,
 }: JobCardProps) {
@@ -123,6 +126,14 @@ export function JobCard({
                   >
                     <GraduationCap className="w-3.5 h-3.5" />
                     Fresher-friendly
+                  </span>
+                )}
+                {source && (
+                  <span
+                    className="text-[11px] text-muted-foreground/70"
+                    title={`Listing aggregated from ${source} — Apply opens ${source} first, then the employer's page`}
+                  >
+                    via {source}
                   </span>
                 )}
               </div>
