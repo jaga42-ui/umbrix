@@ -230,5 +230,7 @@ export async function POST(req: NextRequest) {
   }
 }
 export const dynamic = "force-dynamic";
+// Upload does PDF parsing + an LLM résumé parse; give it headroom.
+export const maxDuration = 60;
 // pdf-parse relies on native @napi-rs/canvas, so this route must run on Node.js.
 export const runtime = "nodejs";
