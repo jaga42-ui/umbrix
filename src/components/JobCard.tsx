@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Building2, MapPin, Bookmark, BookmarkCheck, ExternalLink, Loader2, X, GraduationCap } from "lucide-react";
+import { Building2, MapPin, Bookmark, BookmarkCheck, ExternalLink, Loader2, X, GraduationCap, Sparkles } from "lucide-react";
+import { TailorResumeModal } from "@/components/TailorResumeModal";
 
 interface JobCardProps {
   id: string;
@@ -40,6 +41,7 @@ export function JobCard({
   const fresherEligible = minExperience != null && minExperience <= 1;
   const [saving, setSaving] = useState(false);
   const [showMatchModal, setShowMatchModal] = useState(false);
+  const [showTailorModal, setShowTailorModal] = useState(false);
 
   const handleSave = async () => {
     if (isSaved || !onSave) return;
@@ -127,7 +129,17 @@ export function JobCard({
             </div>
 
             {/* Action buttons */}
-            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+            <div className="flex items-center flex-wrap gap-2 w-full sm:w-auto shrink-0">
+              {/* Tailor résumé (AI) */}
+              <button
+                onClick={() => setShowTailorModal(true)}
+                title="Generate an ATS-friendly résumé tailored to this role"
+                className="flex-1 sm:flex-initial h-10 px-4 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 border bg-background text-foreground border-border hover:bg-secondary hover:border-foreground/20 active:scale-95 transition-all cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4 text-accent" />
+                Tailor résumé
+              </button>
+
               {/* Save Button */}
               <button
                 onClick={handleSave}
@@ -284,6 +296,16 @@ export function JobCard({
           </div>
         )}
       </AnimatePresence>
+
+      {/* AI résumé tailoring */}
+      {showTailorModal && (
+        <TailorResumeModal
+          jobId={id}
+          jobTitle={title}
+          company={company}
+          onClose={() => setShowTailorModal(false)}
+        />
+      )}
     </>
   );
 }

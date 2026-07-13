@@ -30,6 +30,9 @@ export interface SubscriptionLike {
 /** Free-tier limit for active tracker applications (null elsewhere == unlimited). */
 export const FREE_TRACKER_ACTIVE_LIMIT = 10;
 
+/** Free-tier limit for AI résumé tailors per calendar month (premium == unlimited). */
+export const FREE_RESUME_TAILORS_PER_MONTH = 3;
+
 /**
  * A tracker application counts against the free cap unless it is Rejected —
  * a dead lead shouldn't consume a slot. "active" here means still in the
@@ -83,6 +86,8 @@ export interface Entitlement {
   limits: {
     /** Max active tracker applications; null == unlimited. */
     trackerActiveApplications: number | null;
+    /** Max AI résumé tailors per calendar month; null == unlimited. */
+    resumeTailorsPerMonth: number | null;
   };
 }
 
@@ -93,7 +98,10 @@ export const FREE_ENTITLEMENT: Entitlement = {
   status: "none",
   currentPeriodEnd: null,
   cancelAtPeriodEnd: false,
-  limits: { trackerActiveApplications: FREE_TRACKER_ACTIVE_LIMIT },
+  limits: {
+    trackerActiveApplications: FREE_TRACKER_ACTIVE_LIMIT,
+    resumeTailorsPerMonth: FREE_RESUME_TAILORS_PER_MONTH,
+  },
 };
 
 /** Derive a full, serializable Entitlement from a subscription-like record. */
@@ -112,6 +120,7 @@ export function computeEntitlement(
     cancelAtPeriodEnd: sub?.cancelAtPeriodEnd ?? false,
     limits: {
       trackerActiveApplications: premium ? null : FREE_TRACKER_ACTIVE_LIMIT,
+      resumeTailorsPerMonth: premium ? null : FREE_RESUME_TAILORS_PER_MONTH,
     },
   };
 }

@@ -40,6 +40,9 @@ const limiters = {
   // Public, unauthenticated Scam Check tool — keyed by IP, a bit generous so a
   // curious user pasting several posts isn't blocked, but bounded against abuse.
   scamCheck: makeLimiter(20, "1 m"),
+  // AI résumé tailoring — an LLM call per request, so bound bursts (the monthly
+  // quota is the real cap; this just stops rapid-fire abuse).
+  tailor: makeLimiter(6, "1 m"),
 } as const;
 
 export type LimiterName = keyof typeof limiters;
