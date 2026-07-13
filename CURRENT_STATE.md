@@ -137,7 +137,7 @@ Normalizes every source into one shape, then scores, tags, and upserts. Run: `np
 | AI résumé tailoring (premium anchor) | 🟡 built — per-job, ATS-safe .docx via Gemini + quota; gated on a free Gemini key |
 | AI cover-letter tailoring | ❌ not started |
 | "Scam Check" standalone tool (growth wedge) | ✅ live at `/scam-check` — public, shareable |
-| Match-alert emails (retention driver) | 🟡 built (cron + digest + unsubscribe); gated on Resend key + verified domain |
+| Match-alert emails (retention driver) | ✅ live — daily digest via Resend from `alerts@umbrix.in`; cron active (6:30 AM IST) |
 
 ---
 
