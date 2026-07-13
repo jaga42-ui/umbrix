@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import UserProfile from "@/models/UserProfile";
-import { parseResumeText } from "@/lib/resumeParser";
+import { parseResume } from "@/lib/resumeParseLLM";
 import { resolveUserId } from "@/lib/serverAuth";
 import { checkRateLimit } from "@/lib/rateLimit";
 import {
@@ -187,7 +187,9 @@ export async function POST(req: NextRequest) {
     const textResult = await pdfParser.getText();
     // Cap before parsing so both the parse and the persisted rawText are bounded.
     const cappedText = (textResult.text || "").slice(0, MAX_RAWTEXT_CHARS);
-    const parsedData = parseResumeText(cappedText);
+    // LLM-based parse (accurate skills/experience for any field), with a
+    // graceful fallback to the heuristic parser if the LLM is unavailable.
+    const parsedData = await parseResume(cappedText);
 
     // Create the profile object from parsed data
     const profileData = {

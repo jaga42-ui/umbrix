@@ -1,8 +1,9 @@
 import "server-only";
-import { google } from "@ai-sdk/google";
-import { groq } from "@ai-sdk/groq";
-import { generateObject, type LanguageModel } from "ai";
+import { generateObject } from "ai";
 import { z } from "zod";
+import { resolveProvider, activeModelId } from "./llmProvider";
+
+export { activeModelId };
 
 /**
  * AI résumé tailoring. The model outputs structured résumé *data* (this schema),
@@ -70,27 +71,6 @@ export interface TailorJob {
   minExperience?: number | null;
 }
 
-/**
- * Pick the LLM provider by which free API key is present — Groq preferred (its
- * free tier is generous and doesn't hit the regional "free_tier limit: 0" wall
- * some Gemini projects do), Gemini as a fallback. Swapping providers later is
- * just a matter of which key is set. Returns null when none is configured.
- */
-function resolveProvider(): { model: LanguageModel; id: string } | null {
-  if (process.env.GROQ_API_KEY) {
-    // gpt-oss-120b supports strict json_schema structured output (llama-3.3 does not).
-    return { model: groq("openai/gpt-oss-120b"), id: "groq/gpt-oss-120b" };
-  }
-  if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-    return { model: google("gemini-2.0-flash"), id: "google/gemini-2.0-flash" };
-  }
-  return null;
-}
-
-/** The model id that would be used right now (for storage/telemetry). */
-export function activeModelId(): string {
-  return resolveProvider()?.id ?? "none";
-}
 
 const SYSTEM_PROMPT = `You are an expert résumé writer and ATS (applicant tracking system) optimization specialist for the Indian job market.
 
