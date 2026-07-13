@@ -6,7 +6,7 @@ import TailoredResume from "@/models/TailoredResume";
 import { resolveUserId } from "@/lib/serverAuth";
 import { getEntitlement } from "@/lib/entitlements.server";
 import { checkRateLimit } from "@/lib/rateLimit";
-import { tailorResume, tailoringConfigured, RESUME_MODEL } from "@/lib/resumeTailor";
+import { tailorResume, tailoringConfigured, activeModelId } from "@/lib/resumeTailor";
 import { reqString, ValidationError } from "@/lib/validation";
 
 function stripHtml(s: string): string {
@@ -119,7 +119,7 @@ export async function POST(request: Request) {
       jobTitle: job.title,
       company,
       resume,
-      modelId: RESUME_MODEL,
+      modelId: activeModelId(),
     });
 
     return NextResponse.json({

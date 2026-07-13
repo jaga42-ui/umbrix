@@ -1,6 +1,7 @@
 import "server-only";
 import { google } from "@ai-sdk/google";
-import { generateObject } from "ai";
+import { groq } from "@ai-sdk/groq";
+import { generateObject, type LanguageModel } from "ai";
 import { z } from "zod";
 
 /**
@@ -11,13 +12,17 @@ import { z } from "zod";
  * skills the user doesn't have.
  */
 
+// Optional fields use .nullable() (not .optional()): providers with STRICT
+// json_schema structured output (Groq's gpt-oss, OpenAI) require every property
+// to be listed as required, expressing "optional" as a nullable type. The
+// renderer/consumers treat null the same as absent.
 export const resumeSchema = z.object({
   contact: z.object({
     name: z.string(),
-    email: z.string().optional(),
-    phone: z.string().optional(),
-    location: z.string().optional(),
-    links: z.array(z.string()).optional(),
+    email: z.string().nullable(),
+    phone: z.string().nullable(),
+    location: z.string().nullable(),
+    links: z.array(z.string()).nullable(),
   }),
   summary: z.string().describe("2–4 sentence professional summary targeted at this job."),
   skills: z.array(z.string()).describe("Skills ordered by relevance to the job; only skills the user actually has."),
@@ -26,9 +31,9 @@ export const resumeSchema = z.object({
       z.object({
         role: z.string(),
         company: z.string(),
-        location: z.string().optional(),
-        start: z.string().optional().describe('e.g. "Jan 2024"'),
-        end: z.string().optional().describe('e.g. "Present"'),
+        location: z.string().nullable(),
+        start: z.string().nullable().describe('e.g. "Jan 2024"'),
+        end: z.string().nullable().describe('e.g. "Present"'),
         bullets: z.array(z.string()).describe("Impact-focused bullets rephrased toward the job's keywords; factual."),
       })
     )
@@ -37,11 +42,11 @@ export const resumeSchema = z.object({
     z.object({
       degree: z.string(),
       institution: z.string(),
-      year: z.string().optional(),
+      year: z.string().nullable(),
     })
   ),
-  projects: z.array(z.object({ name: z.string(), description: z.string() })).optional(),
-  certifications: z.array(z.string()).optional(),
+  projects: z.array(z.object({ name: z.string(), description: z.string() })).nullable(),
+  certifications: z.array(z.string()).nullable(),
 });
 
 export type StructuredResume = z.infer<typeof resumeSchema>;
@@ -65,7 +70,27 @@ export interface TailorJob {
   minExperience?: number | null;
 }
 
-export const RESUME_MODEL = "gemini-2.0-flash";
+/**
+ * Pick the LLM provider by which free API key is present — Groq preferred (its
+ * free tier is generous and doesn't hit the regional "free_tier limit: 0" wall
+ * some Gemini projects do), Gemini as a fallback. Swapping providers later is
+ * just a matter of which key is set. Returns null when none is configured.
+ */
+function resolveProvider(): { model: LanguageModel; id: string } | null {
+  if (process.env.GROQ_API_KEY) {
+    // gpt-oss-120b supports strict json_schema structured output (llama-3.3 does not).
+    return { model: groq("openai/gpt-oss-120b"), id: "groq/gpt-oss-120b" };
+  }
+  if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    return { model: google("gemini-2.0-flash"), id: "google/gemini-2.0-flash" };
+  }
+  return null;
+}
+
+/** The model id that would be used right now (for storage/telemetry). */
+export function activeModelId(): string {
+  return resolveProvider()?.id ?? "none";
+}
 
 const SYSTEM_PROMPT = `You are an expert résumé writer and ATS (applicant tracking system) optimization specialist for the Indian job market.
 
@@ -110,12 +135,14 @@ ${profile.rawText ? `\nFull résumé text (source of truth for any detail):\n${p
 Produce the tailored résumé for the target job, following every rule.`;
 }
 
-/** Whether tailoring is possible (a Gemini key is configured). */
-export const tailoringConfigured = Boolean(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
+/** Whether tailoring is possible (a Groq or Gemini key is configured). */
+export const tailoringConfigured = resolveProvider() !== null;
 
 export async function tailorResume(profile: TailorProfile, job: TailorJob): Promise<StructuredResume> {
+  const provider = resolveProvider();
+  if (!provider) throw new Error("No LLM provider configured (set GROQ_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY)");
   const { object } = await generateObject({
-    model: google(RESUME_MODEL),
+    model: provider.model,
     schema: resumeSchema,
     schemaName: "TailoredResume",
     system: SYSTEM_PROMPT,

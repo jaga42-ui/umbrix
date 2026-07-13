@@ -4,19 +4,22 @@ import { renderResumeDocx, resumeFileName } from "./resumeDocx";
 import type { StructuredResume } from "./resumeTailor";
 
 const sample: StructuredResume = {
-  contact: { name: "Guruprasad Jena", email: "g@example.com", location: "Bengaluru, India" },
+  contact: { name: "Guruprasad Jena", email: "g@example.com", phone: null, location: "Bengaluru, India", links: null },
   summary: "Frontend engineer focused on React and TypeScript.",
   skills: ["React", "TypeScript", "Node.js"],
   experience: [
     {
       role: "Frontend Engineer",
       company: "Acme",
+      location: null,
       start: "Jan 2024",
       end: "Present",
       bullets: ["Built the design system used across 5 products.", "Cut page load time by 40%."],
     },
   ],
   education: [{ degree: "B.Tech CSE", institution: "NIT", year: "2023" }],
+  projects: null,
+  certifications: null,
 };
 
 test("renders a valid .docx (zip) buffer", async () => {
@@ -29,11 +32,13 @@ test("renders a valid .docx (zip) buffer", async () => {
 
 test("renders with optional sections omitted", async () => {
   const minimal: StructuredResume = {
-    contact: { name: "Jane Doe" },
+    contact: { name: "Jane Doe", email: null, phone: null, location: null, links: null },
     summary: "",
     skills: [],
     experience: [],
     education: [],
+    projects: null,
+    certifications: null,
   };
   const buf = await renderResumeDocx(minimal);
   assert.ok(buf.length > 500);
