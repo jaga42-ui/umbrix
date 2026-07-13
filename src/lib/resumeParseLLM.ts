@@ -3,6 +3,9 @@ import { generateObject } from "ai";
 import { z } from "zod";
 import { resolveProvider } from "./llmProvider";
 import { parseResumeText } from "./resumeParser";
+import { JOB_FIELDS } from "./matchScore";
+
+const VALID_FIELDS = new Set<string>(JOB_FIELDS);
 
 /**
  * LLM-based résumé parsing. Replaces the brittle keyword/regex heuristics (which
@@ -37,6 +40,11 @@ const parsedResumeSchema = z.object({
       "Work history. Include internships and — for freshers/students with no formal jobs — notable projects (use the project name as `role` and a short descriptor or \"Personal Project\" as `company`)."
     ),
   education: z.array(z.string()).describe("Each degree / institution as one line."),
+  targetFields: z
+    .array(z.string())
+    .describe(
+      "The 1–3 fields that best match the candidate's background, chosen ONLY from this exact list (lowercase): it, engineering, sales, marketing, finance, customer-service, hr, admin, retail, logistics, healthcare, teaching, hospitality, creative, consultancy, manufacturing. (Software/web/data/AI → \"it\".)"
+    ),
 });
 
 export interface ParsedResume {
@@ -47,6 +55,7 @@ export interface ParsedResume {
   skills: string[];
   experience: { role: string; company: string; duration?: string; description?: string }[];
   education: string[];
+  targetFields: string[];
   rawText: string;
 }
 
@@ -77,6 +86,10 @@ export async function parseResumeWithLLM(text: string): Promise<ParsedResume | n
       description: e.description || undefined,
     })),
     education: object.education || [],
+    // Keep only valid taxonomy fields (guard against the model inventing labels).
+    targetFields: (object.targetFields || [])
+      .map((f) => f.toLowerCase().trim())
+      .filter((f) => VALID_FIELDS.has(f)),
     rawText: text,
   };
 }
@@ -89,5 +102,5 @@ export async function parseResume(text: string): Promise<ParsedResume> {
   } catch (e) {
     console.error("LLM résumé parse failed, using heuristic fallback:", e instanceof Error ? e.message : e);
   }
-  return parseResumeText(text) as ParsedResume;
+  return { ...parseResumeText(text), targetFields: [] };
 }

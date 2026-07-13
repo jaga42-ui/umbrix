@@ -3,7 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { Opportunity } from "@/models/Opportunity";
 import UserProfile from "@/models/UserProfile";
 import { resolveUserId } from "@/lib/serverAuth";
-import { calculateMatch, rankByMatch, type MatchProfile } from "@/lib/matchScore";
+import { calculateMatch, rankByMatch, jobFieldFromSlug, type MatchProfile } from "@/lib/matchScore";
 import { safeRegexTerm } from "@/lib/validation";
 
 // Max jobs returned to the feed. Ranked by match, so this is "your best N".
@@ -113,6 +113,7 @@ export async function GET(request: Request) {
             matchProfile.skills = profile.skills || [];
             matchProfile.title = profile.title;
             matchProfile.experience = profile.experience;
+            matchProfile.targetFields = profile.targetFields || [];
           }
         }
       } catch (e) {
@@ -155,7 +156,7 @@ export async function GET(request: Request) {
       }
 
       const formattedMockJobs = filteredJobs.map((job) => {
-        const match = calculateMatch(matchProfile, job);
+        const match = calculateMatch(matchProfile, { ...job, field: jobFieldFromSlug(job.companySlug) });
         return {
           ...job,
           matchScore: match.score,
@@ -237,7 +238,7 @@ export async function GET(request: Request) {
       // it is deliberately omitted from the response to keep the payload small.
       const formattedJobs = jobs.map((job) => {
         const companyCapitalized = job.companySlug.charAt(0).toUpperCase() + job.companySlug.slice(1);
-        const match = calculateMatch(matchProfile, job);
+        const match = calculateMatch(matchProfile, { ...job, field: jobFieldFromSlug(job.companySlug) });
 
         return {
           _id: job._id.toString(),

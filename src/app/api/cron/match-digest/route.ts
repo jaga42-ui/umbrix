@@ -6,7 +6,7 @@ import UserProfile from "@/models/UserProfile";
 import { selectDigestJobs, type DigestCandidate } from "@/lib/digest";
 import { renderDigestEmail } from "@/lib/email/digestTemplate";
 import { sendEmail } from "@/lib/email/client";
-import type { MatchProfile } from "@/lib/matchScore";
+import { jobFieldFromSlug, type MatchProfile } from "@/lib/matchScore";
 
 // Look back a little over a day so the daily run always covers the latest ingest
 // with margin; per-user we further trim to "since your last digest".
@@ -66,6 +66,7 @@ export async function GET(request: Request) {
       minExperience: j.minExperience ?? null,
       companyName: j.companyName,
       companySlug: j.companySlug,
+      field: jobFieldFromSlug(j.companySlug),
       location: j.location,
       applyUrl: j.applyUrl,
       createdAt: j.createdAt,
@@ -120,6 +121,7 @@ export async function GET(request: Request) {
         skills: profile.skills || [],
         title: profile.title,
         experience: profile.experience,
+        targetFields: profile.targetFields || [],
       };
       const jobs = selectDigestJobs(matchProfile, fresh);
 

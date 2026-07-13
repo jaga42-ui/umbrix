@@ -199,6 +199,7 @@ export async function POST(req: NextRequest) {
       title: parsedData.title,
       summary: parsedData.summary,
       skills: parsedData.skills,
+      targetFields: parsedData.targetFields,
       experience: parsedData.experience,
       education: parsedData.education,
       rawText: parsedData.rawText,

@@ -27,6 +27,8 @@ export interface IUserProfile extends Document {
   title?: string;
   summary?: string;
   skills: string[];
+  /** Field(s) the candidate targets (from matchScore JOB_FIELDS) — drives cross-field relevance. */
+  targetFields: string[];
   experience: IExperience[];
   education: string[];
   rawText?: string;
@@ -64,6 +66,7 @@ const UserProfileSchema = new Schema<IUserProfile>(
     title: { type: String },
     summary: { type: String },
     skills: { type: [String], default: [] },
+    targetFields: { type: [String], default: [] },
     experience: { type: [ExperienceSchema], default: [] },
     education: { type: [String], default: [] },
     rawText: { type: String },

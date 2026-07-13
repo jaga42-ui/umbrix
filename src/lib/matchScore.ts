@@ -17,6 +17,8 @@ export interface MatchProfile {
   skills: string[];
   title?: string;
   experience?: { role?: string; company?: string }[];
+  /** The field(s) the candidate is targeting (from JOB_FIELDS). Drives cross-field relevance. */
+  targetFields?: string[];
 }
 
 export interface JobLike {
@@ -25,6 +27,29 @@ export interface JobLike {
   descriptionHtml?: string;
   /** Minimum years of experience the posting requires (0 = fresher-eligible). */
   minExperience?: number | null;
+  /** The job's field (from JOB_FIELDS), e.g. "it", "sales". Usually derived from its source. */
+  field?: string;
+}
+
+/**
+ * Coarse field taxonomy shared by jobs and profiles — the primary cross-field
+ * relevance signal now that inventory spans every field (not just tech). Mirrors
+ * the Adzuna category shards; ATS boards map to "it".
+ */
+export const JOB_FIELDS = [
+  "it", "engineering", "sales", "marketing", "finance", "customer-service",
+  "hr", "admin", "retail", "logistics", "healthcare", "teaching",
+  "hospitality", "creative", "consultancy", "manufacturing", "graduate", "general",
+] as const;
+
+/**
+ * Derive a job's field from its company slug — Adzuna shards are named
+ * `adzuna-in-<field>`; every other source is an ATS board (overwhelmingly
+ * software/product), which maps to "it".
+ */
+export function jobFieldFromSlug(companySlug: string): string {
+  const prefix = "adzuna-in-";
+  return companySlug.startsWith(prefix) ? companySlug.slice(prefix.length) : "it";
 }
 
 export interface MatchResult {
@@ -49,6 +74,10 @@ const DESC_BONUS_MAX = 3;
 const FRESHER_BONUS = 8; // minExperience 0
 const JUNIOR_BONUS = 4; // minExperience 1
 const EXPERIENCED_PENALTY = 8; // minExperience >= 3
+// Field alignment — the dominant cross-field signal. A job in the user's field
+// ranks well above one outside it, so an all-field feed surfaces the right roles.
+const FIELD_MATCH_BONUS = 12;
+const FIELD_MISMATCH_PENALTY = 16;
 const SCORE_CAP = 99;
 
 // Domain/discipline keywords used for role alignment. Kept broad but meaningful;
@@ -198,12 +227,29 @@ export function calculateMatch(profile: MatchProfile, job: JobLike): MatchResult
     }
   }
 
+  // 6. Field alignment — the dominant cross-field signal. A role in the user's
+  // target field ranks well above one outside it, so an all-field feed surfaces
+  // roles that actually fit the candidate's background.
+  // "general"/"graduate" are cross-field entry-level catch-alls — never penalize them.
+  const CROSS_FIELD = job.field === "general" || job.field === "graduate";
+  const inField = Boolean(job.field && profile.targetFields?.includes(job.field));
+  const fieldKnown = Boolean(job.field && profile.targetFields && profile.targetFields.length > 0);
+  if (fieldKnown) {
+    if (inField) score += FIELD_MATCH_BONUS;
+    else if (!CROSS_FIELD) score -= FIELD_MISMATCH_PENALTY;
+  }
+  const fieldLabel = job.field ? job.field.replace(/-/g, " ") : "";
+
   score = Math.max(0, Math.min(score, SCORE_CAP));
 
-  // Build the human-readable explanation shown on each card.
+  // Build the human-readable explanation shown on each card. Opener priority:
+  // matched skills > in-field relevance > adjacency (so non-tech in-field roles,
+  // which rarely have skill tags, still get a meaningful "why").
   const explanation: string[] = [];
   if (matchingSkills.length > 0) {
     explanation.push(`Strong match: you have ${matchingSkills.slice(0, 3).join(", ")}.`);
+  } else if (inField) {
+    explanation.push(`In your field: a ${fieldLabel} role that fits your background.`);
   } else {
     explanation.push("Adjacent match: your profile is close but shares no exact tags with this role.");
   }
