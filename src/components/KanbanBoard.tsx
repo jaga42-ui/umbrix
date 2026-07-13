@@ -9,6 +9,7 @@ import { authedFetch } from "@/lib/authedFetch";
 import { useEntitlement } from "@/hooks/useEntitlement";
 import { isActiveTrackerStage } from "@/lib/entitlements";
 import { reminderStatus, formatReminderDate, type ReminderStatus } from "@/lib/reminders";
+import { TailorResumeModal } from "@/components/TailorResumeModal";
 
 type Stage = "Saved" | "Applied" | "Interview" | "Rejected";
 const STAGES: Stage[] = ["Saved", "Applied", "Interview", "Rejected"];
@@ -38,6 +39,8 @@ interface KanbanTask {
   order: number;
   notes?: string;
   applyUrl?: string;
+  /** Linked feed job (present on cards saved from the feed); enables full-JD tailoring. */
+  jobId?: string;
   reminderAt?: string | null;
   createdAt?: string;
 }
@@ -87,6 +90,7 @@ export function KanbanBoard() {
   const [selectedAddStage, setSelectedAddStage] = useState<Stage>("Saved");
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<KanbanTask | null>(null);
+  const [showTailorModal, setShowTailorModal] = useState(false);
 
   // Form Fields for Adding / Editing
   const [formTitle, setFormTitle] = useState("");
@@ -945,7 +949,7 @@ export function KanbanBoard() {
                   </div>
 
                   {/* Actions Drawer */}
-                  <div className="flex gap-2 pt-2 border-t border-border/50">
+                  <div className="flex flex-wrap gap-2 pt-2 border-t border-border/50">
                     <button
                       onClick={handleDeleteApplication}
                       disabled={savingForm}
@@ -954,7 +958,16 @@ export function KanbanBoard() {
                       <Trash2 className="w-4 h-4" />
                       <span>Delete</span>
                     </button>
-                    
+
+                    <button
+                      onClick={() => setShowTailorModal(true)}
+                      title="Generate an ATS-friendly résumé tailored to this role"
+                      className="h-11 px-4 bg-background border border-border text-foreground rounded-xl text-sm font-semibold flex items-center justify-center gap-2 hover:bg-secondary hover:border-foreground/20 active:scale-95 transition-all cursor-pointer"
+                    >
+                      <Sparkles className="w-4 h-4 text-accent" />
+                      <span>Tailor résumé</span>
+                    </button>
+
                     <div className="flex-1" />
 
                     <button
@@ -971,6 +984,16 @@ export function KanbanBoard() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* AI résumé tailoring for the selected card */}
+      {showTailorModal && selectedTask && (
+        <TailorResumeModal
+          jobId={selectedTask.jobId}
+          jobTitle={selectedTask.title}
+          company={selectedTask.company}
+          onClose={() => setShowTailorModal(false)}
+        />
+      )}
     </div>
   );
 }

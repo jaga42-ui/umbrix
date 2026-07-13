@@ -7,7 +7,7 @@ import { resolveUserId } from "@/lib/serverAuth";
 import { getEntitlement } from "@/lib/entitlements.server";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { tailorResume, tailoringConfigured, activeModelId } from "@/lib/resumeTailor";
-import { reqString, ValidationError } from "@/lib/validation";
+import { reqString, optString, ValidationError } from "@/lib/validation";
 
 function stripHtml(s: string): string {
   return String(s || "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/gi, " ").replace(/\s+/g, " ").trim();
@@ -40,10 +40,21 @@ export async function POST(request: Request) {
   const rl = await checkRateLimit("tailor", userId);
   if (!rl.ok) return rl.response;
 
-  let jobId: string;
+  // Two ways to specify the target job: a `jobId` (feed-saved cards → full job
+  // description for best tailoring) OR raw `title`+`company` (manually-added
+  // tracker cards that aren't linked to a feed job).
+  let jobId: string | undefined;
+  let manualTitle: string | undefined;
+  let manualCompany: string | undefined;
+  let manualDescription: string | undefined;
   try {
     const body = await request.json();
-    jobId = reqString(body?.jobId, "jobId", 100);
+    jobId = optString(body?.jobId, "jobId", 100);
+    if (!jobId) {
+      manualTitle = reqString(body?.title, "title", 200);
+      manualCompany = reqString(body?.company, "company", 200);
+      manualDescription = optString(body?.description, "description", 8000);
+    }
   } catch (e) {
     if (e instanceof ValidationError) {
       return NextResponse.json({ success: false, error: e.message }, { status: 400 });
@@ -85,13 +96,34 @@ export async function POST(request: Request) {
       }
     }
 
-    const job = await Opportunity.findById(jobId)
-      .select("title companyName companySlug descriptionHtml tags minExperience")
-      .lean<any>();
-    if (!job) {
-      return NextResponse.json({ success: false, error: "Job not found" }, { status: 404 });
+    // Resolve the target job from either the linked Opportunity or raw fields.
+    let jobTitle: string;
+    let company: string;
+    let description = "";
+    let tags: string[] = [];
+    let minExperience: number | null = null;
+    if (jobId) {
+      let job: any = null;
+      try {
+        job = await Opportunity.findById(jobId)
+          .select("title companyName companySlug descriptionHtml tags minExperience")
+          .lean<any>();
+      } catch {
+        job = null; // malformed id
+      }
+      if (!job) {
+        return NextResponse.json({ success: false, error: "Job not found" }, { status: 404 });
+      }
+      jobTitle = job.title;
+      company = job.companyName || job.companySlug;
+      description = stripHtml(job.descriptionHtml);
+      tags = job.tags || [];
+      minExperience = job.minExperience ?? null;
+    } else {
+      jobTitle = manualTitle!;
+      company = manualCompany!;
+      description = manualDescription || "";
     }
-    const company = job.companyName || job.companySlug;
 
     const resume = await tailorResume(
       {
@@ -104,19 +136,13 @@ export async function POST(request: Request) {
         education: profile.education || [],
         rawText: profile.rawText,
       },
-      {
-        title: job.title,
-        company,
-        description: stripHtml(job.descriptionHtml),
-        tags: job.tags || [],
-        minExperience: job.minExperience,
-      }
+      { title: jobTitle, company, description, tags, minExperience }
     );
 
     const saved = await TailoredResume.create({
       userId,
       jobId,
-      jobTitle: job.title,
+      jobTitle,
       company,
       resume,
       modelId: activeModelId(),

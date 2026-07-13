@@ -15,7 +15,8 @@ interface StructuredResume {
 }
 
 interface Props {
-  jobId: string;
+  /** Linked feed job (full description). Omit for manual cards → tailor from title+company. */
+  jobId?: string;
   jobTitle: string;
   company: string;
   onClose: () => void;
@@ -38,7 +39,8 @@ export function TailorResumeModal({ jobId, jobTitle, company, onClose }: Props) 
       const res = await authedFetch("/api/resume/tailor", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobId }),
+        // Linked job → send jobId (full JD); manual card → send raw title+company.
+        body: JSON.stringify(jobId ? { jobId } : { title: jobTitle, company }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {

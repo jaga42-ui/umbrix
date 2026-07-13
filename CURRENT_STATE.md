@@ -157,10 +157,12 @@ Normalizes every source into one shape, then scores, tags, and upserts. Run: `np
 - **Fresher-eligible feed filter** — a "Fresher-eligible" quick-filter surfaces roles with a
   known `minExperience` ≤ 1 (`?fresher=1` → `{minExperience:{$ne:null,$lte:1}}`). 1,355 of
   6,419 India roles qualify. The eligibility-first wedge, on the field that's actually populated.
-- **AI résumé tailoring built** — per-job, truthful, ATS-safe `.docx`. LLM (Gemini via AI SDK)
-  emits structured JSON; we render the ATS-safe doc deterministically. `TailoredResume` model,
-  monthly quota via entitlements, `/api/resume/tailor` (+ `/[id]/download`), "Tailor résumé"
-  button + modal on feed cards. Gated on a free `GOOGLE_GENERATIVE_AI_API_KEY`.
+- **AI résumé tailoring — live** — per-job, truthful, ATS-safe `.docx`. LLM (Groq
+  `gpt-oss-120b`, free; provider-flexible with Gemini fallback) emits structured JSON; we render
+  the ATS-safe doc deterministically. `TailoredResume` model, monthly quota via entitlements,
+  `/api/resume/tailor` (+ `/[id]/download`). "Tailor résumé" button on **feed cards and tracker
+  cards** (tracker cards without a linked job tailor from title+company). `GROQ_API_KEY` set in
+  Vercel; verified end-to-end.
 
 ---
 
