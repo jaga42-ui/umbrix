@@ -230,13 +230,14 @@ export function calculateMatch(profile: MatchProfile, job: JobLike): MatchResult
   // 6. Field alignment — the dominant cross-field signal. A role in the user's
   // target field ranks well above one outside it, so an all-field feed surfaces
   // roles that actually fit the candidate's background.
-  // "general"/"graduate" are cross-field entry-level catch-alls — never penalize them.
-  const CROSS_FIELD = job.field === "general" || job.field === "graduate";
+  // Field alignment: an in-field role ranks well above anything off-field — INCLUDING
+  // the "general"/"graduate" Adzuna catch-alls, which are mostly generic trainee/HR
+  // roles that shouldn't outrank real in-field jobs for a specialized candidate.
   const inField = Boolean(job.field && profile.targetFields?.includes(job.field));
   const fieldKnown = Boolean(job.field && profile.targetFields && profile.targetFields.length > 0);
   if (fieldKnown) {
     if (inField) score += FIELD_MATCH_BONUS;
-    else if (!CROSS_FIELD) score -= FIELD_MISMATCH_PENALTY;
+    else score -= FIELD_MISMATCH_PENALTY;
   }
   const fieldLabel = job.field ? job.field.replace(/-/g, " ") : "";
 

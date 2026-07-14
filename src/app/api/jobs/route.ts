@@ -202,6 +202,23 @@ export async function GET(request: Request) {
         ];
       }
 
+      // Scope the candidate pool to the user's field(s) so the scored window isn't
+      // starved of in-field jobs by the newest-N cut (which otherwise fills with
+      // whatever was ingested most recently). Skipped when the user is actively
+      // searching — a search should look across every field. "it" = the Adzuna IT
+      // shard plus every ATS board (which are software/product boards).
+      const targetFields = matchProfile.targetFields || [];
+      if (!query.$or && targetFields.length > 0) {
+        const conds: any[] = [];
+        const adzunaSlugs = targetFields.filter((f) => f !== "it").map((f) => `adzuna-in-${f}`);
+        if (adzunaSlugs.length) conds.push({ companySlug: { $in: adzunaSlugs } });
+        if (targetFields.includes("it")) {
+          conds.push({ companySlug: "adzuna-in-it" });
+          conds.push({ companySlug: { $not: /^adzuna-in-/ } });
+        }
+        if (conds.length) query.$or = conds;
+      }
+
       const locationTerm = safeRegexTerm(location);
       if (locationTerm) {
         query.location = { $regex: locationTerm, $options: "i" };
