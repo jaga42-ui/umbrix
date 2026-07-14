@@ -7,7 +7,7 @@
 > Build item #2 from [FIRST_100K_PLAN.md](./FIRST_100K_PLAN.md): a daily digest —
 > *"3 new roles match your profile today"* — that pulls one-time visitors back into the
 > feed. This is the **retention / WAU driver**, and WAU is the exact Phase-1 metric that
-> becomes the institutional pitch. Reads alongside [CURRENT_STATE.md](./CURRENT_STATE.md).
+> becomes the institutional pitch. Reads alongside [memory.md](./memory.md).
 
 ---
 
@@ -146,7 +146,7 @@ also protects the route locally.
 4. `GET /api/cron/match-digest` — auth, load users, select, send, stamp; `dryRun`/`testTo`.
 5. `GET /api/alerts/unsubscribe` + `/profile` toggle + signup consent copy.
 6. `vercel.json`/`vercel.ts` cron entry; set env vars; verify sending domain in Resend.
-7. Verify: `dryRun` locally → `testTo` a real inbox → enable cron. Update CURRENT_STATE.md.
+7. Verify: `dryRun` locally → `testTo` a real inbox → enable cron. Update memory.md.
 
 ---
 

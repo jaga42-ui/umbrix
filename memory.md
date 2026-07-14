@@ -182,7 +182,6 @@ Upstash (`UPSTASH_REDIS_REST_*` / `KV_REST_API_*`), `GOOGLE_GENERATIVE_AI_API_KE
 
 - `AGENTS.md` — "this is a modified Next.js, read the docs first."
 - `CLAUDE.md` — rules/aspiration (see §2 caveats).
-- `CURRENT_STATE.md` — the running state snapshot (this file supersedes/consolidates it).
 - `BUSINESS_MODEL.md`, `PRD.md`, `COMPETITORS.md` — strategy.
 - `FIRST_100K_PLAN.md` — go-to-market to first ₹1 lakh (free launch → proof → institutional pilot).
 - `FUTURE_WORK.md` — backlog (incl. why Telegram was dropped).
@@ -201,3 +200,34 @@ Upstash (`UPSTASH_REDIS_REST_*` / `KV_REST_API_*`), `GOOGLE_GENERATIVE_AI_API_KE
   paste secret values back in chat.
 - Windows machine; use `--value` for Vercel env, and remember the OneDrive path can drift across
   machines (git pull first).
+
+---
+
+## 12. Change log (chronological; consolidated from CURRENT_STATE.md)
+
+- **Dropped Telegram** as a source (unstructured/low-quality); retired 220 ingested rows to Closed.
+- **Added Adzuna** — 18 category shards → all-field India inventory. Active India **1,170 → 6,419**.
+  Scam filter caught its **first real scams** (previously 0 every run).
+- **Once-a-day ingest guard** (`meta.lastRunAt`, 20h); Adzuna keys → GitHub Actions secrets.
+- **Scam Check** shipped (`/scam-check`). Also fixed a `scamFilter` bug where `stripDisclaimers`
+  split on every period, shattering emails/URLs and defeating the personal-email/untrusted-host checks.
+- **Match-alert emails** built, then **activated** — Resend from `alerts@umbrix.in`, daily cron
+  (01:00 UTC), `/api/cron/match-digest` (`dryRun`/`testTo`), `/api/alerts/unsubscribe`,
+  `UserProfile.emailAlerts`. Real test digest delivered to the owner's inbox.
+- **Fresher-eligible feed filter** — `?fresher=1` → `{minExperience:{$ne:null,$lte:1}}`.
+- **AI résumé tailoring — live** — per-job, truthful, ATS-safe `.docx`. LLM emits structured JSON;
+  we render the doc deterministically. `TailoredResume` + monthly quota. Button on **feed + tracker**
+  (tracker cards without a linked job tailor from title+company).
+- **LLM provider = Groq** (`gpt-oss-120b`) after Gemini's free tier returned `limit:0`. Shared
+  `llmProvider.ts`.
+- **Custom domain `umbrix.in`** linked to Vercel; Google auth fixed (authDomain env + Firebase
+  authorized domains + Google OAuth redirect URIs). Caught & fixed **empty prod `GROQ_API_KEY` and
+  `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`** (the `vercel.cmd` stdin-pipe bug).
+- **LLM résumé parser** replaced the keyword-heuristic parser (killed the bogus "you have AI"
+  skill + wrong experience). Refreshed the owner's stored profile with the corrected parse.
+- **Field-aware matching** — `JOB_FIELDS` + `jobFieldFromSlug` + `UserProfile.targetFields`; feed
+  **scopes candidates to the user's field(s)**. Fixed the "IT dev sees HR/finance trainee roles"
+  bug (newest-N window starved of in-field jobs) and the "general/graduate exempt from penalty" bug.
+- **ATS inventory expansion** — +12 verified India-hiring companies (zscaler, highradius,
+  hackerrank, rubrik, Experian, Sutherland, spotdraft, …) ≈ +387 India roles; **176 sources total**.
+- **"via Adzuna" label** on aggregated cards (their redirect can't be bypassed — bot-protected + ToS).
