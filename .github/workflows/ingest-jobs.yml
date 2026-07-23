@@ -1,13 +1,24 @@
-name: Nightly Job Ingestion
+name: Staggered Job Ingestion
 
 on:
   schedule:
-    # 00:00 UTC = 5:30 AM IST — the feed is fresh before students wake up
-    - cron: "0 0 * * *"
-  workflow_dispatch: {}
+    # Staggered so each tier only spends its own API quota and the tiers never
+    # overlap. Tier is routed from whichever schedule fired (see "Determine
+    # tier" below). Times are UTC.
+    - cron: "0 0 * * *" # 00:00 UTC (05:30 IST) — Tier 1: Adzuna aggregator APIs
+    - cron: "0 4 * * *" # 04:00 UTC (09:30 IST) — Tier 3: company ATS boards
+  workflow_dispatch:
+    inputs:
+      tier:
+        description: "Tier to run (1 = Adzuna, 3 = ATS; blank = every source)"
+        required: false
+        default: ""
 
 concurrency:
-  group: ingest-jobs
+  # One group per tier (keyed by the cron that fired, or the dispatch input), so
+  # a Tier 1 run and a Tier 3 run never cancel each other. Within a tier, a new
+  # run cancels an in-flight one.
+  group: ingest-${{ github.event.schedule || github.event.inputs.tier || 'all' }}
   cancel-in-progress: true
 
 jobs:
@@ -30,12 +41,27 @@ jobs:
       - name: Test scam filter
         run: npm test
 
+      - name: Determine tier
+        id: tier
+        # Map the firing schedule to a tier. On workflow_dispatch, honor the
+        # input (blank = every source). The ingest script treats an empty
+        # INGEST_TIER as "run all", so a blank value is a safe default.
+        run: |
+          case "${{ github.event.schedule }}" in
+            "0 0 * * *") tier=1 ;;
+            "0 4 * * *") tier=3 ;;
+            *) tier="${{ github.event.inputs.tier }}" ;;
+          esac
+          echo "tier=${tier}" >> "$GITHUB_OUTPUT"
+          echo "Running ingest tier: ${tier:-all}"
+
       - name: Run ingestion pipeline
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
-          # Adzuna aggregator (all-field India fresher inventory). Add these as
-          # repo secrets (Settings > Secrets and variables > Actions). If absent,
-          # only the Adzuna shards fail; ATS sources still ingest.
+          # Adzuna aggregator (Tier 1). Add these as repo secrets (Settings >
+          # Secrets and variables > Actions). If absent, only Tier 1 fails; the
+          # ATS tier still ingests.
           ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
           ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
+          INGEST_TIER: ${{ steps.tier.outputs.tier }}
         run: npm run ingest
