@@ -153,213 +153,29 @@ const SKILL_KEYWORDS = [
   "Java", "Ruby", "Swift", "Kotlin", "Frontend", "Backend", "Fullstack"
 ];
 
-/**
- * Fetches raw postings from a Greenhouse board and normalizes each into a
- * common shape: { title, location, content, applyUrl, department }.
- */
-async function fetchGreenhouseJobs(slug) {
-  const response = await fetch(`https://boards-api.greenhouse.io/v1/boards/${slug}/jobs?content=true`);
-  if (!response.ok) {
-    throw new Error(`Greenhouse ${response.status} ${response.statusText}`);
-  }
-  const data = await response.json();
-  const jobs = data.jobs || [];
-  return jobs.map((job) => ({
-    title: job.title,
-    location: job.location?.name || 'Remote',
-    content: job.content || '',
-    applyUrl: job.absolute_url,
-    department: job.departments?.[0]?.name && job.departments[0].name !== 'No Department'
-      ? job.departments[0].name
-      : null,
-  }));
-}
+// --- Source adapters -------------------------------------------------------
+// Each source lives in its own file under scripts/adapters/, exporting
+// { ats, tier, fetch } where `fetch(slug, company)` returns postings in the
+// common shape { title, location, content, applyUrl, department } (Adzuna also
+// sets companyName). The shared pipeline below owns scam filtering, eligibility
+// extraction, upsert, and stale reconciliation — so adding a source is a new
+// file here plus its companies.json entries, nothing else to touch.
+const ADAPTERS = [
+  require('./adapters/ingest-greenhouse'),
+  require('./adapters/ingest-lever'),
+  require('./adapters/ingest-ashby'),
+  require('./adapters/ingest-smartrecruiters'),
+  require('./adapters/ingest-adzuna'),
+];
 
-/**
- * Fetches raw postings from a Lever board and normalizes each into the same
- * common shape as Greenhouse, so the rest of the pipeline (scam filter, tag
- * extraction, upsert) doesn't need to know which ATS a job came from.
- */
-async function fetchLeverJobs(slug) {
-  const response = await fetch(`https://api.lever.co/v0/postings/${slug}?mode=json`);
-  if (!response.ok) {
-    throw new Error(`Lever ${response.status} ${response.statusText}`);
-  }
-  const jobs = await response.json();
-  if (!Array.isArray(jobs)) return [];
-  return jobs.map((job) => ({
-    title: job.text,
-    location: job.categories?.location || 'Remote',
-    content: job.description || job.descriptionPlain || '',
-    applyUrl: job.hostedUrl,
-    department: job.categories?.team || null,
-  }));
-}
+const ATS_FETCHERS = Object.fromEntries(ADAPTERS.map((a) => [a.ats, a.fetch]));
 
-/**
- * Fetches raw postings from an Ashby job board and normalizes each into the
- * same common shape. Ashby's board names are case-sensitive, so the slug in
- * companies.json must match exactly (e.g. "ElevenLabs", not "elevenlabs").
- * Unlisted postings (isListed === false) are internal/hidden and dropped.
- */
-async function fetchAshbyJobs(slug) {
-  const response = await fetch(`https://api.ashbyhq.com/posting-api/job-board/${slug}`);
-  if (!response.ok) {
-    throw new Error(`Ashby ${response.status} ${response.statusText}`);
-  }
-  const data = await response.json();
-  const jobs = Array.isArray(data.jobs) ? data.jobs : [];
-  return jobs
-    .filter((job) => job.isListed !== false)
-    .map((job) => ({
-      title: job.title,
-      location: job.location || (job.isRemote ? 'Remote' : 'Remote'),
-      content: job.descriptionHtml || job.descriptionPlain || '',
-      applyUrl: job.applyUrl || job.jobUrl,
-      department: job.department || job.team || null,
-    }));
-}
-
-/**
- * Fetches postings from a SmartRecruiters public job board (used by several
- * India-office employers, e.g. Freshworks / ServiceNow). Paginated via
- * limit/offset. The list endpoint has no description body, so `content` is left
- * empty (SmartRecruiters feeds are clean corporate boards, so the scam filter
- * has nothing to catch anyway) — the apply URL is constructed from the posting
- * id, avoiding an N+1 detail call per posting.
- */
-async function fetchSmartRecruitersJobs(slug) {
-  const limit = 100;
-  const out = [];
-  for (let offset = 0; ; offset += limit) {
-    const response = await fetch(
-      `https://api.smartrecruiters.com/v1/companies/${slug}/postings?limit=${limit}&offset=${offset}`
-    );
-    if (!response.ok) {
-      throw new Error(`SmartRecruiters ${response.status} ${response.statusText}`);
-    }
-    const data = await response.json();
-    const content = Array.isArray(data.content) ? data.content : [];
-    for (const p of content) {
-      const identifier = (p.company && p.company.identifier) || slug;
-      const loc = p.location || {};
-      const location =
-        loc.fullLocation || [loc.city, loc.country].filter(Boolean).join(', ') || 'Remote';
-      out.push({
-        title: p.name,
-        location,
-        content: '',
-        applyUrl: `https://jobs.smartrecruiters.com/${identifier}/${p.id}`,
-        department: (p.department && p.department.label) || null,
-      });
-    }
-    if (content.length === 0 || offset + limit >= (data.totalFound || 0)) break;
-  }
-  return out;
-}
-
-// --- Adzuna (all-field India job aggregator) --------------------------------
-// The ATS adapters above are company-by-company and skew tech/senior. Adzuna is
-// a documented JSON API that aggregates thousands of boards into one India
-// endpoint spanning EVERY field — sales, marketing, BPO, finance, admin, retail,
-// ops, healthcare, teaching, … — which is how UMBRIX gets broad *fresher*
-// inventory across all streams, not just software. It's also messy real-world
-// data (multiple upstream boards), so the scam filter finally has something to
-// catch. Needs free credentials from https://developer.adzuna.com:
-//   ADZUNA_APP_ID / ADZUNA_APP_KEY.
-
-// 50 results/page (Adzuna's max) × pages. Each page is one API call, so this
-// also bounds free-tier quota use. With ~18 category shards this default keeps
-// the whole run well under the free 250-calls/day cap (18 × 8 = 144). Raise via
-// ADZUNA_MAX_PAGES (global) or a per-entry `pages` field once your plan allows.
-const ADZUNA_MAX_PAGES = Number(process.env.ADZUNA_MAX_PAGES) || 8;
-// Only pull recently-posted roles — freshness is a core UMBRIX promise.
-const ADZUNA_MAX_DAYS_OLD = 30;
-// Fresher signal, deliberately field-agnostic (no tech bias) so the query spans
-// every stream. Adzuna treats `what_or` terms as OR, so any one match qualifies.
-const ADZUNA_FRESHER_TERMS = 'fresher trainee graduate intern entry associate';
-
-function stripHtmlTags(s) {
-  return String(s || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-}
-
-/**
- * Fetch fresher-eligible India postings across all fields from Adzuna. Each job
- * carries its own real `companyName` (the aggregator spans many employers), so
- * every posting groups under the one aggregator `companySlug` for reconciliation
- * while still displaying the true company on the card.
- */
-async function fetchAdzunaJobs(_slug, company = {}) {
-  const appId = process.env.ADZUNA_APP_ID;
-  const appKey = process.env.ADZUNA_APP_KEY;
-  if (!appId || !appKey) {
-    throw new Error(
-      'ADZUNA_APP_ID / ADZUNA_APP_KEY not set — get a free key at https://developer.adzuna.com'
-    );
-  }
-
-  const maxPages = Number(company.pages) || ADZUNA_MAX_PAGES;
-  const jobs = [];
-  const seen = new Set();
-  for (let page = 1; page <= maxPages; page++) {
-    const params = new URLSearchParams({
-      app_id: appId,
-      app_key: appKey,
-      results_per_page: '50',
-      what_or: ADZUNA_FRESHER_TERMS,
-      max_days_old: String(ADZUNA_MAX_DAYS_OLD),
-      'content-type': 'application/json',
-    });
-    // Optional per-entry category shard (e.g. "sales-jobs") for deeper coverage
-    // of a single field; omitted = all fields in one broad sweep.
-    if (company.category) params.set('category', company.category);
-
-    const res = await fetch(`https://api.adzuna.com/v1/api/jobs/in/search/${page}?${params}`);
-    if (!res.ok) {
-      if (page === 1) throw new Error(`Adzuna ${res.status} ${res.statusText}`);
-      break; // a later page failing shouldn't discard earlier pages
-    }
-    const data = await res.json();
-    const results = Array.isArray(data.results) ? data.results : [];
-    if (results.length === 0) break;
-
-    for (const r of results) {
-      const applyUrl = r.redirect_url;
-      if (!applyUrl || seen.has(applyUrl)) continue;
-      seen.add(applyUrl);
-      jobs.push({
-        title: stripHtmlTags(r.title).slice(0, 200),
-        companyName: (r.company && r.company.display_name) || undefined,
-        location: (r.location && r.location.display_name) || 'India',
-        content: stripHtmlTags(r.description).slice(0, 4000),
-        applyUrl,
-        department: (r.category && r.category.label) || null,
-      });
-    }
-  }
-  return jobs;
-}
-
-const ATS_FETCHERS = {
-  greenhouse: fetchGreenhouseJobs,
-  lever: fetchLeverJobs,
-  ashby: fetchAshbyJobs,
-  smartrecruiters: fetchSmartRecruitersJobs,
-  adzuna: fetchAdzunaJobs,
-};
-
-// Staggered-cron tier assignment. The rulebook's 4-tier schedule (APIs / India
-// scrapers / ATS / government) is aspirational — only two tiers have a real
-// source today: Tier 1 (external aggregator APIs) and Tier 3 (company ATS
-// boards). Tiers 2 and 4 have no adapters yet, so a `--tier=2` run cleanly
-// no-ops. Deriving the tier from `ats` keeps companies.json untouched.
-const TIER_BY_ATS = {
-  adzuna: 1,
-  greenhouse: 3,
-  lever: 3,
-  ashby: 3,
-  smartrecruiters: 3,
-};
+// Staggered-cron tier assignment, declared by each adapter. The rulebook's
+// 4-tier schedule (APIs / India scrapers / ATS / government) is aspirational —
+// only two tiers have a real source today: Tier 1 (aggregator APIs) and Tier 3
+// (company ATS boards). Tiers 2 and 4 have no adapters yet, so a `--tier=2` run
+// cleanly no-ops. Tier is keyed by `ats`, so companies.json stays untouched.
+const TIER_BY_ATS = Object.fromEntries(ADAPTERS.map((a) => [a.ats, a.tier]));
 
 /**
  * The staggered-cron tier requested via `--tier=N` (CLI) or INGEST_TIER (CI),
