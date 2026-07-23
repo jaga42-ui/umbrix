@@ -79,6 +79,33 @@ test("non-tech domain alignment: a marketing background aligns with a marketing 
   );
 });
 
+test("discipline: a mechanical grad ranks a mechanical role above a sewing role", () => {
+  // Both are fresher-eligible roles in the same coarse "engineering" field —
+  // only discipline alignment can (and must) separate them.
+  const profile = { skills: ["AutoCAD", "SolidWorks"], title: "B.Tech Mechanical Engineering fresher", targetFields: ["engineering"] };
+  const mech = calculateMatch(profile, { title: "Mechanical Design Engineer", tags: [], minExperience: 0, field: "engineering" });
+  const sewing = calculateMatch(profile, { title: "Sewing Trainee", tags: [], minExperience: 0, field: "engineering" });
+  assert.ok(mech.score > sewing.score, `mechanical (${mech.score}) should beat sewing (${sewing.score})`);
+  assert.ok(mech.matchExplanation.some((e) => /domain alignment/i.test(e) && /mechanical/i.test(e)));
+});
+
+test("discipline from skills: a customer-service skill aligns a support role (non-tech, no tags)", () => {
+  const profile = { skills: ["Customer Service", "Communication"], title: "BA graduate" };
+  const support = calculateMatch(profile, { title: "Customer Support Associate", tags: [] });
+  const unrelated = calculateMatch(profile, { title: "Warehouse Associate", tags: [] });
+  assert.ok(support.score > unrelated.score, `support (${support.score}) should beat unrelated (${unrelated.score})`);
+  assert.ok(support.matchExplanation.some((e) => /domain alignment/i.test(e) && /customer support/i.test(e)));
+});
+
+test("discipline: a B.Com grad aligns with an accounts role", () => {
+  const profile = { skills: ["Tally", "Accounting"], title: "B.Com graduate" };
+  const accounts = calculateMatch(profile, { title: "Accounts Executive", tags: [] });
+  assert.ok(
+    accounts.matchExplanation.some((e) => /domain alignment/i.test(e) && /finance \/ accounting/i.test(e)),
+    "a B.Com grad should align with a commerce/accounts role",
+  );
+});
+
 test("word boundaries: 'ai' inside 'retail'/'email' no longer fakes a data/ML domain", () => {
   // Regression: substring matching credited "ai" inside "retAIl" and "emAIl",
   // wrongly aligning a retail-sales person with an email-marketing role on data/ML.

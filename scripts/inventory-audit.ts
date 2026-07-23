@@ -61,7 +61,9 @@ async function main() {
   const uri = process.env.MONGODB_URI;
   if (!uri) throw new Error("MONGODB_URI not set");
   await mongoose.connect(uri, { serverSelectionTimeoutMS: 20000 });
-  const coll = mongoose.connection.db.collection("jobs");
+  const db = mongoose.connection.db;
+  if (!db) throw new Error("No database handle after connect");
+  const coll = db.collection("jobs");
 
   const activeIndia = await coll.countDocuments({ status: "Active", isIndia: true });
   console.log(`\n=== UMBRIX inventory-reality audit ===`);

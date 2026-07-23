@@ -114,8 +114,8 @@ const DOMAIN_SYNONYMS: Record<string, string[]> = {
   "marketing": ["marketing", "digital marketing", "seo", "sem", "social media", "brand", "performance marketing", "email marketing", "ppc", "growth"],
   // --- Content / creative ---
   "content / creative": ["content writer", "content writing", "copywriter", "copywriting", "graphic design", "video editor", "photographer", "animation", "illustrator"],
-  // --- Finance ---
-  "finance / accounting": ["finance", "accounting", "accountant", "audit", "auditor", "taxation", "financial analyst", "investment banking", "treasury", "bookkeeping", "payroll", "credit analyst"],
+  // --- Finance / commerce (incl. the B.Com / CA-articleship fresher path) ---
+  "finance / accounting": ["finance", "accounting", "accountant", "accounts", "commerce", "b.com", "article", "audit", "auditor", "taxation", "financial analyst", "investment banking", "treasury", "bookkeeping", "payroll", "credit analyst"],
   // --- HR ---
   "HR / recruiting": ["human resources", "hr", "recruitment", "recruiter", "talent acquisition", "people operations"],
   // --- Customer support ---
@@ -132,8 +132,19 @@ const DOMAIN_SYNONYMS: Record<string, string[]> = {
   "hospitality": ["hospitality", "hotel", "chef", "cook", "front office", "housekeeping", "food and beverage", "f&b", "culinary"],
   // --- Consulting ---
   "consulting": ["consultant", "consulting", "advisory"],
-  // --- Manufacturing ---
-  "manufacturing / production": ["manufacturing", "production", "quality control", "maintenance", "assembly", "cnc", "fabrication"],
+  // --- Engineering disciplines (fresher branches — the coarse "engineering"/
+  //     "manufacturing" fields conflate these, so a mechanical grad was seeing
+  //     sewing/professor roles at the top. These separate the branches). ---
+  "mechanical": ["mechanical", "mechatronics", "automobile", "automotive", "hvac", "thermal"],
+  "electrical": ["electrical", "power systems", "electrician"],
+  "electronics": ["electronics", "ece", "embedded systems", "vlsi", "pcb", "telecom", "telecommunication"],
+  "civil": ["civil", "structural", "construction", "site engineer", "surveyor"],
+  "chemical": ["chemical", "process engineer", "petrochemical", "polymer"],
+  // --- Trades / shop floor (kept distinct from the engineering branches) ---
+  "textile / apparel": ["textile", "sewing", "garment", "apparel", "tailoring"],
+  "welding / fabrication": ["welding", "welder", "fitter", "sheet metal"],
+  // --- Manufacturing (generic production floor, below the specific branches) ---
+  "manufacturing / production": ["manufacturing", "production", "quality control", "maintenance", "assembly", "cnc", "machining"],
 };
 
 // Precompiled whole-word matchers (built once). Word boundaries — "not an ASCII
@@ -248,7 +259,11 @@ export function calculateMatch(profile: MatchProfile, job: JobLike): MatchResult
 
   // 2. Domain alignment between the user's background and the job title.
   const userBackground = [profile.title ?? "", ...(profile.experience ?? []).map((e) => e?.role ?? "")].join(" ");
-  const userDomains = domainKeywordsIn(userBackground);
+  // Discipline can also come from named skills ("Customer Service", "Digital
+  // Marketing", "Accounting", "AutoCAD") — essential for non-tech, where the job
+  // carries no skill tags to overlap. Kept separate from userBackground so it
+  // doesn't skew the seniority read below.
+  const userDomains = domainKeywordsIn([userBackground, ...(profile.skills ?? [])].join(" "));
   const jobDomains = domainKeywordsIn(job.title);
   const sharedDomains = [...jobDomains].filter((d) => userDomains.has(d));
   if (sharedDomains.length > 0) {
