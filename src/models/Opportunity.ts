@@ -81,6 +81,11 @@ const OpportunitySchema = new Schema<IOpportunity>(
 OpportunitySchema.index({ status: 1, lastSeenAt: -1 });
 // Feed candidate query: newest active first, bounded by limit.
 OpportunitySchema.index({ status: 1, createdAt: -1 });
+// Default feed query: India + active, newest first. The most-hit query in the
+// app — covering isIndia here lets the index satisfy the filter AND the sort,
+// so the candidate window fetches ~limit docs instead of ~3x (India is ~a third
+// of active postings) by scanning {status, createdAt} and filtering in memory.
+OpportunitySchema.index({ status: 1, isIndia: 1, createdAt: -1 });
 // Feed by type (jobs vs internships) once the toggle lands.
 OpportunitySchema.index({ status: 1, type: 1, createdAt: -1 });
 
