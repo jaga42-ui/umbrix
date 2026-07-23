@@ -39,6 +39,26 @@ test('parseMinExperience: no signal / false-positive guards -> undefined', () =>
   assert.equal(parseMinExperience('Software Engineer'), undefined);
   assert.equal(parseMinExperience('We shipped this 5 years ago'), undefined); // not near "experience"
   assert.equal(parseMinExperience(''), undefined);
+  // Company self-description must NOT be read as a candidate requirement (would
+  // wrongly hide a fresher-eligible role) — no bare "N+ years" is trusted.
+  assert.equal(parseMinExperience('a company with 25+ years of excellence'), undefined);
+  assert.equal(parseMinExperience('a 20+ year old firm serving India'), undefined);
+});
+
+test('parseMinExperience: catches "yrs" / "exp" / "at least" / range shorthands', () => {
+  assert.equal(parseMinExperience('3+ yrs experience'), 3);
+  assert.equal(parseMinExperience('Exp: 3 yrs'), 3);
+  assert.equal(parseMinExperience('At least 2 years in ops'), 2);
+  assert.equal(parseMinExperience('minimum 4 yrs required'), 4);
+  assert.equal(parseMinExperience('2-4 yrs'), 2); // range, precise without the word "experience"
+  assert.equal(parseMinExperience('experience of 5 yrs'), 5);
+});
+
+test('parseMinExperience: broader fresher phrasings -> 0', () => {
+  assert.equal(parseMinExperience('Recent graduates welcome'), 0);
+  assert.equal(parseMinExperience('No work experience needed'), 0);
+  assert.equal(parseMinExperience('Experience not required'), 0);
+  assert.equal(parseMinExperience('0-1 yrs'), 0);
 });
 
 test('parseMinExperience: explicit experience wins over stray fresher word', () => {

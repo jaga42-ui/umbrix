@@ -70,14 +70,26 @@ function stripTagsSimple(html) {
  */
 function parseMinExperience(text) {
   const t = String(text || '').toLowerCase();
+  // Deliberately biased toward precision: a false "needs N years" HIDES a
+  // fresher-eligible role, so the requirement patterns all demand explicit
+  // context (the word experience/exp, minimum/at least, or a numeric range) —
+  // never a bare "N+ years", which company self-description ("25+ years of
+  // excellence") would trip. `(?:years?|yrs?)` catches the very common Indian-JD
+  // "yrs" shorthand the old parser missed; "exp" catches the abbreviation.
   const m =
-    t.match(/(\d{1,2})\s*\+?\s*(?:-|–|to)?\s*(?:\d{1,2})?\s*years?[^.]{0,24}?\bexperience\b/) ||
-    t.match(/\bexperience\b[^.]{0,12}?:?\s*(\d{1,2})\s*\+?\s*years?/) ||
-    t.match(/\bminimum\s+(?:of\s+)?(\d{1,2})\s*\+?\s*years?/);
+    // N (+/range) years/yrs ... within 24 chars of experience/exp
+    t.match(/(\d{1,2})\s*\+?\s*(?:-|–|to)?\s*(?:\d{1,2})?\s*(?:years?|yrs?)[^.]{0,24}?\b(?:experience|exp)\b/) ||
+    // experience/exp ... : N (+) years/yrs
+    t.match(/\b(?:experience|exp)\b[^.]{0,14}?:?\s*(\d{1,2})\s*\+?\s*(?:years?|yrs?)/) ||
+    // minimum / min / at least N (+) years/yrs
+    t.match(/\b(?:minimum|min\.?|at\s*least)\s+(?:of\s+)?(\d{1,2})\s*\+?\s*(?:years?|yrs?)/) ||
+    // explicit N–M years/yrs range (precise even without the word "experience");
+    // guarded against "N years old/ago" (company age, not a requirement).
+    t.match(/(\d{1,2})\s*(?:-|–|to)\s*\d{1,2}\s*(?:years?|yrs?)\b(?!\s+(?:ago|old))/);
   const num = m ? parseInt(m[1], 10) : undefined;
   const validNum = num !== undefined && num >= 0 && num <= 30 ? num : undefined;
   const fresher =
-    /\b(freshers?|entry[\s-]level|new\s?grads?|no\s+(?:prior\s+|relevant\s+)?experience|0\s*(?:-|–|to)\s*[12]\s*years?)\b/.test(t);
+    /\b(freshers?|entry[\s-]level|new\s?grads?|recent\s+graduates?|no\s+(?:prior\s+|relevant\s+|work\s+)?experience|experience\s+not\s+required|0\s*(?:-|–|to)\s*[12]\s*(?:years?|yrs?))\b/.test(t);
   if (validNum !== undefined && validNum >= 2) return validNum; // explicit requirement wins
   if (fresher) return 0;
   return validNum; // 0, 1, or undefined
