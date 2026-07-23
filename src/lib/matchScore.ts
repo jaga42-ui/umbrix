@@ -10,7 +10,8 @@
  *   2. Domain alignment — frontend / backend / data / design / etc. overlap
  *      between the user's title + past roles and the job title.
  *   3. Seniority fit   — how close the job's level is to the user's level.
- *   4. Description hits — user skills mentioned in the body beyond the tags.
+ *   4. Eligibility     — fresher-friendly roles up, experience-heavy roles down.
+ *   5. Field alignment — the job's field vs the user's target field(s).
  */
 
 export interface MatchProfile {
@@ -24,6 +25,8 @@ export interface MatchProfile {
 export interface JobLike {
   title: string;
   tags: string[];
+  /** Part of the job shape but NOT a scoring input — the feed/digest queries omit
+   *  it (too large to load per candidate), so scoring relies on `tags`. */
   descriptionHtml?: string;
   /** Minimum years of experience the posting requires (0 = fresher-eligible). */
   minExperience?: number | null;
@@ -68,7 +71,6 @@ const DOMAIN_BONUS_PER_HIT = 4;
 const DOMAIN_BONUS_MAX = 8;
 const SENIORITY_EXACT = 6;
 const SENIORITY_NEAR = 3;
-const DESC_BONUS_MAX = 3;
 // Fresher eligibility — UMBRIX's audience is freshers, so open roles rank up and
 // experience-heavy roles rank down. This is the mission-critical "can they even
 // apply?" signal, so the penalty scales with how far above fresher the role sits
@@ -272,25 +274,7 @@ export function calculateMatch(profile: MatchProfile, job: JobLike): MatchResult
     }
   }
 
-  // 4. Skills mentioned in the description beyond the tags.
-  const desc = (job.descriptionHtml ?? "").toLowerCase();
-  if (desc) {
-    let descHits = 0;
-    // Skills already credited via tags (compared canonically so aliases don't
-    // double-count, e.g. a "React" tag and a "react.js" resume skill).
-    const credited = new Set(matchingSkills.map(canonicalizeSkill));
-    for (const skill of skills) {
-      const canon = canonicalizeSkill(skill);
-      if (credited.has(canon)) continue;
-      if (desc.includes(skill.toLowerCase()) || desc.includes(canon)) {
-        descHits++;
-        credited.add(canon); // count each distinct skill at most once
-      }
-    }
-    if (descHits > 0) score += Math.min(descHits, DESC_BONUS_MAX);
-  }
-
-  // 5. Fresher eligibility — the audience is freshers, so open roles rank up and
+  // 4. Fresher eligibility — the audience is freshers, so open roles rank up and
   // experience-heavy roles rank down. Unknown (null) stays neutral.
   let eligibilityNote: string | null = null;
   const minExp = job.minExperience;
@@ -316,7 +300,7 @@ export function calculateMatch(profile: MatchProfile, job: JobLike): MatchResult
     }
   }
 
-  // 6. Field alignment — the dominant cross-field signal. A role in the user's
+  // 5. Field alignment — the dominant cross-field signal. A role in the user's
   // target field ranks well above one outside it, so an all-field feed surfaces
   // roles that actually fit the candidate's background.
   // Field alignment: an in-field role ranks well above anything off-field — INCLUDING

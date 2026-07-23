@@ -44,11 +44,11 @@ test("skill aliases match despite formatting (JS / NodeJS / Postgres)", () => {
   assert.equal(res.matchingSkills.length, 3);
 });
 
-test("alias variants don't double-count in the skill breadth signal", () => {
-  // "React" and "react.js" canonicalize to the same skill — the job tag matches,
-  // but the extra resume variant must not inflate the score via description hits.
-  const one = calculateMatch({ skills: ["React"] }, { title: "Frontend Dev", tags: ["React"], descriptionHtml: "react work" });
-  const dup = calculateMatch({ skills: ["React", "react.js"] }, { title: "Frontend Dev", tags: ["React"], descriptionHtml: "react work" });
+test("alias variants of the same skill don't change the score", () => {
+  // "React" and "react.js" canonicalize to one skill, so listing both must not
+  // inflate the score over listing one — the tag matches the same either way.
+  const one = calculateMatch({ skills: ["React"] }, { title: "Frontend Dev", tags: ["React"] });
+  const dup = calculateMatch({ skills: ["React", "react.js"] }, { title: "Frontend Dev", tags: ["React"] });
   assert.equal(one.score, dup.score, "duplicate alias of the same skill shouldn't change the score");
 });
 
