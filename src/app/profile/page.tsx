@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { authedFetch } from "@/lib/authedFetch";
+import { track } from "@/lib/analytics";
 import { Header } from "@/components/Header";
 import { 
   User as UserIcon, 
@@ -267,7 +268,11 @@ export default function ProfilePage() {
       const data = await res.json();
       if (res.ok && data.success) {
         setProfile(data.profile);
-        
+        track("resume_upload", {
+          skills: Array.isArray(data.profile?.skills) ? data.profile.skills.length : 0,
+          fields: Array.isArray(data.profile?.targetFields) ? data.profile.targetFields.length : 0,
+        });
+
         if (isDemoMode || data.isDemo) {
           // Sync demo local storage profile
           localStorage.setItem("umbrix_demo_profile", JSON.stringify(data.profile));

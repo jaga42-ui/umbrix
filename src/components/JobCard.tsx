@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Building2, MapPin, Bookmark, BookmarkCheck, ExternalLink, Loader2, X, GraduationCap, Sparkles } from "lucide-react";
 import { TailorResumeModal } from "@/components/TailorResumeModal";
+import { track } from "@/lib/analytics";
 
 interface JobCardProps {
   id: string;
@@ -51,6 +52,7 @@ export function JobCard({
     setSaving(true);
     try {
       await onSave();
+      track("save_job", { jobId: id, score: matchScore });
     } catch (e) {
       console.error("Failed to save opportunity:", e);
     } finally {
@@ -176,6 +178,7 @@ export function JobCard({
                 href={applyUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => track("apply_click", { jobId: id, score: matchScore, ...(source ? { source } : {}) })}
                 className="flex-1 sm:flex-initial h-10 px-4 bg-primary text-primary-foreground rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 hover:opacity-90 active:scale-95 transition-all"
               >
                 <span>Apply</span>

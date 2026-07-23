@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { authedFetch } from "@/lib/authedFetch";
+import { track } from "@/lib/analytics";
 import { Header } from "@/components/Header";
 import { JobCard } from "@/components/JobCard";
 import { Compass, Search, MapPin, Tag, SlidersHorizontal, Sparkles, Loader2, ArrowRight, GraduationCap } from "lucide-react";
@@ -83,6 +84,13 @@ export default function FeedPage() {
         setTotal(jobsData.total ?? list.length);
         setVisibleCount(INITIAL_VISIBLE);
         setHasSkills(jobsData.hasSkills !== false);
+        track("feed_view", {
+          count: list.length,
+          total: jobsData.total ?? list.length,
+          hasSkills: jobsData.hasSkills !== false,
+          ...(search ? { searched: true } : {}),
+          ...(fresherOnly ? { fresherOnly: true } : {}),
+        });
       } else {
         throw new Error(jobsData.error || "Failed to fetch jobs");
       }

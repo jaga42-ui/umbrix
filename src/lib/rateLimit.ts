@@ -43,6 +43,9 @@ const limiters = {
   // AI résumé tailoring — an LLM call per request, so bound bursts (the monthly
   // quota is the real cap; this just stops rapid-fire abuse).
   tailor: makeLimiter(6, "1 m"),
+  // Analytics event ingest — events arrive batched, so a generous per-identifier
+  // bucket is plenty for real usage while bounding a firehose of spoofed beacons.
+  events: makeLimiter(60, "1 m"),
 } as const;
 
 export type LimiterName = keyof typeof limiters;
