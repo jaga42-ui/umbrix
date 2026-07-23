@@ -100,7 +100,11 @@ const DOMAIN_KEYWORDS = [
 function seniorityRank(text: string): number {
   const t = ` ${text.toLowerCase()} `;
   if (/intern/.test(t)) return 1;
-  if (/(junior|\bjr\b|entry|associate|\bgrad\b|graduate)/.test(t)) return 2;
+  // Students / freshers and explicit entry titles sit near the bottom of the
+  // ladder. Critical for UMBRIX's audience: without this a fresher defaults to
+  // mid (3), which mislabels intern/entry roles as "below your level".
+  if (/(student|freshers?|final[\s-]?year|pre[\s-]?final|under\s?grad(uate)?|b\.?tech|bca|mca)/.test(t)) return 2;
+  if (/(junior|\bjr\b|entry|associate|\bgrad\b|graduate|trainee|apprentice)/.test(t)) return 2;
   if (/(principal|staff|\blead\b|architect|director|head of|\bvp\b|vice president|chief)/.test(t)) return 5;
   if (/(senior|\bsr\b|sr\.)/.test(t)) return 4;
   return 3;
@@ -129,6 +133,39 @@ function normalizeDomain(kw: string): string {
 }
 
 /**
+ * Skill synonyms → a single canonical token, so resume skills (LLM-parsed, free-
+ * form) and job tags match despite formatting differences. Without this, "React"
+ * vs "React.js", "JavaScript" vs "JS", or "PostgreSQL" vs "Postgres" silently
+ * count as misses and under-score real overlaps. Keys and values are lowercase.
+ */
+const SKILL_ALIASES: Record<string, string> = {
+  "js": "javascript", "ecmascript": "javascript",
+  "ts": "typescript",
+  "react.js": "react", "reactjs": "react",
+  "react native": "react-native", "reactnative": "react-native",
+  "node": "node.js", "nodejs": "node.js",
+  "next": "next.js", "nextjs": "next.js",
+  "postgres": "postgresql", "psql": "postgresql",
+  "k8s": "kubernetes",
+  "golang": "go",
+  "py": "python",
+  "ml": "machine learning",
+  "gcp": "google cloud", "google cloud platform": "google cloud",
+  "amazon web services": "aws",
+  "c#": "csharp", "c sharp": "csharp",
+  "c++": "cpp",
+  "tailwindcss": "tailwind", "tailwind css": "tailwind",
+  "ui": "ui/ux", "ux": "ui/ux", "uiux": "ui/ux",
+  "gen ai": "genai", "generative ai": "genai",
+};
+
+/** Canonicalize a skill/tag for comparison — lowercased, with synonyms folded. */
+function canonicalizeSkill(s: string): string {
+  const key = s.trim().toLowerCase();
+  return SKILL_ALIASES[key] ?? key;
+}
+
+/**
  * When the user has no skills yet (no resume parsed), return a neutral baseline.
  * This makes the feed fall back to recency order and nudges a resume upload —
  * the personalization is the upsell.
@@ -154,11 +191,11 @@ export function calculateMatch(profile: MatchProfile, job: JobLike): MatchResult
     return neutralResult(jobTags);
   }
 
-  const skillSet = new Set(skills.map((s) => s.toLowerCase()));
+  const skillSet = new Set(skills.map(canonicalizeSkill));
   const matchingSkills: string[] = [];
   const missingSkills: string[] = [];
   for (const tag of jobTags) {
-    if (skillSet.has(tag.toLowerCase())) matchingSkills.push(tag);
+    if (skillSet.has(canonicalizeSkill(tag))) matchingSkills.push(tag);
     else missingSkills.push(tag);
   }
 
@@ -201,11 +238,16 @@ export function calculateMatch(profile: MatchProfile, job: JobLike): MatchResult
   const desc = (job.descriptionHtml ?? "").toLowerCase();
   if (desc) {
     let descHits = 0;
+    // Skills already credited via tags (compared canonically so aliases don't
+    // double-count, e.g. a "React" tag and a "react.js" resume skill).
+    const credited = new Set(matchingSkills.map(canonicalizeSkill));
     for (const skill of skills) {
-      const s = skill.toLowerCase();
-      if (!skillSet.has(s)) continue;
-      if (matchingSkills.some((m) => m.toLowerCase() === s)) continue; // already counted via tags
-      if (desc.includes(s)) descHits++;
+      const canon = canonicalizeSkill(skill);
+      if (credited.has(canon)) continue;
+      if (desc.includes(skill.toLowerCase()) || desc.includes(canon)) {
+        descHits++;
+        credited.add(canon); // count each distinct skill at most once
+      }
     }
     if (descHits > 0) score += Math.min(descHits, DESC_BONUS_MAX);
   }

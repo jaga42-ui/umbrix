@@ -36,6 +36,35 @@ test("scores are capped at 99", () => {
   assert.ok(ranked.every((r) => r.matchScore <= 99));
 });
 
+test("skill aliases match despite formatting (JS / NodeJS / Postgres)", () => {
+  const profile = { skills: ["JavaScript", "Node.js", "PostgreSQL"] };
+  const job = { title: "Backend Developer", tags: ["JS", "NodeJS", "Postgres"] };
+  const res = calculateMatch(profile, job);
+  assert.deepEqual(res.missingSkills, [], "all tags should match via aliases");
+  assert.equal(res.matchingSkills.length, 3);
+});
+
+test("alias variants don't double-count in the skill breadth signal", () => {
+  // "React" and "react.js" canonicalize to the same skill — the job tag matches,
+  // but the extra resume variant must not inflate the score via description hits.
+  const one = calculateMatch({ skills: ["React"] }, { title: "Frontend Dev", tags: ["React"], descriptionHtml: "react work" });
+  const dup = calculateMatch({ skills: ["React", "react.js"] }, { title: "Frontend Dev", tags: ["React"], descriptionHtml: "react work" });
+  assert.equal(one.score, dup.score, "duplicate alias of the same skill shouldn't change the score");
+});
+
+test("a fresher's profile treats entry roles as a fit, not 'below your level'", () => {
+  const profile = { skills: ["React"], title: "B.Tech Student" };
+  const res = calculateMatch(profile, { title: "Junior Frontend Developer", tags: ["React"] });
+  assert.ok(
+    !res.matchExplanation.some((e) => /below your current level/i.test(e)),
+    "an entry role must not read as below a fresher's level",
+  );
+  assert.ok(
+    res.matchExplanation.some((e) => /matches your level|close seniority/i.test(e)),
+    "an entry role should read as a seniority fit for a fresher",
+  );
+});
+
 test("fresher-eligible roles rank above experience-heavy ones for the same profile", () => {
   const profile = { skills: ["React", "TypeScript"] };
   const base = { title: "Frontend Engineer", tags: ["React", "TypeScript"] };
