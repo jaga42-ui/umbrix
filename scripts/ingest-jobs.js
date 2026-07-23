@@ -348,6 +348,37 @@ const ATS_FETCHERS = {
   adzuna: fetchAdzunaJobs,
 };
 
+// Staggered-cron tier assignment. The rulebook's 4-tier schedule (APIs / India
+// scrapers / ATS / government) is aspirational — only two tiers have a real
+// source today: Tier 1 (external aggregator APIs) and Tier 3 (company ATS
+// boards). Tiers 2 and 4 have no adapters yet, so a `--tier=2` run cleanly
+// no-ops. Deriving the tier from `ats` keeps companies.json untouched.
+const TIER_BY_ATS = {
+  adzuna: 1,
+  greenhouse: 3,
+  lever: 3,
+  ashby: 3,
+  smartrecruiters: 3,
+};
+
+/**
+ * The staggered-cron tier requested via `--tier=N` (CLI) or INGEST_TIER (CI),
+ * or null to run every source in one pass (the default — backward-compatible
+ * with the single nightly workflow). Throws on a malformed value so a typo in
+ * a cron definition fails loud instead of silently ingesting everything.
+ * @returns {number|null}
+ */
+function parseTierArg(argv = process.argv, env = process.env) {
+  const flag = argv.find((a) => a.startsWith('--tier='));
+  const raw = flag ? flag.slice('--tier='.length) : env.INGEST_TIER;
+  if (raw === undefined || raw === '') return null;
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 1) {
+    throw new Error(`Invalid --tier value "${raw}" — expected a positive integer.`);
+  }
+  return n;
+}
+
 // A skill keyword only counts as a whole token, not a substring — otherwise
 // short keywords match inside unrelated words ("AI" inside "trAInee"/"avAIlable",
 // "Go" inside "Google"), which was tagging every fresher post with a bogus "AI"
@@ -563,22 +594,34 @@ async function processCompany(company) {
 // any accidental back-to-back run. Override with FORCE_INGEST=1 or `--force`.
 const MIN_INGEST_INTERVAL_HOURS = Number(process.env.MIN_INGEST_INTERVAL_HOURS) || 20;
 
-/** Hours since the last recorded run, or null if it's outside the window / unrecorded. */
-async function hoursSinceLastRunIfTooSoon() {
-  const doc = await mongoose.connection.db.collection('meta').findOne({ _id: 'ingest' });
+// Guard state is keyed per tier so staggered tier runs don't clobber each
+// other's timestamp: a Tier 1 run at 00:00 stamping the shared key would make a
+// Tier 3 run at 04:00 skip. An un-tiered (full) run keeps the original 'ingest'
+// key, so the existing single nightly workflow is unaffected.
+function metaIdForTier(tier) {
+  return tier == null ? 'ingest' : `ingest:tier${tier}`;
+}
+
+/** Hours since this key's last recorded run, or null if outside the window / unrecorded. */
+async function hoursSinceLastRunIfTooSoon(metaId = 'ingest') {
+  const doc = await mongoose.connection.db.collection('meta').findOne({ _id: metaId });
   if (!doc || !doc.lastRunAt) return null;
   const hours = (Date.now() - new Date(doc.lastRunAt).getTime()) / 3.6e6;
   return hours < MIN_INGEST_INTERVAL_HOURS ? hours : null;
 }
 
-/** Stamp the current run time so the next invocation can honor the daily limit. */
-async function recordRun() {
+/** Stamp this key's run time so the next invocation can honor the daily limit. */
+async function recordRun(metaId = 'ingest') {
   await mongoose.connection.db
     .collection('meta')
-    .updateOne({ _id: 'ingest' }, { $set: { lastRunAt: new Date() } }, { upsert: true });
+    .updateOne({ _id: metaId }, { $set: { lastRunAt: new Date() } }, { upsert: true });
 }
 
 async function ingestJobs() {
+  // Which staggered-cron tier to run (null = every source, the default).
+  const tier = parseTierArg();
+  const metaId = metaIdForTier(tier);
+
   if (!process.env.MONGODB_URI) {
     if (process.env.GITHUB_ACTIONS === "true") {
       // In CI, a missing secret is a misconfiguration, not an intentional
@@ -607,7 +650,7 @@ async function ingestJobs() {
     // Enforce the once-a-day limit before spending any API quota.
     const force = process.argv.includes('--force') || process.env.FORCE_INGEST === '1';
     if (!force) {
-      const since = await hoursSinceLastRunIfTooSoon();
+      const since = await hoursSinceLastRunIfTooSoon(metaId);
       if (since !== null) {
         console.log(
           `⏳ Last ingest ran ${since.toFixed(1)}h ago (< ${MIN_INGEST_INTERVAL_HOURS}h). ` +
@@ -620,7 +663,22 @@ async function ingestJobs() {
   }
 
   const companiesPath = path.join(__dirname, 'companies.json');
-  const companies = interleaveByAts(JSON.parse(fs.readFileSync(companiesPath, 'utf8')));
+  let companies = JSON.parse(fs.readFileSync(companiesPath, 'utf8'));
+
+  // Scope to the requested tier so a staggered cron only touches its own
+  // sources (and only spends that tier's API quota). A tier with no adapters
+  // yet is a clean no-op, not an error.
+  if (tier !== null) {
+    companies = companies.filter((c) => TIER_BY_ATS[c.ats] === tier);
+    if (companies.length === 0) {
+      console.log(`No sources configured for tier ${tier} — nothing to ingest.`);
+      if (process.env.MONGODB_URI) await mongoose.disconnect();
+      return;
+    }
+    console.log(`Tier ${tier}: ${companies.length} source(s) selected.`);
+  }
+
+  companies = interleaveByAts(companies);
 
   console.log(`\nFetching ${companies.length} companies (${FETCH_CONCURRENCY} at a time)...\n`);
 
@@ -665,8 +723,9 @@ async function ingestJobs() {
 
   if (process.env.MONGODB_URI) {
     // Stamp this run so the daily limit is honored next time (the run consumed
-    // API quota even if some sources failed, so record it regardless).
-    await recordRun();
+    // API quota even if some sources failed, so record it regardless). Keyed
+    // per tier so staggered tier runs don't suppress one another.
+    await recordRun(metaId);
     await mongoose.disconnect();
     console.log("✅ Disconnected from MongoDB");
   } else {
@@ -696,6 +755,9 @@ module.exports = {
   extractTags,
   interleaveByAts,
   ATS_FETCHERS,
+  TIER_BY_ATS,
+  parseTierArg,
+  metaIdForTier,
   withRetry,
   runIngestPass,
 };
