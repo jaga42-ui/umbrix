@@ -70,10 +70,15 @@ const SENIORITY_EXACT = 6;
 const SENIORITY_NEAR = 3;
 const DESC_BONUS_MAX = 3;
 // Fresher eligibility — UMBRIX's audience is freshers, so open roles rank up and
-// experience-heavy roles rank down.
+// experience-heavy roles rank down. This is the mission-critical "can they even
+// apply?" signal, so the penalty scales with how far above fresher the role sits
+// (a 10-year role is far less applicable than a 3-year one, not equally so).
 const FRESHER_BONUS = 8; // minExperience 0
 const JUNIOR_BONUS = 4; // minExperience 1
-const EXPERIENCED_PENALTY = 8; // minExperience >= 3
+const MILD_STRETCH_PENALTY = 4; // minExperience 2 — a slight reach, not a wall
+const EXPERIENCED_PENALTY = 8; // base penalty at minExperience 3
+const EXPERIENCED_PENALTY_PER_YEAR = 2; // grows per year beyond 3
+const EXPERIENCED_PENALTY_MAX = 20; // cap so it can't erase every other signal
 // Field alignment — the dominant cross-field signal. A job in the user's field
 // ranks well above one outside it, so an all-field feed surfaces the right roles.
 const FIELD_MATCH_BONUS = 12;
@@ -296,8 +301,17 @@ export function calculateMatch(profile: MatchProfile, job: JobLike): MatchResult
     } else if (minExp === 1) {
       score += JUNIOR_BONUS;
       eligibilityNote = "Junior-friendly: about a year of experience.";
-    } else if (minExp >= 3) {
-      score -= EXPERIENCED_PENALTY;
+    } else if (minExp === 2) {
+      score -= MILD_STRETCH_PENALTY;
+      eligibilityNote = "Slight stretch: around 2 years of experience preferred.";
+    } else {
+      // minExp >= 3 — penalty grows with the years required, capped so a single
+      // signal can't dominate the whole score.
+      const penalty = Math.min(
+        EXPERIENCED_PENALTY + (minExp - 3) * EXPERIENCED_PENALTY_PER_YEAR,
+        EXPERIENCED_PENALTY_MAX,
+      );
+      score -= penalty;
       eligibilityNote = `Needs ~${minExp}+ years experience — a stretch for a fresher.`;
     }
   }

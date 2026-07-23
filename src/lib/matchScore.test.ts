@@ -90,6 +90,24 @@ test("word boundaries: 'ai' inside 'retail'/'email' no longer fakes a data/ML do
   );
 });
 
+test("eligibility ladder is monotonic: fresher > junior > 2yr > 3yr > 6yr", () => {
+  const profile = { skills: ["React"] };
+  const base = { title: "Frontend Engineer", tags: ["React"] };
+  const s = (n: number) => calculateMatch(profile, { ...base, minExperience: n }).score;
+  assert.ok(
+    s(0) > s(1) && s(1) > s(2) && s(2) > s(3) && s(3) > s(6),
+    `ladder should strictly decrease: ${[0, 1, 2, 3, 6].map(s).join(" > ")}`,
+  );
+});
+
+test("experienced-required penalty scales with the years demanded", () => {
+  const profile = { skills: ["React", "TypeScript"] };
+  const base = { title: "Frontend Engineer", tags: ["React", "TypeScript"] };
+  const y3 = calculateMatch(profile, { ...base, minExperience: 3 });
+  const y10 = calculateMatch(profile, { ...base, minExperience: 10 });
+  assert.ok(y10.score < y3.score, `a 10yr role (${y10.score}) should score below a 3yr role (${y3.score})`);
+});
+
 test("fresher-eligible roles rank above experience-heavy ones for the same profile", () => {
   const profile = { skills: ["React", "TypeScript"] };
   const base = { title: "Frontend Engineer", tags: ["React", "TypeScript"] };
