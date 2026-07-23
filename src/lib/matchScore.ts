@@ -80,21 +80,66 @@ const FIELD_MATCH_BONUS = 12;
 const FIELD_MISMATCH_PENALTY = 16;
 const SCORE_CAP = 99;
 
-// Domain/discipline keywords used for role alignment. Kept broad but meaningful;
-// generic words like "engineer"/"developer" are deliberately excluded (they carry
-// no discriminating signal) — seniority is handled separately.
-const DOMAIN_KEYWORDS = [
-  "frontend", "front-end", "front end",
-  "backend", "back-end", "back end",
-  "fullstack", "full-stack", "full stack",
-  "product", "design", "designer", "ux", "ui",
-  "data", "machine learning", "ml", "ai",
-  "mobile", "ios", "android",
-  "platform", "infrastructure", "infra", "devops", "sre",
-  "security", "qa", "test",
-  "cloud", "embedded", "game", "web3", "blockchain",
-  "growth", "analytics", "developer relations", "devrel",
-];
+// Discipline map for role alignment — canonical domain → the surface phrases
+// that signal it, across EVERY field (not just tech), so a non-tech in-field
+// role gets a real alignment signal instead of relying on field + eligibility
+// alone. Canonical keys are human-readable because they surface in the per-card
+// "why" copy. Generic words like "engineer"/"developer" are excluded (no
+// discriminating signal); seniority is handled separately.
+const DOMAIN_SYNONYMS: Record<string, string[]> = {
+  // --- Tech / IT ---
+  "frontend": ["frontend", "front-end", "front end"],
+  "backend": ["backend", "back-end", "back end"],
+  "full-stack": ["fullstack", "full-stack", "full stack"],
+  "mobile": ["mobile", "ios", "android", "react native", "flutter"],
+  "data / ML": ["data", "data science", "machine learning", "ml", "ai", "deep learning", "nlp"],
+  "design": ["design", "designer", "ux", "ui", "product design"],
+  "product": ["product manager", "product management"],
+  "platform / infra": ["platform", "infrastructure", "infra", "devops", "sre", "site reliability"],
+  "security": ["security", "infosec", "cybersecurity"],
+  "qa": ["qa", "quality assurance", "test engineer", "sdet", "automation testing"],
+  "cloud": ["cloud", "aws", "azure"],
+  "analytics": ["analytics", "business intelligence", "bi analyst"],
+  "developer relations": ["developer relations", "devrel", "developer advocate"],
+  // --- Sales ---
+  "sales": ["sales", "business development", "account executive", "account manager", "inside sales", "field sales", "telesales", "pre-sales", "sales development", "sdr", "bdr"],
+  // --- Marketing ---
+  "marketing": ["marketing", "digital marketing", "seo", "sem", "social media", "brand", "performance marketing", "email marketing", "ppc", "growth"],
+  // --- Content / creative ---
+  "content / creative": ["content writer", "content writing", "copywriter", "copywriting", "graphic design", "video editor", "photographer", "animation", "illustrator"],
+  // --- Finance ---
+  "finance / accounting": ["finance", "accounting", "accountant", "audit", "auditor", "taxation", "financial analyst", "investment banking", "treasury", "bookkeeping", "payroll", "credit analyst"],
+  // --- HR ---
+  "HR / recruiting": ["human resources", "hr", "recruitment", "recruiter", "talent acquisition", "people operations"],
+  // --- Customer support ---
+  "customer support": ["customer service", "customer support", "customer success", "call center", "bpo", "technical support", "help desk"],
+  // --- Admin / ops ---
+  "operations / admin": ["operations", "administrative", "office administrator", "executive assistant", "data entry", "back office"],
+  // --- Logistics ---
+  "logistics / supply chain": ["logistics", "supply chain", "warehouse", "inventory", "procurement", "dispatch", "fleet"],
+  // --- Healthcare ---
+  "healthcare": ["nurse", "nursing", "pharmacist", "pharmacy", "clinical", "medical", "physiotherapy", "radiology", "lab technician"],
+  // --- Teaching ---
+  "teaching": ["teacher", "teaching", "tutor", "faculty", "lecturer", "trainer", "instructor", "professor"],
+  // --- Hospitality ---
+  "hospitality": ["hospitality", "hotel", "chef", "cook", "front office", "housekeeping", "food and beverage", "f&b", "culinary"],
+  // --- Consulting ---
+  "consulting": ["consultant", "consulting", "advisory"],
+  // --- Manufacturing ---
+  "manufacturing / production": ["manufacturing", "production", "quality control", "maintenance", "assembly", "cnc", "fabrication"],
+};
+
+// Precompiled whole-word matchers (built once). Word boundaries — "not an ASCII
+// letter/digit" on each side — stop short tokens from matching inside unrelated
+// words (e.g. "ai" in "email", "hr" in "chair", "ml" in "html"), which naive
+// substring matching got wrong.
+const DOMAIN_MATCHERS: { domain: string; re: RegExp }[] = Object.entries(DOMAIN_SYNONYMS).flatMap(
+  ([domain, phrases]) =>
+    phrases.map((p) => ({
+      domain,
+      re: new RegExp(`(?<![a-z0-9])${p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![a-z0-9])`, "i"),
+    })),
+);
 
 /** Rough seniority ladder derived from a title string. 3 == mid (default). */
 function seniorityRank(text: string): number {
@@ -110,26 +155,14 @@ function seniorityRank(text: string): number {
   return 3;
 }
 
+// Which canonical disciplines a text (a title or a background) names. Synonyms
+// collapse to one canonical hit, so "front-end" and "frontend" don't double-count.
 function domainKeywordsIn(text: string): Set<string> {
-  const lower = text.toLowerCase();
   const found = new Set<string>();
-  for (const kw of DOMAIN_KEYWORDS) {
-    if (lower.includes(kw)) found.add(normalizeDomain(kw));
+  for (const { domain, re } of DOMAIN_MATCHERS) {
+    if (re.test(text)) found.add(domain);
   }
   return found;
-}
-
-// Collapse synonyms so "front-end" and "frontend" count as one hit.
-function normalizeDomain(kw: string): string {
-  const k = kw.replace(/[-\s]/g, "");
-  if (k === "frontend") return "frontend";
-  if (k === "backend") return "backend";
-  if (k === "fullstack") return "fullstack";
-  if (k === "machinelearning" || k === "ml" || k === "ai") return "ml/ai";
-  if (k === "designer" || k === "design" || k === "ux" || k === "ui") return "design";
-  if (k === "infrastructure" || k === "infra" || k === "devops" || k === "sre" || k === "platform") return "platform";
-  if (k === "developerrelations" || k === "devrel") return "devrel";
-  return k;
 }
 
 /**

@@ -65,6 +65,31 @@ test("a fresher's profile treats entry roles as a fit, not 'below your level'", 
   );
 });
 
+test("non-tech domain alignment: a marketing background aligns with a marketing role", () => {
+  const profile = { skills: ["x"], title: "Digital Marketing Executive" };
+  const marketing = calculateMatch(profile, { title: "Brand Marketing Associate", tags: [] });
+  const unrelated = calculateMatch(profile, { title: "Warehouse Associate", tags: [] });
+  assert.ok(
+    marketing.score > unrelated.score,
+    `in-discipline role (${marketing.score}) should beat an unrelated one (${unrelated.score})`,
+  );
+  assert.ok(
+    marketing.matchExplanation.some((e) => /domain alignment/i.test(e) && /marketing/i.test(e)),
+    "a marketing role should explain its marketing-discipline alignment",
+  );
+});
+
+test("word boundaries: 'ai' inside 'retail'/'email' no longer fakes a data/ML domain", () => {
+  // Regression: substring matching credited "ai" inside "retAIl" and "emAIl",
+  // wrongly aligning a retail-sales person with an email-marketing role on data/ML.
+  const profile = { skills: ["x"], title: "Retail Sales Executive" };
+  const res = calculateMatch(profile, { title: "Email Marketing Executive", tags: [] });
+  assert.ok(
+    !res.matchExplanation.some((e) => /domain alignment/i.test(e) && /data \/ ML/i.test(e)),
+    "'ai' inside a word must not create a spurious data/ML alignment",
+  );
+});
+
 test("fresher-eligible roles rank above experience-heavy ones for the same profile", () => {
   const profile = { skills: ["React", "TypeScript"] };
   const base = { title: "Frontend Engineer", tags: ["React", "TypeScript"] };
