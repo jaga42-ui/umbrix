@@ -42,6 +42,13 @@ export interface IOpportunity extends Document {
   lastSeenAt?: Date;
   /** When the opportunity was reconciled to Closed (fell off its ATS feed). */
   closedAt?: Date;
+
+  // --- Eligibility extraction provenance -------------------------------------
+  /** How eligibility was last derived: "regex" (ingest) or "llm" (enrichment pass). */
+  eligibilitySource?: string;
+  /** When the LLM eligibility pass last processed this posting (dedup guard). */
+  eligibilityLLMAt?: Date;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -73,6 +80,8 @@ const OpportunitySchema = new Schema<IOpportunity>(
 
     lastSeenAt: { type: Date },
     closedAt: { type: Date },
+    eligibilitySource: { type: String },
+    eligibilityLLMAt: { type: Date },
   },
   { timestamps: true }
 );
@@ -88,6 +97,9 @@ OpportunitySchema.index({ status: 1, createdAt: -1 });
 OpportunitySchema.index({ status: 1, isIndia: 1, createdAt: -1 });
 // Feed by type (jobs vs internships) once the toggle lands.
 OpportunitySchema.index({ status: 1, type: 1, createdAt: -1 });
+// LLM eligibility backfill: active postings still missing minExperience that the
+// LLM pass hasn't processed yet (eligibilityLLMAt unset).
+OpportunitySchema.index({ status: 1, minExperience: 1, eligibilityLLMAt: 1 });
 
 // Third arg pins the collection to "jobs" — the model is renamed, the data is not.
 export const Opportunity: Model<IOpportunity> =
