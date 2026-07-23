@@ -70,6 +70,11 @@ export async function GET(request: Request) {
     let filledMinExp = 0;
     let withBatchYears = 0;
     let withCgpa = 0;
+    let stoppedEarly = false;
+
+    // Space out calls to stay under the provider's free-tier rate limit.
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    const BATCH_DELAY_MS = 1200;
 
     for (let i = 0; i < jobs.length; i += batchSize) {
       const slice = jobs.slice(i, i + batchSize).map((j: any) => ({
@@ -78,7 +83,16 @@ export async function GET(request: Request) {
         content: j.descriptionHtml || "",
       }));
 
-      const results = await extractEligibilityBatch(slice);
+      let results;
+      try {
+        results = await extractEligibilityBatch(slice);
+      } catch (err) {
+        // A rate-limit / transient LLM error stops the run — but we still write
+        // everything processed so far below (no progress is lost).
+        console.warn("extract-eligibility: batch failed, stopping with partial progress:", err instanceof Error ? err.message : err);
+        stoppedEarly = true;
+        break;
+      }
       llmBatches++;
 
       for (const item of slice) {
@@ -111,6 +125,8 @@ export async function GET(request: Request) {
           ops.push({ updateOne: { filter: { _id: item.id }, update: { $set: set } } });
         }
       }
+
+      if (i + batchSize < jobs.length) await sleep(BATCH_DELAY_MS);
     }
 
     if (!dryRun && ops.length) {
@@ -120,8 +136,10 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: true,
       dryRun,
+      stoppedEarly,
       provider: activeModelId(),
       fetched: jobs.length,
+      processed: llmBatches * batchSize,
       llmBatches,
       filledMinExp,
       withBatchYears,

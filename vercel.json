@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/match-digest",
       "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/cron/extract-eligibility?limit=300",
+      "schedule": "0 3 * * *"
     }
   ]
 }
