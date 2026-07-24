@@ -2,7 +2,8 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, signOut } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, getAdditionalUserInfo, signOut } from "firebase/auth";
+import { track } from "@/lib/analytics";
 
 let firebaseAuth: any = null;
 let googleProvider: any = null;
@@ -92,6 +93,9 @@ export function AuthProvider({ children, firebaseConfig }: { children: React.Rea
         // fallback) and surface errors; onAuthStateChanged sets the user.
         getRedirectResult(firebaseAuth)
           .then((result) => {
+            if (result && getAdditionalUserInfo(result)?.isNewUser) {
+              track("signup", { method: "google" });
+            }
             console.log(
               result
                 ? `🔥 getRedirectResult resolved with user: ${result.user?.email}`
@@ -144,7 +148,10 @@ export function AuthProvider({ children, firebaseConfig }: { children: React.Rea
 
     console.log("👉 Executing live Firebase Google Sign-In");
     try {
-      await signInWithPopup(firebaseAuth, googleProvider);
+      const cred = await signInWithPopup(firebaseAuth, googleProvider);
+      if (getAdditionalUserInfo(cred)?.isNewUser) {
+        track("signup", { method: "google" });
+      }
     } catch (error: any) {
       const code = error?.code || "";
 

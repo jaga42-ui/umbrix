@@ -23,21 +23,21 @@ const plexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://umbrix.vercel.app"),
   title: {
-    default: "Umbrix — Career Discovery",
+    default: "Umbrix — Jobs Indian freshers actually qualify for",
     template: "%s · Umbrix",
   },
-  description: "Exclusive career discovery platform for high performers.",
+  description: "A daily feed of real, scam-checked jobs and internships for Indian students and freshers — filtered to your branch, batch, and skills, across every field.",
   applicationName: "Umbrix",
   openGraph: {
-    title: "Umbrix — Career Discovery",
-    description: "Exclusive career discovery platform for high performers.",
+    title: "Umbrix — Jobs Indian freshers actually qualify for",
+    description: "A daily feed of real, scam-checked jobs and internships for Indian students and freshers — filtered to your branch, batch, and skills, across every field.",
     siteName: "Umbrix",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Umbrix — Career Discovery",
-    description: "Exclusive career discovery platform for high performers.",
+    title: "Umbrix — Jobs Indian freshers actually qualify for",
+    description: "A daily feed of real, scam-checked jobs and internships for Indian students and freshers — filtered to your branch, batch, and skills, across every field.",
   },
   robots: {
     index: true,
