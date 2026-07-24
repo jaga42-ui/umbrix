@@ -2,9 +2,59 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Building2, MapPin, Bookmark, BookmarkCheck, ExternalLink, Loader2, X, GraduationCap, Sparkles } from "lucide-react";
+import { MapPin, Bookmark, BookmarkCheck, ExternalLink, Loader2, X, GraduationCap, Sparkles } from "lucide-react";
 import { TailorResumeModal } from "@/components/TailorResumeModal";
 import { track } from "@/lib/analytics";
+
+// A company monogram stands in for a logo — we don't have logo assets for
+// aggregator listings, and a consistent lettered avatar reads far more
+// legit than a bare company name. Tints stay inside the app's earthy palette
+// and are picked deterministically so a company always looks the same.
+const MONOGRAM_TINTS = [
+  "bg-[#e7e0d0] text-[#6b5d3e]",
+  "bg-[#dde6dc] text-[#465a43]",
+  "bg-[#e6dde4] text-[#5d4658]",
+  "bg-[#dfe3ea] text-[#43506a]",
+  "bg-[#ecdfd6] text-[#7a5640]",
+  "bg-[#dae5e4] text-[#3d5f5c]",
+];
+function monogramTint(name: string): string {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return MONOGRAM_TINTS[h % MONOGRAM_TINTS.length];
+}
+function companyInitial(name: string): string {
+  return ((name || "?").trim()[0] || "?").toUpperCase();
+}
+/** "Posted today / 3d ago / 2mo ago" from a timestamp — freshness is a trust cue. */
+function postedAgo(when?: string | Date | null): string | null {
+  if (!when) return null;
+  const t = new Date(when).getTime();
+  if (Number.isNaN(t)) return null;
+  const days = Math.floor((Date.now() - t) / 86400000);
+  if (days <= 0) return "Posted today";
+  if (days === 1) return "Posted yesterday";
+  if (days < 30) return `Posted ${days}d ago`;
+  return `Posted ${Math.floor(days / 30)}mo ago`;
+}
+/** Pay line — stipend (monthly INR) or a salary range string, when present. */
+function formatPay(salary?: string, stipend?: number | null): string | null {
+  if (typeof stipend === "number" && stipend > 0) return `₹${stipend.toLocaleString("en-IN")}/mo`;
+  if (salary && salary.trim()) return salary.trim();
+  return null;
+}
+/** Explicit experience requirement, Naukri-style. */
+function expLabel(minExperience?: number | null): string | null {
+  if (minExperience == null) return null;
+  if (minExperience <= 0) return "0 yrs exp";
+  if (minExperience === 1) return "0–1 yrs exp";
+  return `${minExperience}+ yrs exp`;
+}
+const TYPE_LABEL: Record<string, string> = {
+  job: "Full-time",
+  internship: "Internship",
+  scholarship: "Scholarship",
+};
 
 interface JobCardProps {
   id: string;
@@ -21,6 +71,14 @@ interface JobCardProps {
   minExperience?: number | null;
   /** Aggregator source (e.g. "Adzuna") when the apply link goes via a redirect; omit for direct ATS links. */
   source?: string;
+  /** Freshness — when the posting was first seen. */
+  createdAt?: string | Date;
+  /** Monthly stipend in INR (internships). */
+  stipend?: number | null;
+  /** Salary range string (jobs). */
+  salary?: string;
+  /** "job" | "internship" | "scholarship" — drives the type chip. */
+  type?: string;
   isSaved?: boolean;
   onSave?: () => Promise<void>;
 }
@@ -39,10 +97,17 @@ export function JobCard({
   applyUrl,
   minExperience,
   source,
+  createdAt,
+  stipend,
+  salary,
+  type,
   isSaved = false,
   onSave,
 }: JobCardProps) {
   const fresherEligible = minExperience != null && minExperience <= 1;
+  const pay = formatPay(salary, stipend);
+  const posted = postedAgo(createdAt);
+  const facts = [expLabel(minExperience), type ? TYPE_LABEL[type] ?? null : null].filter(Boolean) as string[];
   const [saving, setSaving] = useState(false);
   const [showMatchModal, setShowMatchModal] = useState(false);
   const [showTailorModal, setShowTailorModal] = useState(false);
@@ -108,35 +173,58 @@ export function JobCard({
         {/* Main Content Area */}
         <div className="flex-1 space-y-4 w-full">
           <div className="flex justify-between items-start flex-col sm:flex-row gap-4">
-            <div>
-              <h3 className="text-xl font-bold tracking-tight mb-1.5 group-hover:text-primary transition-colors">
-                {title}
-              </h3>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                <span className="flex items-center">
-                  <Building2 className="w-4 h-4 mr-1.5 shrink-0 text-muted-foreground/80" />
-                  {company}
-                </span>
-                <span className="flex items-center">
-                  <MapPin className="w-4 h-4 mr-1.5 shrink-0 text-muted-foreground/80" />
-                  {location}
-                </span>
-                {fresherEligible && (
-                  <span
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-accent bg-accent/10 border border-accent/25 px-2 py-0.5 rounded-full"
-                    title="Open to freshers — little or no experience required"
-                  >
-                    <GraduationCap className="w-3.5 h-3.5" />
-                    Fresher-friendly
+            <div className="flex gap-3.5 min-w-0">
+              {/* Company monogram — a logo stand-in that anchors the card. */}
+              <div
+                className={`shrink-0 w-11 h-11 rounded-xl flex items-center justify-center font-serif font-bold text-lg select-none ${monogramTint(company)}`}
+                aria-hidden="true"
+              >
+                {companyInitial(company)}
+              </div>
+
+              <div className="min-w-0">
+                <h3 className="text-xl font-bold tracking-tight mb-1 group-hover:text-primary transition-colors">
+                  {title}
+                </h3>
+
+                {/* Company · location · trust badges */}
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground/90">{company}</span>
+                  <span className="flex items-center">
+                    <MapPin className="w-3.5 h-3.5 mr-1 shrink-0 text-muted-foreground/70" />
+                    {location}
                   </span>
-                )}
-                {source && (
-                  <span
-                    className="text-[11px] text-muted-foreground/70"
-                    title={`Listing aggregated from ${source} — Apply opens ${source} first, then the employer's page`}
-                  >
-                    via {source}
-                  </span>
+                  {fresherEligible && (
+                    <span
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-accent bg-accent/10 border border-accent/25 px-2 py-0.5 rounded-full"
+                      title="Open to freshers — little or no experience required"
+                    >
+                      <GraduationCap className="w-3.5 h-3.5" />
+                      Fresher-friendly
+                    </span>
+                  )}
+                  {source && (
+                    <span
+                      className="text-[11px] text-muted-foreground/70"
+                      title={`Listing aggregated from ${source} — Apply opens ${source} first, then the employer's page`}
+                    >
+                      via {source}
+                    </span>
+                  )}
+                </div>
+
+                {/* Naukri-style facts: pay · experience · type · freshness. Each
+                    only shows when we actually have it — never a blank field. */}
+                {(pay || facts.length > 0 || posted) && (
+                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-2 text-xs">
+                    {pay && (
+                      <span className="font-semibold text-foreground bg-secondary/70 border border-border/60 px-2 py-0.5 rounded-md">
+                        {pay}
+                      </span>
+                    )}
+                    {facts.length > 0 && <span className="text-muted-foreground">{facts.join(" · ")}</span>}
+                    {posted && <span className="text-muted-foreground/70">{posted}</span>}
+                  </div>
                 )}
               </div>
             </div>
