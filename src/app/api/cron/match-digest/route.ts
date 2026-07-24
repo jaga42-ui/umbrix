@@ -16,7 +16,7 @@ const RESEND_GAP_HOURS = 20;
 // Bound the scored candidate set per run.
 const CANDIDATE_LIMIT = 3000;
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://umbrix.vercel.app";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.umbrix.in";
 
 /**
  * Daily match-digest cron. Triggered by Vercel Cron (Authorization: Bearer
