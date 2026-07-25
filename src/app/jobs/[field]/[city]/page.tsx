@@ -7,6 +7,7 @@ import { Opportunity } from "@/models/Opportunity";
 import { fieldLabel, isSeoField, fieldSlugConds } from "@/lib/seoFields";
 import { cityBySlug, MIN_CITY_JOBS_TO_INDEX } from "@/lib/seoCities";
 import { CityLinks } from "@/components/CityLinks";
+import { JobsFaq } from "@/components/JobsFaq";
 
 export const revalidate = 3600;
 
@@ -99,6 +100,8 @@ export default async function CityFieldJobsPage({
       ? j.companySlug.charAt(0).toUpperCase() + j.companySlug.slice(1)
       : "Hiring company");
 
+  const companies = Array.from(new Set(jobs.map(companyName))).filter((c) => c && c !== "Hiring company").slice(0, 4) as string[];
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
@@ -169,6 +172,8 @@ export default async function CityFieldJobsPage({
             across India, or <Link href="/feed" className="text-primary font-semibold">open the feed</Link>.
           </div>
         )}
+
+        <JobsFaq field={label} city={cityObj.label} total={total} companies={companies} />
 
         <CityLinks field={field} currentCity={city} />
       </main>

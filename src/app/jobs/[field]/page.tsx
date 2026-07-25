@@ -7,6 +7,7 @@ import { Opportunity } from "@/models/Opportunity";
 import { fieldLabel, isSeoField, fieldSlugConds } from "@/lib/seoFields";
 import { FieldLinks } from "@/components/FieldLinks";
 import { CityLinks } from "@/components/CityLinks";
+import { JobsFaq } from "@/components/JobsFaq";
 
 // Regenerate hourly — fresh listings without a DB hit on every request.
 export const revalidate = 3600;
@@ -76,6 +77,8 @@ export default async function FieldJobsPage({ params }: { params: Promise<{ fiel
       ? j.companySlug.charAt(0).toUpperCase() + j.companySlug.slice(1)
       : "Hiring company");
 
+  const companies = Array.from(new Set(jobs.map(companyName))).filter((c) => c && c !== "Hiring company").slice(0, 4) as string[];
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
@@ -143,6 +146,8 @@ export default async function FieldJobsPage({ params }: { params: Promise<{ fiel
             New {label.toLowerCase()} roles land here every day. <Link href="/feed" className="text-primary font-semibold">Open the feed</Link> to see the latest.
           </div>
         )}
+
+        <JobsFaq field={label} total={total} companies={companies} />
 
         <div className="mb-10">
           <CityLinks field={field} />
