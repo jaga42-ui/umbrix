@@ -449,10 +449,24 @@ export default function FeedPage() {
             <div className="inline-flex p-3 bg-secondary/80 rounded-2xl border border-border text-muted-foreground mb-4">
               <Search className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-bold mb-1">No matches found</h3>
-            <p className="text-muted-foreground text-sm max-w-sm mx-auto px-4">
-              We couldn't find any opportunities matching your current search parameters. Try expanding your filters.
+            <h3 className="text-lg font-bold mb-1">No roles match those filters</h3>
+            <p className="text-muted-foreground text-sm max-w-sm mx-auto px-4 mb-5">
+              Nothing here fits your current filters{search ? ` for “${search}”` : ""}. Clear them to see every role,
+              or widen your search.
             </p>
+            <button
+              onClick={() => {
+                setSearch("");
+                setLocationFilter("");
+                setSelectedTag("");
+                setFresherOnly(false);
+                setIndiaOnly(true);
+              }}
+              className="bg-primary text-primary-foreground text-sm font-semibold px-5 py-2.5 rounded-xl hover:opacity-90 active:scale-[0.98] transition-all inline-flex items-center gap-2 cursor-pointer"
+            >
+              <span>Clear filters</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </motion.div>
         ) : (
           <>
