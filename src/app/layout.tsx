@@ -61,6 +61,7 @@ export const viewport: Viewport = {
 import { AuthProvider } from "@/components/AuthProvider";
 import { AnalyticsInit } from "@/components/AnalyticsInit";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { SiteJsonLd } from "@/components/SiteJsonLd";
 
 export default function RootLayout({
   children,
@@ -83,6 +84,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans" suppressHydrationWarning>
+        <SiteJsonLd />
         <AuthProvider firebaseConfig={firebaseConfig}>
           <AnalyticsInit />
           <ServiceWorkerRegister />

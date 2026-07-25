@@ -1,0 +1,34 @@
+/**
+ * Display labels for the job fields we build SEO landing pages for. Keys match
+ * JOB_FIELDS (matchScore) / the aggregator shard fields, so a page's field maps
+ * cleanly to real inventory. Pure module — shared by the pages and the sitemap.
+ */
+export const FIELD_LABELS: Record<string, string> = {
+  it: "IT & Software",
+  engineering: "Engineering",
+  sales: "Sales",
+  marketing: "Marketing",
+  finance: "Finance & Accounting",
+  "customer-service": "Customer Service & BPO",
+  hr: "HR & Recruiting",
+  admin: "Admin & Operations",
+  retail: "Retail",
+  logistics: "Logistics & Supply Chain",
+  healthcare: "Healthcare",
+  teaching: "Teaching & Education",
+  hospitality: "Hospitality",
+  creative: "Creative & Design",
+  consultancy: "Consulting",
+  manufacturing: "Manufacturing",
+};
+
+/** The fields that get a /jobs/<field> SEO page. */
+export const SEO_FIELDS = Object.keys(FIELD_LABELS);
+
+export function fieldLabel(field: string): string {
+  return FIELD_LABELS[field] ?? field;
+}
+
+export function isSeoField(field: string): boolean {
+  return Object.prototype.hasOwnProperty.call(FIELD_LABELS, field);
+}

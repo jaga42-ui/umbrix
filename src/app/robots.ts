@@ -13,6 +13,7 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: ["/api/", "/feed", "/profile", "/tracker"],
     },
+    sitemap: `${baseUrl}/sitemap.xml`,
     host: baseUrl,
   };
 }
