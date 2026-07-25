@@ -20,6 +20,10 @@ export const ANALYTICS_EVENTS = [
   "save_job",
   "resume_upload",
   "signup",
+  // Skill-gap affiliate: which gaps get clicked (demand), and which actually go
+  // to a mapped course (conversion).
+  "gap_nudge_click",
+  "gap_course_view",
 ] as const;
 
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];

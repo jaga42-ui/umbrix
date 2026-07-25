@@ -33,6 +33,10 @@ export interface IUserProfile extends Document {
   education: string[];
   rawText?: string;
   emailAlerts: IEmailAlerts;
+  /** Explicit opt-in to be discoverable by recruiters. Default OFF — a
+   *  candidate's data is never exposed in recruiter search without this
+   *  (DPDP consent + trust). */
+  visibleToRecruiters?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -71,6 +75,7 @@ const UserProfileSchema = new Schema<IUserProfile>(
     education: { type: [String], default: [] },
     rawText: { type: String },
     emailAlerts: { type: EmailAlertsSchema, default: () => ({}) },
+    visibleToRecruiters: { type: Boolean, default: false, index: true },
   },
   { timestamps: true }
 );

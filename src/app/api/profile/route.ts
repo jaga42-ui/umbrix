@@ -96,6 +96,10 @@ export async function PUT(req: NextRequest) {
         education: optStringArray(body.education, "education", 50, 200),
         experience: validateExperience(body.experience),
       };
+      // Recruiter-visibility opt-in (default OFF; only changed when explicitly sent).
+      if (typeof body.visibleToRecruiters === "boolean") {
+        (update as Record<string, unknown>).visibleToRecruiters = body.visibleToRecruiters;
+      }
     } catch (e) {
       if (e instanceof ValidationError) {
         return NextResponse.json({ success: false, error: e.message }, { status: 400 });

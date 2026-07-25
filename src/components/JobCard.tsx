@@ -6,6 +6,7 @@ import { MapPin, Bookmark, BookmarkCheck, ExternalLink, Loader2, X, GraduationCa
 import { TailorResumeModal } from "@/components/TailorResumeModal";
 import { track } from "@/lib/analytics";
 import { topMissingSkill } from "@/lib/matchScore";
+import { courseForSkill } from "@/lib/skillCourses";
 
 // A company monogram stands in for a logo — we don't have logo assets for
 // aggregator listings, and a consistent lettered avatar reads far more
@@ -112,6 +113,7 @@ export function JobCard({
   // The single closest recognized skill to add — shown only when they already
   // match something, so it reads as "you're close, add this" not "you don't qualify".
   const gapSkill = matchingSkills.length > 0 ? topMissingSkill(missingSkills) : null;
+  const gapCourse = gapSkill ? courseForSkill(gapSkill) : null;
   const [saving, setSaving] = useState(false);
   const [showMatchModal, setShowMatchModal] = useState(false);
   const [showTailorModal, setShowTailorModal] = useState(false);
@@ -300,9 +302,38 @@ export function JobCard({
             {gapSkill && (
               <p className="mt-1.5 text-xs flex items-center gap-1.5 text-muted-foreground">
                 <TrendingUp className="w-3.5 h-3.5 text-accent shrink-0" />
-                <span>
-                  One to add: <span className="font-semibold text-foreground">{gapSkill}</span> would make you an even stronger fit.
-                </span>
+                {gapCourse ? (
+                  <span>
+                    One to add:{" "}
+                    <a
+                      href={gapCourse.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => {
+                        track("gap_nudge_click", { jobId: id, skill: gapSkill, hasCourse: true });
+                        track("gap_course_view", { skill: gapSkill, provider: gapCourse.provider });
+                      }}
+                      className="font-semibold text-accent underline underline-offset-2 hover:opacity-80"
+                    >
+                      learn {gapSkill}
+                    </a>{" "}
+                    to be an even stronger fit.
+                  </span>
+                ) : (
+                  <span>
+                    One to add:{" "}
+                    <button
+                      onClick={() => {
+                        track("gap_nudge_click", { jobId: id, skill: gapSkill, hasCourse: false });
+                        setShowMatchModal(true);
+                      }}
+                      className="font-semibold text-foreground underline underline-offset-2 hover:opacity-80 cursor-pointer"
+                    >
+                      {gapSkill}
+                    </button>{" "}
+                    would make you an even stronger fit.
+                  </span>
+                )}
               </p>
             )}
             <button
@@ -379,11 +410,28 @@ export function JobCard({
                     {missingSkills.length === 0 ? (
                       <span className="text-[11px] text-muted-foreground/85 italic">No missing skills!</span>
                     ) : (
-                      missingSkills.map(s => (
-                        <span key={s} className="bg-secondary text-muted-foreground border border-border/50 text-[10px] font-semibold px-2 py-0.5 rounded-md">
-                          {s}
-                        </span>
-                      ))
+                      missingSkills.map(s => {
+                        const course = courseForSkill(s);
+                        return course ? (
+                          <a
+                            key={s}
+                            href={course.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => {
+                              track("gap_nudge_click", { jobId: id, skill: s, hasCourse: true, source: "modal" });
+                              track("gap_course_view", { skill: s, provider: course.provider, source: "modal" });
+                            }}
+                            className="bg-secondary text-accent border border-accent/30 text-[10px] font-semibold px-2 py-0.5 rounded-md hover:opacity-80 underline underline-offset-2"
+                          >
+                            {s}
+                          </a>
+                        ) : (
+                          <span key={s} className="bg-secondary text-muted-foreground border border-border/50 text-[10px] font-semibold px-2 py-0.5 rounded-md">
+                            {s}
+                          </span>
+                        );
+                      })
                     )}
                   </div>
                 </div>

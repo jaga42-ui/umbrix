@@ -20,7 +20,8 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle2,
-  ArrowRight
+  ArrowRight,
+  ShieldCheck
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -39,6 +40,7 @@ interface Profile {
   skills: string[];
   experience: Experience[];
   education: string[];
+  visibleToRecruiters?: boolean;
 }
 
 const DEFAULT_GUEST_PROFILE: Profile = {
@@ -605,6 +607,34 @@ export default function ProfilePage() {
                 <span>Supported: PDF only</span>
                 <span>Max Size: 5MB</span>
               </div>
+            </div>
+
+            {/* Recruiter visibility opt-in (default OFF — explicit consent) */}
+            <div className="bg-card border border-border rounded-2xl p-6">
+              <h3 className="font-bold text-sm mb-2 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-primary" />
+                <span>Let recruiters find you</span>
+              </h3>
+              <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+                Turn this on and verified recruiters hiring freshers can discover you by your skills — shown
+                anonymously (no name or contact) until they choose to unlock your profile. It&rsquo;s off by
+                default, and you can turn it off any time.
+              </p>
+              <button
+                onClick={() => handleSaveProfile({ ...profile, visibleToRecruiters: !profile.visibleToRecruiters })}
+                aria-pressed={!!profile.visibleToRecruiters}
+                className={`w-full h-10 rounded-xl text-sm font-semibold inline-flex items-center justify-center gap-2 border transition-all cursor-pointer ${
+                  profile.visibleToRecruiters
+                    ? "bg-accent/10 text-accent border-accent/30"
+                    : "bg-background text-foreground border-border hover:bg-secondary hover:border-foreground/20"
+                }`}
+              >
+                {profile.visibleToRecruiters ? (
+                  <><CheckCircle2 className="w-4 h-4" /> Visible to recruiters</>
+                ) : (
+                  "Make me visible to recruiters"
+                )}
+              </button>
             </div>
 
           </div>
