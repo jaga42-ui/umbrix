@@ -17,9 +17,10 @@ import {
   X, 
   Sparkles, 
   Save, 
-  Loader2, 
+  Loader2,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  ArrowRight
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -77,6 +78,8 @@ export default function ProfilePage() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  // Skills found on the most recent upload — drives the "see your matches" loop-closer.
+  const [justParsedCount, setJustParsedCount] = useState<number | null>(null);
 
   // Skills input state
   const [newSkill, setNewSkill] = useState("");
@@ -268,17 +271,20 @@ export default function ProfilePage() {
       const data = await res.json();
       if (res.ok && data.success) {
         setProfile(data.profile);
+        const skillCount = Array.isArray(data.profile?.skills) ? data.profile.skills.length : 0;
         track("resume_upload", {
-          skills: Array.isArray(data.profile?.skills) ? data.profile.skills.length : 0,
+          skills: skillCount,
           fields: Array.isArray(data.profile?.targetFields) ? data.profile.targetFields.length : 0,
         });
+        // Show the loop-closer only when we actually found skills to match on.
+        setJustParsedCount(skillCount > 0 ? skillCount : null);
 
         if (isDemoMode || data.isDemo) {
           // Sync demo local storage profile
           localStorage.setItem("umbrix_demo_profile", JSON.stringify(data.profile));
         }
-        
-        triggerSuccess(data.isDemo ? "Database offline: Resume saved to local storage!" : "Resume uploaded and parsed successfully!");
+
+        triggerSuccess(data.isDemo ? "Saved locally — the database is offline right now." : "Résumé read. Your skills are below.");
       } else {
         throw new Error(data.error || "Failed to parse resume");
       }
@@ -452,8 +458,42 @@ export default function ProfilePage() {
           </AnimatePresence>
         </div>
 
+        {/* Loop-closer: the whole point of uploading is to see personalized
+            matches, so pull the user straight back to their ranked feed. */}
+        <AnimatePresence>
+          {justParsedCount != null && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="mb-6 bg-card border border-border rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+            >
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-secondary rounded-xl text-accent mt-0.5 shrink-0">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-serif text-lg tracking-tight text-foreground">
+                    We read your résumé — found {justParsedCount} skill{justParsedCount === 1 ? "" : "s"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Your feed is now ranked for you, with a real match score and the &ldquo;why&rdquo; on every role.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => router.push("/feed")}
+                className="bg-primary text-primary-foreground text-sm font-semibold px-5 py-3 rounded-xl hover:opacity-90 active:scale-[0.98] transition-all inline-flex items-center justify-center gap-2 cursor-pointer shrink-0"
+              >
+                <span>See your matches</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-4">
-          
+
           {/* Left Column: Profile Card + Upload Zone */}
           <div className="lg:col-span-4 space-y-6">
             
@@ -510,10 +550,10 @@ export default function ProfilePage() {
             <div className="bg-card border border-border rounded-2xl p-6">
               <h3 className="font-bold text-sm mb-2 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-primary" />
-                <span>Resume Import Engine</span>
+                <span>Upload your résumé</span>
               </h3>
               <p className="text-xs text-muted-foreground mb-4">
-                Import your details instantly. Upload your PDF resume to parse and extract your tags automatically.
+                Drop your résumé and we&rsquo;ll pull out your skills automatically — about 10 seconds.
               </p>
 
               <div
@@ -544,7 +584,7 @@ export default function ProfilePage() {
                       className="flex flex-col items-center py-2"
                     >
                       <Loader2 className="w-8 h-8 text-primary animate-spin mb-2" />
-                      <span className="text-xs font-semibold text-foreground">Parsing PDF... {uploadProgress}%</span>
+                      <span className="text-xs font-semibold text-foreground">Reading your résumé… {uploadProgress}%</span>
                     </motion.div>
                   ) : (
                     <motion.div 
@@ -595,16 +635,16 @@ export default function ProfilePage() {
             <div className="bg-card border border-border rounded-2xl p-6">
               <h3 className="font-bold text-base mb-4 flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-primary" />
-                <span>Extracted Match Tags</span>
+                <span>Your skills</span>
               </h3>
               <p className="text-xs text-muted-foreground mb-4">
-                These tags are matched against job requirements. Click tags to delete them, or use the input to add custom skills.
+                We match these against every job. Tap a skill to remove it, or add your own below.
               </p>
 
               {/* Skills cloud */}
               <div className="flex flex-wrap gap-2 mb-4 min-h-12 border border-border/40 p-3 rounded-xl bg-secondary/15">
                 {profile.skills.length === 0 ? (
-                  <span className="text-xs text-muted-foreground italic flex items-center">No skills added yet. Drag your resume above to extract skills.</span>
+                  <span className="text-xs text-muted-foreground italic flex items-center">No skills yet — upload your résumé above and we&rsquo;ll fill this in.</span>
                 ) : (
                   profile.skills.map((skill, idx) => (
                     <span 
