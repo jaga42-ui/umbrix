@@ -318,6 +318,17 @@ export default function LandingPage() {
                     ? "One click, no database or Firebase setup — try it instantly."
                     : "One click. No forms, no waiting."}
                 </p>
+                <p className="text-[11px] text-muted-foreground/70 leading-relaxed">
+                  By continuing, you agree to our{" "}
+                  <a href="/terms" className="underline underline-offset-2 hover:text-foreground transition-colors">
+                    Terms
+                  </a>{" "}
+                  and{" "}
+                  <a href="/privacy" className="underline underline-offset-2 hover:text-foreground transition-colors">
+                    Privacy Policy
+                  </a>
+                  .
+                </p>
               </motion.div>
             </div>
 
