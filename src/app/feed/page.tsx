@@ -7,7 +7,7 @@ import { authedFetch } from "@/lib/authedFetch";
 import { track } from "@/lib/analytics";
 import { Header } from "@/components/Header";
 import { JobCard } from "@/components/JobCard";
-import { Compass, Search, MapPin, Tag, SlidersHorizontal, Sparkles, Loader2, ArrowRight, GraduationCap } from "lucide-react";
+import { Compass, Search, MapPin, Tag, SlidersHorizontal, Sparkles, Loader2, ArrowRight, GraduationCap, Check, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
 
 const INITIAL_VISIBLE = 30;
@@ -207,31 +207,51 @@ export default function FeedPage() {
       <Header />
 
       <main className="flex-1 max-w-4xl w-full mx-auto px-6 py-10">
-        {/* Profile incomplete warning / Callout banner */}
+        {/* Activation card — the single highest-value action for a new user:
+            turn a baseline feed into a personalized, "jobs you qualify for" feed. */}
         {!hasSkills && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6 bg-card border border-border border-l-2 border-l-accent rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+            className="mb-8 relative overflow-hidden bg-card border border-border rounded-2xl p-6 sm:p-7"
           >
-            <div className="flex items-start space-x-3">
-              <div className="p-2 bg-secondary rounded-xl text-accent mt-0.5">
-                <Sparkles className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-sm text-foreground">Complete your match profile</h4>
-                <p className="text-xs text-muted-foreground leading-normal mt-0.5">
-                  You haven&rsquo;t uploaded a resume yet. Upload one to get a real compatibility score for each role.
-                </p>
-              </div>
+            <div className="font-mono text-[10px] font-semibold uppercase tracking-widest text-accent mb-2.5 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5" />
+              Personalize your feed
             </div>
+            <h2 className="font-serif text-xl sm:text-2xl tracking-tight text-foreground mb-2">
+              See which of these{total > 0 ? ` ${total.toLocaleString("en-IN")}` : ""} roles you actually qualify for
+            </h2>
+            <p className="text-sm text-muted-foreground leading-relaxed mb-5 max-w-xl">
+              Right now every role shows a baseline score. Upload your résumé and each one gets a real
+              match score, the exact skills you match, and a fresher-eligibility check — in about 10 seconds.
+            </p>
+
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mb-6 text-xs text-foreground/80">
+              <span className="flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-accent shrink-0" />
+                A real match score per role
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Check className="w-3.5 h-3.5 text-accent shrink-0" />
+                The exact skills you match
+              </span>
+              <span className="flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-accent shrink-0" />
+                Only roles you&rsquo;re eligible for
+              </span>
+            </div>
+
             <button
               onClick={() => router.push("/profile")}
-              className="bg-primary text-primary-foreground text-xs font-semibold px-4 py-2.5 rounded-xl hover:opacity-90 active:scale-95 transition-all self-start sm:self-auto shrink-0 flex items-center gap-1 cursor-pointer"
+              className="bg-primary text-primary-foreground text-sm font-semibold px-5 py-3 rounded-xl hover:opacity-90 active:scale-[0.98] transition-all inline-flex items-center gap-2 cursor-pointer"
             >
-              <span>Upload Resume</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <span>Upload résumé</span>
+              <ArrowRight className="w-4 h-4" />
             </button>
+            <p className="mt-2.5 font-mono text-[11px] text-muted-foreground/70">
+              PDF, parsed instantly. Works for every field — not just tech.
+            </p>
           </motion.div>
         )}
 
