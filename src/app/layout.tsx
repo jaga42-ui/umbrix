@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans, IBM_Plex_Serif, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -39,14 +39,28 @@ export const metadata: Metadata = {
     title: "Umbrix — Jobs Indian freshers actually qualify for",
     description: "A daily feed of real, scam-checked jobs and internships for Indian students and freshers — filtered to your branch, batch, and skills, across every field.",
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Umbrix",
+  },
+  icons: {
+    icon: "/favicon-32.png",
+    apple: "/apple-touch-icon.png",
+  },
   robots: {
     index: true,
     follow: true,
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: "#1c1917",
+};
+
 import { AuthProvider } from "@/components/AuthProvider";
 import { AnalyticsInit } from "@/components/AnalyticsInit";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
 export default function RootLayout({
   children,
@@ -71,6 +85,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans" suppressHydrationWarning>
         <AuthProvider firebaseConfig={firebaseConfig}>
           <AnalyticsInit />
+          <ServiceWorkerRegister />
           {children}
         </AuthProvider>
       </body>
