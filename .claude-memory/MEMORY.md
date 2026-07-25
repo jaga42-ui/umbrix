@@ -6,3 +6,4 @@
 - [Umbrix feed index built](umbrix-feed-index-built.md) — {status,isIndia,createdAt} index is already live on prod Atlas (built manually, verified in use)
 - [Umbrix auth Google-only](umbrix-auth-google-only.md) — keep sign-in to Google only; never add email/password; phone-OTP is a post-launch experiment gated on signup-funnel data
 - [Umbrix roadmap](umbrix-roadmap.md) — post-launch priority order: 1) ingest expansion (Internshala/scrapers + company career pages), 2) PWA→Android→iOS, 3) legal pages, 4) SEO
+- [Umbrix recruiter marketplace](umbrix-recruiter-marketplace.md) — reverse-marketplace built but dormant; blocked on candidate supply (0 opted-in), not code; watch `recruiter-supply.js`
