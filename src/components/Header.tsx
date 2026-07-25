@@ -153,24 +153,32 @@ export function Header() {
         </div>
       </div>
 
-      {/* Mobile navigation header */}
-      <div className="flex md:hidden border-t border-border/50 bg-background/90 px-4 py-2 justify-around">
+      {/* Mobile navigation — icon-first tab bar so all four destinations fit on
+          a narrow phone (Scam Check is a public growth wedge; it must be
+          reachable on mobile, where most users are). */}
+      <div className="flex md:hidden border-t border-border/50 bg-background/90 px-2 py-1.5 justify-around">
         <Link href="/feed" className="flex-1 flex justify-center">
-          <span className={`flex items-center gap-1.5 text-xs font-semibold py-1.5 px-3 rounded-lg ${isActive("/feed") ? "text-primary bg-secondary" : "text-muted-foreground"}`}>
-            <Compass className="w-4 h-4" />
+          <span className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold py-1.5 px-2 rounded-lg w-full ${isActive("/feed") ? "text-primary bg-secondary" : "text-muted-foreground"}`}>
+            <Compass className="w-5 h-5" />
             Feed
           </span>
         </Link>
         <Link href="/profile" className="flex-1 flex justify-center">
-          <span className={`flex items-center gap-1.5 text-xs font-semibold py-1.5 px-3 rounded-lg ${isActive("/profile") ? "text-primary bg-secondary" : "text-muted-foreground"}`}>
-            <User className="w-4 h-4" />
+          <span className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold py-1.5 px-2 rounded-lg w-full ${isActive("/profile") ? "text-primary bg-secondary" : "text-muted-foreground"}`}>
+            <User className="w-5 h-5" />
             Profile
           </span>
         </Link>
         <Link href="/tracker" className="flex-1 flex justify-center">
-          <span className={`flex items-center gap-1.5 text-xs font-semibold py-1.5 px-3 rounded-lg ${isActive("/tracker") ? "text-primary bg-secondary" : "text-muted-foreground"}`}>
-            <LayoutDashboard className="w-4 h-4" />
+          <span className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold py-1.5 px-2 rounded-lg w-full ${isActive("/tracker") ? "text-primary bg-secondary" : "text-muted-foreground"}`}>
+            <LayoutDashboard className="w-5 h-5" />
             Tracker
+          </span>
+        </Link>
+        <Link href="/scam-check" className="flex-1 flex justify-center">
+          <span className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold py-1.5 px-2 rounded-lg w-full ${isActive("/scam-check") ? "text-primary bg-secondary" : "text-muted-foreground"}`}>
+            <ShieldCheck className="w-5 h-5" />
+            Scam Check
           </span>
         </Link>
       </div>
