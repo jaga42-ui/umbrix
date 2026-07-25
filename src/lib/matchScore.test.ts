@@ -1,6 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { calculateMatch, rankByMatch, type MatchProfile, type JobLike } from "./matchScore";
+import { calculateMatch, rankByMatch, topMissingSkill, type MatchProfile, type JobLike } from "./matchScore";
+
+test("topMissingSkill surfaces a real skill, never a department/category tag", () => {
+  assert.equal(topMissingSkill(["Executive Operations", "IT Jobs"]), null, "category-only → nothing");
+  assert.equal(topMissingSkill(["Product Operations / Product Management"]), null);
+  assert.equal(topMissingSkill(["IT Jobs", "Node.js"]), "Node.js", "skips the category, returns the skill");
+  assert.equal(topMissingSkill(["React", "PostgreSQL"]), "React", "first recognized skill, original casing");
+  assert.equal(topMissingSkill([]), null);
+});
 
 const jobs: (JobLike & { createdAt: string })[] = [
   { title: "Senior Frontend Engineer", tags: ["React", "TypeScript", "Next.js", "Engineering"], descriptionHtml: "React TypeScript Next.js", createdAt: "2026-07-01" },

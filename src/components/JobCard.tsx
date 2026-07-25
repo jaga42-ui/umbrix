@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, Bookmark, BookmarkCheck, ExternalLink, Loader2, X, GraduationCap, Sparkles } from "lucide-react";
+import { MapPin, Bookmark, BookmarkCheck, ExternalLink, Loader2, X, GraduationCap, Sparkles, TrendingUp } from "lucide-react";
 import { TailorResumeModal } from "@/components/TailorResumeModal";
 import { track } from "@/lib/analytics";
+import { topMissingSkill } from "@/lib/matchScore";
 
 // A company monogram stands in for a logo — we don't have logo assets for
 // aggregator listings, and a consistent lettered avatar reads far more
@@ -108,6 +109,9 @@ export function JobCard({
   const pay = formatPay(salary, stipend);
   const posted = postedAgo(createdAt);
   const facts = [expLabel(minExperience), type ? TYPE_LABEL[type] ?? null : null].filter(Boolean) as string[];
+  // The single closest recognized skill to add — shown only when they already
+  // match something, so it reads as "you're close, add this" not "you don't qualify".
+  const gapSkill = matchingSkills.length > 0 ? topMissingSkill(missingSkills) : null;
   const [saving, setSaving] = useState(false);
   const [showMatchModal, setShowMatchModal] = useState(false);
   const [showTailorModal, setShowTailorModal] = useState(false);
@@ -293,6 +297,14 @@ export function JobCard({
               Why this matches
             </span>
             <p className="text-muted-foreground leading-relaxed text-xs sm:text-sm">{matchSummary}</p>
+            {gapSkill && (
+              <p className="mt-1.5 text-xs flex items-center gap-1.5 text-muted-foreground">
+                <TrendingUp className="w-3.5 h-3.5 text-accent shrink-0" />
+                <span>
+                  One to add: <span className="font-semibold text-foreground">{gapSkill}</span> would make you an even stronger fit.
+                </span>
+              </p>
+            )}
             <button
               onClick={() => setShowMatchModal(true)}
               className="text-xs text-foreground/80 hover:text-foreground font-medium mt-1.5 flex items-center gap-0.5 cursor-pointer"

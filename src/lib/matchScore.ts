@@ -216,6 +216,31 @@ function canonicalizeSkill(s: string): string {
   return SKILL_ALIASES[key] ?? key;
 }
 
+// The vocabulary of tags that are actual skills (canonical forms) — mirrors the
+// ingest SKILL_KEYWORDS. A job's `tags` mix real skills with a department/
+// category label ("IT Jobs", "Executive Operations"); this set lets the UI
+// surface a real, actionable skill gap and never show a category as a "missing
+// skill".
+const RECOGNIZED_SKILLS = new Set<string>([
+  "react", "typescript", "javascript", "next.js", "node.js", "python", "rust",
+  "go", "figma", "ui/ux", "product design", "graphql", "postgresql", "sql",
+  "mongodb", "docker", "kubernetes", "aws", "google cloud", "machine learning",
+  "cpp", "java", "ruby", "swift", "kotlin", "frontend", "backend", "fullstack",
+  "tailwind", "csharp", "genai",
+]);
+
+/**
+ * The top item in `missingSkills` that is an actual recognized skill (not a
+ * department/category tag) — for a card's "one skill to add" nudge. Returns the
+ * original tag string (for display), or null when there's no real skill gap.
+ */
+export function topMissingSkill(missingSkills: string[]): string | null {
+  for (const s of missingSkills) {
+    if (RECOGNIZED_SKILLS.has(canonicalizeSkill(s))) return s;
+  }
+  return null;
+}
+
 /**
  * When the user has no skills yet (no resume parsed), return a neutral baseline.
  * This makes the feed fall back to recency order and nudges a resume upload —
