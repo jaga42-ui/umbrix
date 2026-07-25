@@ -46,13 +46,13 @@ export const JOB_FIELDS = [
 ] as const;
 
 /**
- * Derive a job's field from its company slug — Adzuna shards are named
- * `adzuna-in-<field>`; every other source is an ATS board (overwhelmingly
- * software/product), which maps to "it".
+ * Derive a job's field from its company slug — aggregator shards are named
+ * `<source>-in-<field>` (e.g. `adzuna-in-sales`, `jooble-in-it`); every other
+ * source is an ATS board (overwhelmingly software/product), which maps to "it".
  */
 export function jobFieldFromSlug(companySlug: string): string {
-  const prefix = "adzuna-in-";
-  return companySlug.startsWith(prefix) ? companySlug.slice(prefix.length) : "it";
+  const m = /^(?:adzuna|jooble)-in-([a-z-]+)$/.exec(companySlug);
+  return m ? m[1] : "it";
 }
 
 export interface MatchResult {

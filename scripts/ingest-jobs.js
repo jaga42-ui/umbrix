@@ -178,6 +178,7 @@ const ADAPTERS = [
   require('./adapters/ingest-ashby'),
   require('./adapters/ingest-smartrecruiters'),
   require('./adapters/ingest-adzuna'),
+  require('./adapters/ingest-jooble'),
 ];
 
 const ATS_FETCHERS = Object.fromEntries(ADAPTERS.map((a) => [a.ats, a.fetch]));

@@ -157,6 +157,10 @@
   { "slug": "Composio", "ats": "ashby" },
   { "slug": "Experian", "ats": "smartrecruiters" },
   { "slug": "Sutherland", "ats": "smartrecruiters" },
+  { "slug": "inmobi", "ats": "greenhouse" },
+  { "slug": "fampay", "ats": "lever" },
+  { "slug": "Swiggy", "ats": "smartrecruiters" },
+  { "slug": "Visa", "ats": "smartrecruiters" },
   { "slug": "adzuna-in-sales", "ats": "adzuna", "category": "sales-jobs" },
   { "slug": "adzuna-in-marketing", "ats": "adzuna", "category": "pr-advertising-marketing-jobs" },
   { "slug": "adzuna-in-finance", "ats": "adzuna", "category": "accounting-finance-jobs" },
@@ -174,5 +178,11 @@
   { "slug": "adzuna-in-consultancy", "ats": "adzuna", "category": "consultancy-jobs" },
   { "slug": "adzuna-in-manufacturing", "ats": "adzuna", "category": "manufacturing-jobs" },
   { "slug": "adzuna-in-graduate", "ats": "adzuna", "category": "graduate-jobs" },
-  { "slug": "adzuna-in-general", "ats": "adzuna", "category": "other-general-jobs" }
+  { "slug": "adzuna-in-general", "ats": "adzuna", "category": "other-general-jobs" },
+  { "slug": "jooble-in-it", "ats": "jooble", "keywords": "fresher software developer intern trainee" },
+  { "slug": "jooble-in-sales", "ats": "jooble", "keywords": "fresher sales executive business development trainee" },
+  { "slug": "jooble-in-marketing", "ats": "jooble", "keywords": "fresher marketing digital intern trainee" },
+  { "slug": "jooble-in-finance", "ats": "jooble", "keywords": "fresher finance accountant accounts trainee" },
+  { "slug": "jooble-in-customer-service", "ats": "jooble", "keywords": "fresher customer support voice process bpo" },
+  { "slug": "jooble-in-general", "ats": "jooble", "keywords": "fresher graduate trainee entry level" }
 ]
