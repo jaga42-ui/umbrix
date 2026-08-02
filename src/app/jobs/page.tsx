@@ -20,23 +20,19 @@ export const metadata: Metadata = {
   },
 };
 
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
+
 export default function JobsHubPage() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <header className="border-b border-border">
-        <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent" aria-hidden="true" />
-            <span className="text-lg font-mono font-semibold tracking-[0.2em]">UMBRIX</span>
-          </Link>
-          <Link href="/feed" className="text-sm font-semibold text-primary hover:opacity-80">
-            Open the feed →
-          </Link>
-        </div>
-      </header>
+      <Header />
 
       <main className="flex-1 max-w-4xl w-full mx-auto px-6 py-12">
-        <h1 className="font-serif text-3xl sm:text-4xl tracking-tight mb-3">
+        <h1
+          className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-3"
+          style={{ fontFamily: "var(--um-heading)", color: "var(--um-text)" }}
+        >
           Fresher jobs &amp; internships in India
         </h1>
         <p className="text-muted-foreground leading-relaxed max-w-2xl mb-6">
@@ -47,7 +43,8 @@ export default function JobsHubPage() {
 
         <Link
           href="/feed"
-          className="inline-flex items-center gap-2 bg-primary text-primary-foreground text-sm font-semibold px-5 py-2.5 rounded-xl hover:opacity-90 active:scale-[0.98] transition-all mb-10"
+          className="um-btn um-btn--primary inline-flex items-center gap-2 px-5 py-2.5 rounded-none text-sm font-semibold mb-10"
+          style={{ textDecoration: "none" }}
         >
           See your matches <ArrowRight className="w-4 h-4" />
         </Link>
@@ -55,14 +52,7 @@ export default function JobsHubPage() {
         <FieldLinks />
       </main>
 
-      <footer className="border-t border-border">
-        <div className="max-w-4xl mx-auto px-6 py-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
-          <span>© {YEAR} Umbrix</span>
-          <Link href="/privacy" className="hover:text-foreground">Privacy</Link>
-          <Link href="/terms" className="hover:text-foreground">Terms</Link>
-          <Link href="/" className="hover:text-foreground ml-auto">Back to Umbrix →</Link>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

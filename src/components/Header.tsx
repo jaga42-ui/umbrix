@@ -1,187 +1,206 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { Compass, LayoutDashboard, LogOut, ShieldCheck, Sparkles, User } from "lucide-react";
-import { motion } from "framer-motion";
+import { LogOut, Menu, X, Compass, LayoutDashboard, ShieldCheck, User, Briefcase } from "lucide-react";
 
 export function Header() {
   const { user, isDemoMode, logout } = useAuth();
   const pathname = usePathname();
+  const [menu, setMenu] = useState(false);
 
-  if (!user) return null;
+  const isActive = (path: string) => pathname === path || pathname.startsWith(path + "/");
 
-  const isActive = (path: string) => pathname === path;
+  const navLinks = [
+    { href: "/feed", label: "Daily Discovery", icon: Compass },
+    { href: "/tracker", label: "App Tracker", icon: LayoutDashboard },
+    { href: "/scam-check", label: "Scam Check", icon: ShieldCheck },
+    { href: "/profile", label: "My Profile", icon: User },
+    { href: "/jobs", label: "All Jobs", icon: Briefcase },
+  ];
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between px-6">
+    <header
+      className="um-header"
+      style={{
+        background: "var(--um-bg)",
+        borderBottom: "1px solid var(--um-divider)",
+        position: "sticky",
+        top: 0,
+        zIndex: 50,
+      }}
+    >
+      <div className="um-wrap um-header__bar" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
         {/* Brand Logo */}
-        <div className="flex items-center space-x-8">
-          <Link href="/feed" className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent" aria-hidden="true" />
-            <span className="text-lg font-mono font-semibold tracking-[0.2em]">
-              UMBRIX
-            </span>
-          </Link>
+        <Link href="/" className="um-brand" aria-label="Umbrix — home" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none" }}>
+          <Image src="/umbrix-emblem.png" alt="" width={619} height={586} priority style={{ width: "auto", height: 34 }} />
+          <span
+            style={{
+              fontFamily: "var(--um-logo)",
+              fontWeight: 400,
+              fontSize: 18,
+              letterSpacing: "0.26em",
+              color: "var(--um-text)",
+            }}
+          >
+            UMBRIX
+          </span>
+        </Link>
 
-          {/* Navigation Links */}
-          <nav className="hidden md:flex space-x-1">
-            <Link href="/feed">
-              <span
-                className={`relative px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2 rounded-xl ${
-                  isActive("/feed")
-                    ? "text-primary bg-secondary/80"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
-                }`}
+        {/* Desktop Navigation */}
+        <nav className="um-nav hidden md:flex" style={{ display: "flex", alignItems: "center", gap: 28 }}>
+          {navLinks.map((l) => {
+            const active = isActive(l.href);
+            return (
+              <Link
+                key={l.href}
+                href={l.href}
+                style={{
+                  color: "var(--um-text)",
+                  fontFamily: "var(--um-heading)",
+                  fontWeight: active ? 800 : 600,
+                  fontSize: 13,
+                  textDecoration: active ? "underline" : "none",
+                  textUnderlineOffset: "6px",
+                  textDecorationThickness: "2px",
+                  textDecorationColor: "var(--um-accent)",
+                }}
               >
-                <Compass className="w-4 h-4" />
-                Daily Discovery
-                {isActive("/feed") && (
-                  <motion.div
-                    layoutId="active-nav-indicator"
-                    className="absolute bottom-[-1px] left-4 right-4 h-0.5 bg-accent"
-                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                  />
-                )}
-              </span>
-            </Link>
-            <Link href="/profile">
-              <span
-                className={`relative px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2 rounded-xl ${
-                  isActive("/profile")
-                    ? "text-primary bg-secondary/80"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
-                }`}
-              >
-                <User className="w-4 h-4" />
-                My Profile
-                {isActive("/profile") && (
-                  <motion.div
-                    layoutId="active-nav-indicator"
-                    className="absolute bottom-[-1px] left-4 right-4 h-0.5 bg-accent"
-                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                  />
-                )}
-              </span>
-            </Link>
-            <Link href="/tracker">
-              <span
-                className={`relative px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2 rounded-xl ${
-                  isActive("/tracker")
-                    ? "text-primary bg-secondary/80"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
-                }`}
-              >
-                <LayoutDashboard className="w-4 h-4" />
-                App Tracker
-                {isActive("/tracker") && (
-                  <motion.div
-                    layoutId="active-nav-indicator"
-                    className="absolute bottom-[-1px] left-4 right-4 h-0.5 bg-accent"
-                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                  />
-                )}
-              </span>
-            </Link>
-            <Link href="/scam-check">
-              <span
-                className={`relative px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2 rounded-xl ${
-                  isActive("/scam-check")
-                    ? "text-primary bg-secondary/80"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
-                }`}
-              >
-                <ShieldCheck className="w-4 h-4" />
-                Scam Check
-                {isActive("/scam-check") && (
-                  <motion.div
-                    layoutId="active-nav-indicator"
-                    className="absolute bottom-[-1px] left-4 right-4 h-0.5 bg-accent"
-                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                  />
-                )}
-              </span>
-            </Link>
-          </nav>
-        </div>
+                {l.label}
+              </Link>
+            );
+          })}
+        </nav>
 
-        {/* Profile / Demo status */}
-        <div className="flex items-center space-x-4">
-          {isDemoMode && (
-            <div className="hidden sm:inline-flex items-center space-x-1.5 bg-secondary border border-border text-muted-foreground text-[11px] font-mono uppercase tracking-wider px-2.5 py-1 rounded-full">
-              <Sparkles className="w-3 h-3" />
-              <span>Demo Mode</span>
+        {/* Desktop Auth / User Controls */}
+        <div className="um-auth hidden md:flex" style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          {user ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ display: "flex", flexDirection: "column", textAlign: "right" }}>
+                <span style={{ fontSize: 12, fontWeight: 800, color: "var(--um-text)" }}>
+                  {user.displayName || (isDemoMode ? "Guest Profile" : "User Profile")}
+                </span>
+                <span style={{ fontSize: 10, color: "var(--um-n700)", maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {user.email}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={logout}
+                title="Sign Out"
+                className="um-btn um-btn--secondary"
+                style={{
+                  padding: "8px 12px",
+                  fontSize: 12,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  cursor: "pointer",
+                }}
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Sign out</span>
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Link href="/" className="um-btn um-btn--primary" style={{ padding: "8px 16px", fontSize: 13 }}>
+                Sign in
+              </Link>
             </div>
           )}
-
-          {/* User profile card & Log out */}
-          <div className="flex items-center space-x-3 bg-secondary/30 border border-border/50 py-1.5 pl-2.5 pr-1.5 rounded-xl">
-            {/* User Avatar */}
-            {user.photoURL ? (
-              <img
-                src={user.photoURL}
-                alt={user.displayName || "User"}
-                className="w-7 h-7 rounded-full border border-border/80"
-              />
-            ) : (
-              <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-mono font-semibold text-xs">
-                {user.displayName?.charAt(0) || user.email?.charAt(0) || "U"}
-              </div>
-            )}
-            
-            {/* Display Name */}
-            <div className="hidden md:flex flex-col text-left mr-2">
-              <span className="text-xs font-semibold leading-tight text-foreground">
-                {user.displayName || "Guest Profile"}
-              </span>
-              <span className="text-[10px] text-muted-foreground leading-tight truncate max-w-[120px]">
-                {user.email}
-              </span>
-            </div>
-
-            {/* Logout button */}
-            <button
-              onClick={logout}
-              title="Sign Out"
-              className="p-1.5 hover:bg-secondary rounded-lg text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
         </div>
+
+        {/* Mobile Hamburger */}
+        <button
+          type="button"
+          className="um-burger md:hidden"
+          aria-label="Menu"
+          aria-expanded={menu}
+          onClick={() => setMenu(!menu)}
+          style={{
+            background: "transparent",
+            border: "1px solid var(--um-divider)",
+            padding: 8,
+            cursor: "pointer",
+            color: "var(--um-text)",
+          }}
+        >
+          {menu ? <X size={20} /> : <Menu size={20} />}
+        </button>
       </div>
 
-      {/* Mobile navigation — icon-first tab bar so all four destinations fit on
-          a narrow phone (Scam Check is a public growth wedge; it must be
-          reachable on mobile, where most users are). */}
-      <div className="flex md:hidden border-t border-border/50 bg-background/90 px-2 py-1.5 justify-around">
-        <Link href="/feed" className="flex-1 flex justify-center">
-          <span className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold py-1.5 px-2 rounded-lg w-full ${isActive("/feed") ? "text-primary bg-secondary" : "text-muted-foreground"}`}>
-            <Compass className="w-5 h-5" />
-            Feed
-          </span>
-        </Link>
-        <Link href="/profile" className="flex-1 flex justify-center">
-          <span className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold py-1.5 px-2 rounded-lg w-full ${isActive("/profile") ? "text-primary bg-secondary" : "text-muted-foreground"}`}>
-            <User className="w-5 h-5" />
-            Profile
-          </span>
-        </Link>
-        <Link href="/tracker" className="flex-1 flex justify-center">
-          <span className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold py-1.5 px-2 rounded-lg w-full ${isActive("/tracker") ? "text-primary bg-secondary" : "text-muted-foreground"}`}>
-            <LayoutDashboard className="w-5 h-5" />
-            Tracker
-          </span>
-        </Link>
-        <Link href="/scam-check" className="flex-1 flex justify-center">
-          <span className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold py-1.5 px-2 rounded-lg w-full ${isActive("/scam-check") ? "text-primary bg-secondary" : "text-muted-foreground"}`}>
-            <ShieldCheck className="w-5 h-5" />
-            Scam Check
-          </span>
-        </Link>
-      </div>
+      {/* Mobile Menu Sheet */}
+      {menu && (
+        <div
+          className="um-sheet md:hidden"
+          style={{
+            background: "var(--um-bg)",
+            borderBottom: "2px solid var(--um-divider)",
+            padding: "16px 24px 24px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+          }}
+        >
+          {navLinks.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              onClick={() => setMenu(false)}
+              style={{
+                color: "var(--um-text)",
+                fontFamily: "var(--um-heading)",
+                fontWeight: isActive(l.href) ? 800 : 600,
+                fontSize: 15,
+                textDecoration: isActive(l.href) ? "underline" : "none",
+                textUnderlineOffset: "4px",
+                textDecorationThickness: "2px",
+                textDecorationColor: "var(--um-accent)",
+              }}
+            >
+              {l.label}
+            </Link>
+          ))}
+
+          {user ? (
+            <div style={{ borderTop: "1px solid var(--um-divider)", paddingTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: "var(--um-text)" }}>
+                  {user.displayName || (isDemoMode ? "Guest Profile" : "User")}
+                </div>
+                <div style={{ fontSize: 11, color: "var(--um-n700)" }}>{user.email}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setMenu(false);
+                  logout();
+                }}
+                className="um-btn um-btn--secondary"
+                style={{ padding: "8px 14px", fontSize: 12, cursor: "pointer" }}
+              >
+                Sign out
+              </button>
+            </div>
+          ) : (
+            <div style={{ borderTop: "1px solid var(--um-divider)", paddingTop: 16 }}>
+              <Link
+                href="/"
+                onClick={() => setMenu(false)}
+                className="um-btn um-btn--primary"
+                style={{ display: "block", textAlign: "center", padding: "12px" }}
+              >
+                Sign in
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
     </header>
   );
 }

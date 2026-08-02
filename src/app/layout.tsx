@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Sans, IBM_Plex_Serif, IBM_Plex_Mono } from "next/font/google";
+import { IBM_Plex_Sans, IBM_Plex_Mono, Instrument_Serif, Archivo, Jost } from "next/font/google";
 import "./globals.css";
+import "@/styles/umbrix-landing.css";
 
 const plexSans = IBM_Plex_Sans({
   variable: "--font-plex-sans",
@@ -8,10 +9,10 @@ const plexSans = IBM_Plex_Sans({
   weight: ["400", "500", "600", "700"],
 });
 
-const plexSerif = IBM_Plex_Serif({
+const instrumentSerif = Instrument_Serif({
   variable: "--font-plex-serif",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400"],
 });
 
 const plexMono = IBM_Plex_Mono({
@@ -20,24 +21,38 @@ const plexMono = IBM_Plex_Mono({
   weight: ["400", "500", "600", "700"],
 });
 
+const archivo = Archivo({
+  variable: "--font-archivo",
+  subsets: ["latin"],
+  weight: ["400", "600", "800"],
+  display: "swap",
+});
+
+const jost = Jost({
+  variable: "--font-jost",
+  subsets: ["latin"],
+  weight: ["300", "400"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://www.umbrix.in"),
   title: {
-    default: "Umbrix — Jobs Indian freshers actually qualify for",
+    default: "Umbrix — Verified Jobs from Official Company Career Pages",
     template: "%s · Umbrix",
   },
-  description: "A daily feed of real, scam-checked jobs and internships for Indian students and freshers — filtered to your branch, batch, and skills, across every field.",
+  description: "Discover verified jobs directly from official company career pages. No recruiters, no ghost jobs, no third-party spam. Search less and apply faster.",
   applicationName: "Umbrix",
   openGraph: {
-    title: "Umbrix — Jobs Indian freshers actually qualify for",
-    description: "A daily feed of real, scam-checked jobs and internships for Indian students and freshers — filtered to your branch, batch, and skills, across every field.",
+    title: "Umbrix — Verified Jobs from Official Company Career Pages",
+    description: "Discover verified jobs directly from official company career pages. No recruiters, no ghost jobs, no third-party spam.",
     siteName: "Umbrix",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Umbrix — Jobs Indian freshers actually qualify for",
-    description: "A daily feed of real, scam-checked jobs and internships for Indian students and freshers — filtered to your branch, batch, and skills, across every field.",
+    title: "Umbrix — Verified Jobs from Official Company Career Pages",
+    description: "Discover verified jobs directly from official company career pages. No recruiters, no ghost jobs, no third-party spam.",
   },
   appleWebApp: {
     capable: true,
@@ -55,7 +70,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#1c1917",
+  themeColor: "#09090b",
 };
 
 import { AuthProvider } from "@/components/AuthProvider";
@@ -80,10 +95,10 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${plexSans.variable} ${plexSerif.variable} ${plexMono.variable} h-full antialiased`}
+      className={`${plexSans.variable} ${instrumentSerif.variable} ${plexMono.variable} ${archivo.variable} ${jost.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground font-sans" suppressHydrationWarning>
+      <body className="min-h-full flex flex-col font-sans" suppressHydrationWarning>
         <SiteJsonLd />
         <AuthProvider firebaseConfig={firebaseConfig}>
           <AnalyticsInit />

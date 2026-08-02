@@ -6,6 +6,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { authedFetch } from "@/lib/authedFetch";
 import { track } from "@/lib/analytics";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import { JobCard } from "@/components/JobCard";
 import { Compass, Search, MapPin, Tag, SlidersHorizontal, Sparkles, Loader2, ArrowRight, GraduationCap, Check, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
@@ -209,50 +210,41 @@ export default function FeedPage() {
       <main className="flex-1 max-w-4xl w-full mx-auto px-6 py-10">
         {/* Activation card — the single highest-value action for a new user:
             turn a baseline feed into a personalized, "jobs you qualify for" feed. */}
-        {!hasSkills && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8 relative overflow-hidden bg-card border border-border rounded-2xl p-6 sm:p-7"
+        {!fetchingJobs && !error && (!user?.skillsProfile || !user?.skillsProfile?.parsed) && (
+          <div
+            className="mb-8 relative overflow-hidden bg-surface border border-border rounded-none p-6 sm:p-7"
           >
-            <div className="font-mono text-[10px] font-semibold uppercase tracking-widest text-accent mb-2.5 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5" />
-              Personalize your feed
-            </div>
-            <h2 className="font-serif text-xl sm:text-2xl tracking-tight text-foreground mb-2">
-              See which of these{total > 0 ? ` ${total.toLocaleString("en-IN")}` : ""} roles you actually qualify for
-            </h2>
-            <p className="text-sm text-muted-foreground leading-relaxed mb-5 max-w-xl">
-              Right now every role shows a baseline score. Upload your résumé and each one gets a real
-              match score, the exact skills you match, and a fresher-eligibility check — in about 10 seconds.
-            </p>
+            <div className="absolute top-0 right-0 -mt-8 -mr-8 w-40 h-40 bg-accent/10 rounded-none pointer-events-none" />
 
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mb-6 text-xs text-foreground/80">
-              <span className="flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-accent shrink-0" />
-                A real match score per role
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Check className="w-3.5 h-3.5 text-accent shrink-0" />
-                The exact skills you match
-              </span>
-              <span className="flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-accent shrink-0" />
-                Only roles you&rsquo;re eligible for
-              </span>
-            </div>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+              <div className="space-y-2 max-w-xl">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-none bg-accent/10 border border-accent/20 text-accent text-xs font-semibold">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Personalize your feed</span>
+                </div>
+                <h2
+                  className="text-xl sm:text-2xl font-bold tracking-tight text-foreground"
+                  style={{ fontFamily: "var(--um-heading)" }}
+                >
+                  Upload your resume to see match scores
+                </h2>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Right now you are seeing our default fresher-focused feed. Upload your resume to unlock
+                  AI match scores, skill gap breakdowns, and tailored resumes for every role.
+                </p>
+              </div>
 
-            <button
-              onClick={() => router.push("/profile")}
-              className="bg-primary text-primary-foreground text-sm font-semibold px-5 py-3 rounded-xl hover:opacity-90 active:scale-[0.98] transition-all inline-flex items-center gap-2 cursor-pointer"
-            >
-              <span>Upload résumé</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-            <p className="mt-2.5 font-mono text-[11px] text-muted-foreground/70">
-              PDF, parsed instantly. Works for every field — not just tech.
-            </p>
-          </motion.div>
+              <div className="flex-shrink-0">
+                <button
+                  onClick={() => router.push("/profile")}
+                  className="um-btn um-btn--primary text-sm font-semibold px-5 py-3 rounded-none inline-flex items-center gap-2 cursor-pointer"
+                >
+                  <span>Upload Resume</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Intro Section */}
@@ -270,7 +262,7 @@ export default function FeedPage() {
 
           {/* Quick Stats */}
           {jobs.length > 0 && !fetchingJobs && (
-            <div className="text-xs bg-secondary/50 border border-border px-3 py-1.5 rounded-lg text-muted-foreground self-start md:self-auto flex items-center gap-1.5">
+            <div className="text-xs bg-secondary/50 border border-border px-3 py-1.5 rounded-none text-muted-foreground self-start md:self-auto flex items-center gap-1.5">
               {hasSkills && <Sparkles className="w-3 h-3 text-primary" />}
               {hasSkills ? "Ranked by your match" : "Showing"}{" "}
               <span className="font-semibold text-foreground">{jobs.length}</span>{" "}
@@ -280,7 +272,7 @@ export default function FeedPage() {
         </div>
 
         {/* Search & Filtering Dashboard */}
-        <div className="bg-card border border-border p-4 rounded-2xl space-y-4 mb-8">
+        <div className="bg-surface border border-border p-4 rounded-none space-y-4 mb-8">
           <div className="flex flex-col md:flex-row gap-3">
             {/* Search Bar */}
             <div className="relative flex-1">
@@ -290,7 +282,7 @@ export default function FeedPage() {
                 placeholder="Search roles, companies, or keywords..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-secondary/30 border border-border h-11 pl-10 pr-4 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/15 focus:border-primary/30 transition-all placeholder:text-muted-foreground/75"
+                className="w-full bg-secondary/30 border border-border h-11 pl-10 pr-4 rounded-none text-sm focus:outline-none focus:ring-2 focus:ring-primary/15 focus:border-primary/30 transition-all placeholder:text-muted-foreground/75"
               />
             </div>
 
@@ -301,7 +293,7 @@ export default function FeedPage() {
                 <select
                   value={locationFilter}
                   onChange={(e) => setLocationFilter(e.target.value)}
-                  className="w-full md:w-44 bg-secondary/30 border border-border h-11 pl-3 pr-8 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary/15 appearance-none cursor-pointer"
+                  className="w-full md:w-44 bg-secondary/30 border border-border h-11 pl-3 pr-8 rounded-none text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary/15 appearance-none cursor-pointer"
                 >
                   <option value="">All Locations</option>
                   <option value="remote">Remote</option>
@@ -320,7 +312,7 @@ export default function FeedPage() {
                 <select
                   value={selectedTag}
                   onChange={(e) => setSelectedTag(e.target.value)}
-                  className="w-full md:w-44 bg-secondary/30 border border-border h-11 pl-3 pr-8 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary/15 appearance-none cursor-pointer"
+                  className="w-full md:w-44 bg-secondary/30 border border-border h-11 pl-3 pr-8 rounded-none text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary/15 appearance-none cursor-pointer"
                 >
                   <option value="">All Categories</option>
                   <option value="engineering">Engineering</option>
@@ -342,29 +334,24 @@ export default function FeedPage() {
             </span>
             <button
               onClick={() => setIndiaOnly((v) => !v)}
-              aria-pressed={indiaOnly}
-              className={`text-xs px-3 py-1 rounded-full border transition-all cursor-pointer shrink-0 flex items-center gap-1 ${
+              className={`text-xs px-3 py-1 rounded-none border transition-all cursor-pointer shrink-0 flex items-center gap-1 ${
                 indiaOnly
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-background text-muted-foreground border-border hover:border-foreground/30"
+                  ? "bg-accent/15 border-accent text-accent font-semibold"
+                  : "bg-secondary/40 border-border/70 text-muted-foreground hover:text-foreground"
               }`}
-              title={indiaOnly ? "Showing India roles — click to include global" : "Showing all locations"}
+              title="Show only jobs based in India or remote roles hiring from India"
             >
-              🇮🇳 India only
+              <Check className={`w-3.5 h-3.5 ${indiaOnly ? "opacity-100" : "opacity-30"}`} />
+              <span>India-only</span>
             </button>
             <button
               onClick={() => setFresherOnly((v) => !v)}
-              aria-pressed={fresherOnly}
-              className={`text-xs px-3 py-1 rounded-full border transition-all cursor-pointer shrink-0 flex items-center gap-1 ${
+              className={`text-xs px-3 py-1 rounded-none border transition-all cursor-pointer shrink-0 flex items-center gap-1 ${
                 fresherOnly
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-background text-muted-foreground border-border hover:border-foreground/30"
+                  ? "bg-accent/15 border-accent text-accent font-semibold"
+                  : "bg-secondary/40 border-border/70 text-muted-foreground hover:text-foreground"
               }`}
-              title={
-                fresherOnly
-                  ? "Showing only roles open to freshers — click to include all"
-                  : "Only show roles you're eligible for as a fresher (no experience required)"
-              }
+              title="Show roles requiring 0–1 year experience or explicitly tagged fresher-friendly"
             >
               <GraduationCap className="w-3.5 h-3.5" />
               Fresher-eligible
@@ -374,10 +361,10 @@ export default function FeedPage() {
                 setSelectedTag("");
                 setLocationFilter("");
               }}
-              className={`text-xs px-3 py-1 rounded-full border transition-all cursor-pointer shrink-0 ${
+              className={`text-xs px-3 py-1 rounded-none border transition-all cursor-pointer shrink-0 ${
                 !selectedTag && !locationFilter
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-background text-muted-foreground border-border hover:border-foreground/30"
+                  ? "bg-primary text-primary-foreground border-primary font-semibold"
+                  : "bg-secondary/40 border-border/70 text-muted-foreground hover:text-foreground"
               }`}
             >
               All Matches
@@ -386,7 +373,7 @@ export default function FeedPage() {
               const isSelected =
                 selectedTag.toLowerCase() === tag.toLowerCase() ||
                 (tag.toLowerCase() === "remote" && locationFilter.toLowerCase() === "remote");
-              
+
               return (
                 <button
                   key={tag}
@@ -397,10 +384,10 @@ export default function FeedPage() {
                       setSelectedTag(selectedTag.toLowerCase() === tag.toLowerCase() ? "" : tag.toLowerCase());
                     }
                   }}
-                  className={`text-xs px-3 py-1 rounded-full border transition-all cursor-pointer shrink-0 ${
+                  className={`text-xs px-3 py-1 rounded-none border transition-all cursor-pointer shrink-0 ${
                     isSelected
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-background text-muted-foreground border-border hover:border-foreground/30"
+                      ? "bg-primary text-primary-foreground border-primary font-semibold"
+                      : "bg-secondary/40 border-border/70 text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   {tag}
@@ -412,7 +399,7 @@ export default function FeedPage() {
 
         {/* Display Error Message */}
         {error && (
-          <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm p-4 rounded-xl mb-6">
+          <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm p-4 rounded-none mb-6">
             Error loading feed: {error}. Falling back to default matches.
           </div>
         )}
@@ -423,20 +410,20 @@ export default function FeedPage() {
             {Array.from({ length: 3 }).map((_, idx) => (
               <div
                 key={`skeleton-${idx}`}
-                className="bg-card border border-border/80 p-6 rounded-2xl space-y-4 animate-pulse"
+                className="bg-surface border border-border/80 p-6 rounded-none space-y-4 animate-pulse"
               >
                 <div className="flex justify-between items-start gap-4">
                   <div className="space-y-2.5 flex-1">
-                    <div className="h-6 bg-secondary/80 rounded-lg w-1/3" />
-                    <div className="h-4 bg-secondary/60 rounded-lg w-1/4" />
+                    <div className="h-6 bg-secondary/80 rounded-none w-1/3" />
+                    <div className="h-4 bg-secondary/60 rounded-none w-1/4" />
                   </div>
-                  <div className="h-10 bg-secondary/80 rounded-xl w-24" />
+                  <div className="h-10 bg-secondary/80 rounded-none w-24" />
                 </div>
                 <div className="flex gap-2">
-                  <div className="h-5 bg-secondary/60 rounded-md w-16" />
-                  <div className="h-5 bg-secondary/60 rounded-md w-20" />
+                  <div className="h-5 bg-secondary/60 rounded-none w-16" />
+                  <div className="h-5 bg-secondary/60 rounded-none w-20" />
                 </div>
-                <div className="h-16 bg-secondary/40 rounded-xl w-full" />
+                <div className="h-16 bg-secondary/40 rounded-none w-full" />
               </div>
             ))}
           </div>
@@ -529,7 +516,7 @@ export default function FeedPage() {
               <div className="mt-8 text-center">
                 <button
                   onClick={() => setVisibleCount((c) => c + LOAD_MORE_STEP)}
-                  className="inline-flex items-center gap-2 bg-secondary hover:bg-secondary/80 border border-border text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors cursor-pointer"
+                  className="um-btn um-btn--secondary inline-flex items-center gap-2 px-5 py-2.5 rounded-none text-sm font-semibold cursor-pointer"
                 >
                   Load more roles
                   <ArrowRight className="w-4 h-4" />
@@ -546,7 +533,7 @@ export default function FeedPage() {
         {/* End of Feed Sign — only once everything visible is shown */}
         {!fetchingJobs && jobs.length > 0 && visibleCount >= jobs.length && (
           <div className="mt-14 text-center border-t border-border/50 pt-8">
-            <div className="inline-flex p-2 bg-secondary/30 rounded-xl border border-border/50 text-primary mb-3">
+            <div className="inline-flex p-2 bg-secondary/30 rounded-none border border-border/50 text-primary mb-3">
               <Sparkles className="w-4 h-4 animate-pulse" />
             </div>
             <p className="text-sm font-semibold text-muted-foreground">
@@ -558,6 +545,8 @@ export default function FeedPage() {
           </div>
         )}
       </main>
+
+      <Footer />
     </div>
   );
 }

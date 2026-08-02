@@ -20,6 +20,18 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
+  /* Umbrix V3 Modernist Color System */
+  --color-umbrix-bg: #E8E2D0;
+  --color-umbrix-surface: #DBD3BD;
+  --color-umbrix-elevated: #F1EDE0;
+  --color-umbrix-border: rgba(22, 53, 42, 0.26);
+  --color-umbrix-accent: #8F5313;
+  --color-umbrix-secondary: #4A5642;
+  --color-umbrix-success: #2E4234;
+  --color-umbrix-text-primary: #16352A;
+  --color-umbrix-text-secondary: #4A5642;
+  --color-umbrix-muted: #666B57;
+
   /* Stage-ink colors: each application stage in the tracker gets its own
      verification-stamp color. This is status information, not decoration. */
   --color-stage-saved: var(--stage-saved);
@@ -27,169 +39,79 @@
   --color-stage-interview: var(--stage-interview);
   --color-stage-rejected: var(--stage-rejected);
 
-  /* Sharper, smaller corners than the framework default (0.75rem/1rem) -- an
-     index card, not a soft app blob. Deliberately not zero-radius either. */
-  --radius-xl: 0.3rem;
-  --radius-2xl: 0.45rem;
-  --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-sm: calc(var(--radius) - 4px);
+  --radius-xl: 0rem;
+  --radius-2xl: 0rem;
+  --radius-lg: 0rem;
+  --radius-md: 0rem;
+  --radius-sm: 0rem;
 
-  --font-sans: var(--font-plex-sans);
+  --font-sans: var(--font-archivo), var(--font-plex-sans);
   --font-serif: var(--font-plex-serif);
   --font-mono: var(--font-plex-mono);
 }
 
 :root {
-  --background: #f6f3ec;
-  --foreground: #1c1917;
-  --card: #fcfaf5;
-  --card-foreground: #1c1917;
-  --primary: #1c1917;
-  --primary-foreground: #f6f3ec;
-  --secondary: #efe9da;
-  --secondary-foreground: #1c1917;
-  --muted: #efe9da;
-  --muted-foreground: #6b6156;
-  --accent: #2f5d3a;
-  --accent-foreground: #f6f3ec;
-  /* A lighter tint of the accent for use as a highlight on dark (ink)
-     backgrounds, where the base accent's contrast is too low to read. */
-  --accent-on-dark: #8fb89b;
-  --destructive: #7a3430;
-  --destructive-foreground: #f6f3ec;
-  --border: #dad3c3;
-  --input: #dad3c3;
-  --ring: #2f5d3a;
-  --radius: 0.3rem;
+  --background: #E8E2D0;
+  --foreground: #16352A;
+  --card: #DBD3BD;
+  --card-foreground: #16352A;
+  --primary: #8F5313;
+  --primary-foreground: #E8E2D0;
+  --secondary: #F1EDE0;
+  --secondary-foreground: #16352A;
+  --muted: #E3DCC8;
+  --muted-foreground: #4A5642;
+  --accent: #8F5313;
+  --accent-foreground: #E8E2D0;
+  --destructive: #b52f1c;
+  --destructive-foreground: #ffffff;
+  --border: rgba(22, 53, 42, 0.26);
+  --input: rgba(22, 53, 42, 0.26);
+  --ring: #8F5313;
 
-  --stage-saved: #6b6156;
-  --stage-applied: #2c3e63;
-  --stage-interview: #2f5d3a;
-  --stage-rejected: #7a3430;
+  --stage-saved: #666B57;
+  --stage-applied: #8F5313;
+  --stage-interview: #2E4234;
+  --stage-rejected: #ADA894;
 
-  /* Landing-page-only accent (deep ink blue) -- deliberately separate from
-     --accent (green), which stays as the trust color everywhere else in the
-     app (Kanban Interview stage, JobCard stamp, focus rings, nav). Scoping
-     this to its own variable instead of overriding --accent keeps the
-     landing page's color a local design choice, not a site-wide rebrand. */
-  --landing-ink: #2c4870;
-  --landing-ink-on-dark: #9ab4d8;
+  --radius: 0rem;
 }
 
-body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* Visible keyboard focus everywhere, drawn in the verification-ink accent. */
-:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
-}
-
-/* The signature moment: a job posting gets physically "stamped" verified
-   once it settles on screen -- a quick overshoot-and-settle, like real ink
-   hitting paper, never repeating once played. */
-@keyframes stamp-in {
-  0% {
-    opacity: 0;
-    transform: translateY(2px) rotate(-14deg) scale(1.6);
+@layer base {
+  * {
+    border-color: var(--border);
   }
-  60% {
-    opacity: 1;
-    transform: translateY(0) rotate(-8deg) scale(0.92);
+
+  body {
+    background-color: #E8E2D0;
+    color: #16352A;
+    font-family: var(--font-archivo), var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow-x: hidden;
   }
-  100% {
-    opacity: 1;
-    transform: translateY(0) rotate(-8deg) scale(1);
+
+  /* Editorial headings: Stripe/Linear/Apple style typography */
+  .font-editorial {
+    font-family: var(--font-archivo), var(--font-serif), Georgia, serif;
+    font-weight: 800;
+    letter-spacing: -0.03em;
   }
 }
 
-.stamp-mark {
-  animation: stamp-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+/* Subtle custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
 
-/* Continuous ticker band of company/role postings scrolling across the
-   landing hero -- the content is duplicated in the DOM so this loops with
-   no visible seam. */
-@keyframes marquee-scroll {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
+::-webkit-scrollbar-track {
+  background: #E8E2D0;
 }
 
-.marquee-track {
-  animation: marquee-scroll 28s linear infinite;
+::-webkit-scrollbar-thumb {
+  background: #CFC7B0;
+  border-radius: 0px;
 }
 
-/* The radar sweep -- a rotating light wedge (conic-gradient) standing in for
-   "continuously scanning for what's real." */
-@keyframes radar-sweep {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.radar-sweep {
-  animation: radar-sweep 4s linear infinite;
-}
-
-/* A "signal" being picked up by the sweep -- rests at a visible base opacity
-   so reduced-motion still reads as a lit dot, not something mid-transition. */
-@keyframes radar-blip {
-  0%,
-  100% {
-    opacity: 0.3;
-    transform: scale(0.85);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.15);
-  }
-}
-
-.radar-blip {
-  animation: radar-blip 3s ease-in-out infinite;
-}
-
-/* A slow vertical drift so the radar feels alive without demanding attention. */
-@keyframes float-slow {
-  0%,
-  100% {
-    transform: translateY(-8px);
-  }
-  50% {
-    transform: translateY(8px);
-  }
-}
-
-.float-slow {
-  animation: float-slow 7s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .stamp-mark {
-    animation: none;
-  }
-  .marquee-track {
-    animation: none;
-  }
-  .radar-sweep {
-    animation: none;
-    opacity: 0.5;
-  }
-  .radar-blip {
-    animation: none;
-    opacity: 0.7;
-    transform: scale(1);
-  }
-  .float-slow {
-    animation: none;
-  }
+::-webkit-scrollbar-thumb:hover {
+  background: #ADA894;
 }

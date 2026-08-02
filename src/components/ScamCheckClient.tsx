@@ -14,6 +14,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 
 type Level = "scam" | "caution" | "clean";
 
@@ -107,10 +108,15 @@ export function ScamCheckClient() {
       <main className="flex-1 w-full max-w-2xl mx-auto px-6 py-12 md:py-16">
         {/* Hero */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-secondary border border-border mb-5">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-none bg-surface border border-border mb-5">
             <ShieldCheck className="w-7 h-7 text-accent" />
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">Is this job real?</h1>
+          <h1
+            className="text-3xl md:text-4xl font-bold tracking-tight mb-3"
+            style={{ fontFamily: "var(--um-heading)", color: "var(--um-text)" }}
+          >
+            Is this job real?
+          </h1>
           <p className="text-muted-foreground leading-relaxed max-w-lg mx-auto">
             Paste any job post, WhatsApp message, or offer letter. We&apos;ll check it for the scam
             patterns that target freshers — pay-to-apply fees, fake deposits, and DM funnels. Free,
@@ -119,7 +125,7 @@ export function ScamCheckClient() {
         </div>
 
         {/* Input card */}
-        <div className="bg-card border border-border rounded-2xl p-5 md:p-6">
+        <div className="bg-surface border border-border rounded-none p-5 md:p-6">
           <label htmlFor="scam-input" className="sr-only">
             Paste a job post, message, or offer letter
           </label>
@@ -132,7 +138,7 @@ export function ScamCheckClient() {
             placeholder={
               "Paste the job post / WhatsApp message / offer letter here…\n\ne.g. \"Congrats! You're selected. Pay ₹1,500 refundable registration fee to confirm your joining.\""
             }
-            className="w-full resize-y bg-background border border-border rounded-xl p-4 text-sm leading-relaxed placeholder:text-muted-foreground/60 focus:outline-none focus:border-foreground/30 transition-colors"
+            className="w-full resize-y bg-background border border-border rounded-none p-4 text-sm leading-relaxed placeholder:text-muted-foreground/60 focus:outline-none focus:border-foreground/30 transition-colors"
           />
           <div className="flex items-center justify-between mt-4 gap-3">
             <span className="text-[11px] font-mono text-muted-foreground/70 tabular-nums">
@@ -141,7 +147,7 @@ export function ScamCheckClient() {
             <button
               onClick={check}
               disabled={!text.trim() || loading}
-              className="inline-flex items-center gap-2 h-11 px-6 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 cursor-pointer"
+              className="um-btn um-btn--primary inline-flex items-center gap-2 h-11 px-6 rounded-none text-sm font-semibold cursor-pointer"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
               {loading ? "Checking…" : "Check for scams"}
@@ -165,7 +171,7 @@ export function ScamCheckClient() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
-              className={`mt-6 bg-card border rounded-2xl overflow-hidden ${TIER[result.level].ring}`}
+              className={`mt-6 bg-surface border rounded-none overflow-hidden ${TIER[result.level].ring}`}
             >
               {/* Verdict header */}
               <div className={`flex items-start gap-4 p-5 md:p-6 ${TIER[result.level].tint}`}>
@@ -235,6 +241,8 @@ export function ScamCheckClient() {
           </p>
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }

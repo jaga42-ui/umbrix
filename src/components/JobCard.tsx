@@ -145,20 +145,20 @@ export function JobCard({
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -15 }}
-        className="group relative bg-card text-card-foreground border border-border p-6 rounded-2xl hover:border-foreground/25 transition-colors duration-300 overflow-hidden flex flex-col md:flex-row gap-6 items-start w-full"
+        className="group relative bg-surface text-foreground border border-border p-6 rounded-none hover:border-foreground/40 transition-colors duration-300 overflow-hidden flex flex-col md:flex-row gap-6 items-start w-full"
       >
         {/* Match Score Badge, with the verified stamp docked to its own corner
             -- kept inside this column's own relative box so it can never
             collide with the Save/Apply buttons in the content area. */}
         <button
           onClick={() => setShowMatchModal(true)}
-          className="relative flex flex-row md:flex-col items-center justify-center shrink-0 w-full md:w-20 py-3 md:py-4 px-4 bg-secondary/50 hover:bg-secondary rounded-xl border border-border text-center gap-2 cursor-pointer transition-colors active:scale-95 group/badge"
+          className="relative flex flex-row md:flex-col items-center justify-center shrink-0 w-full md:w-20 py-3 md:py-4 px-4 bg-secondary/50 hover:bg-secondary rounded-none border border-border text-center gap-2 cursor-pointer transition-colors active:scale-95 group/badge"
           title="Click to view detailed match report"
         >
           {/* Verified stamp -- every posting here passed the scam filter, so
               this marks a real, checked fact, not decoration. */}
           <div
-            className="stamp-mark pointer-events-none absolute -top-3 -right-3 w-12 h-12 rounded-full border-2 border-double border-accent/70 bg-card flex items-center justify-center rotate-[-8deg] z-10"
+            className="stamp-mark pointer-events-none absolute -top-3 -right-3 w-12 h-12 rounded-none border-2 border-double border-accent/70 bg-card flex items-center justify-center rotate-[-8deg] z-10"
             aria-hidden="true"
           >
             <span className="font-mono text-[7px] font-semibold uppercase tracking-[0.06em] text-accent text-center leading-[1.15]">
@@ -182,14 +182,17 @@ export function JobCard({
             <div className="flex gap-3.5 min-w-0">
               {/* Company monogram — a logo stand-in that anchors the card. */}
               <div
-                className={`shrink-0 w-11 h-11 rounded-xl flex items-center justify-center font-serif font-bold text-lg select-none ${monogramTint(company)}`}
+                className={`shrink-0 w-11 h-11 rounded-none flex items-center justify-center font-serif font-bold text-lg select-none ${monogramTint(company)}`}
                 aria-hidden="true"
               >
                 {companyInitial(company)}
               </div>
 
               <div className="min-w-0">
-                <h3 className="text-xl font-bold tracking-tight mb-1 group-hover:text-primary transition-colors">
+                <h3
+                  className="text-xl font-bold tracking-tight mb-1 group-hover:text-accent transition-colors"
+                  style={{ fontFamily: "var(--um-heading)", color: "var(--um-text)" }}
+                >
                   {title}
                 </h3>
 
@@ -202,7 +205,7 @@ export function JobCard({
                   </span>
                   {fresherEligible && (
                     <span
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-accent bg-accent/10 border border-accent/25 px-2 py-0.5 rounded-full"
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-accent bg-accent/10 border border-accent/25 px-2 py-0.5 rounded-none"
                       title="Open to freshers — little or no experience required"
                     >
                       <GraduationCap className="w-3.5 h-3.5" />
@@ -224,7 +227,7 @@ export function JobCard({
                 {(pay || facts.length > 0 || posted) && (
                   <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-2 text-xs">
                     {pay && (
-                      <span className="font-semibold text-foreground bg-secondary/70 border border-border/60 px-2 py-0.5 rounded-md">
+                      <span className="font-semibold text-foreground bg-secondary/70 border border-border/60 px-2 py-0.5 rounded-none">
                         {pay}
                       </span>
                     )}
@@ -241,7 +244,7 @@ export function JobCard({
               <button
                 onClick={() => setShowTailorModal(true)}
                 title="Generate an ATS-friendly résumé tailored to this role"
-                className="flex-1 sm:flex-initial h-10 px-4 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 border bg-background text-foreground border-border hover:bg-secondary hover:border-foreground/20 active:scale-95 transition-all cursor-pointer"
+                className="um-btn um-btn--secondary flex-1 sm:flex-initial h-10 px-4 rounded-none text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Sparkles className="w-4 h-4 text-accent" />
                 Tailor résumé
@@ -251,11 +254,9 @@ export function JobCard({
               <button
                 onClick={handleSave}
                 disabled={isSaved || saving}
-                className={`flex-1 sm:flex-initial h-10 px-4 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 border transition-all cursor-pointer ${
-                  isSaved
-                    ? "bg-secondary text-muted-foreground border-border/80 cursor-default"
-                    : "bg-background text-foreground border-border hover:bg-secondary hover:border-foreground/20 active:scale-95"
-                }`}
+                className={`um-btn ${
+                  isSaved ? "um-btn--ghostDark cursor-default opacity-70" : "um-btn--secondary"
+                } flex-1 sm:flex-initial h-10 px-4 rounded-none text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer`}
               >
                 {saving ? (
                   <Loader2 className="w-4 h-4 animate-spin text-primary" />
@@ -273,7 +274,8 @@ export function JobCard({
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => track("apply_click", { jobId: id, score: matchScore, ...(source ? { source } : {}) })}
-                className="flex-1 sm:flex-initial h-10 px-4 bg-primary text-primary-foreground rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 hover:opacity-90 active:scale-95 transition-all"
+                className="um-btn um-btn--primary flex-1 sm:flex-initial h-10 px-5 rounded-none text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
+                style={{ textDecoration: "none" }}
               >
                 <span>Apply</span>
                 <ExternalLink className="w-3.5 h-3.5" />
@@ -286,7 +288,7 @@ export function JobCard({
             {tags.map((tag) => (
               <span
                 key={tag}
-                className="px-2.5 py-1 text-xs font-medium bg-secondary/80 text-secondary-foreground rounded-lg border border-border/30 hover:border-border transition-colors"
+                className="px-2.5 py-1 text-xs font-medium bg-secondary/80 text-secondary-foreground rounded-none border border-border/30 hover:border-border transition-colors"
               >
                 {tag}
               </span>
@@ -354,12 +356,12 @@ export function JobCard({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-lg bg-card border border-border p-6 rounded-2xl max-h-[90vh] overflow-y-auto"
+              className="relative w-full max-w-lg bg-surface border border-border p-6 rounded-none max-h-[90vh] overflow-y-auto"
             >
               {/* Close button */}
               <button
                 onClick={() => setShowMatchModal(false)}
-                className="absolute top-4 right-4 p-1.5 hover:bg-secondary rounded-lg text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                className="absolute top-4 right-4 p-1.5 hover:bg-secondary rounded-none text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -375,7 +377,7 @@ export function JobCard({
               </div>
 
               {/* Match Score Indicator */}
-              <div className="flex items-center gap-4 bg-secondary/50 p-4 rounded-xl border border-border mb-6">
+              <div className="flex items-center gap-4 bg-secondary/50 p-4 rounded-none border border-border mb-6">
                 <div className={`font-mono text-3xl font-semibold ${getScoreColorClass(matchScore)}`}>
                   {matchScore}%
                 </div>
@@ -390,12 +392,12 @@ export function JobCard({
                 {/* Matching Skills */}
                 <div className="space-y-2">
                   <span className="text-xs font-mono font-semibold text-stage-interview uppercase tracking-wider block">Matching ({matchingSkills.length})</span>
-                  <div className="flex flex-wrap gap-1.5 min-h-[40px] border border-border p-2.5 rounded-xl bg-secondary/20">
+                  <div className="flex flex-wrap gap-1.5 min-h-[40px] border border-border p-2.5 rounded-none bg-secondary/20">
                     {matchingSkills.length === 0 ? (
                       <span className="text-[11px] text-muted-foreground/80 italic">No matching skills found.</span>
                     ) : (
                       matchingSkills.map(s => (
-                        <span key={s} className="bg-background text-stage-interview border border-stage-interview/25 text-[10px] font-medium px-2 py-0.5 rounded-md">
+                        <span key={s} className="bg-background text-stage-interview border border-stage-interview/25 text-[10px] font-medium px-2 py-0.5 rounded-none">
                           {s}
                         </span>
                       ))
@@ -406,7 +408,7 @@ export function JobCard({
                 {/* Missing Skills */}
                 <div className="space-y-2">
                   <span className="text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider block">Missing ({missingSkills.length})</span>
-                  <div className="flex flex-wrap gap-1.5 min-h-[40px] border border-border p-2.5 rounded-xl bg-secondary/20">
+                  <div className="flex flex-wrap gap-1.5 min-h-[40px] border border-border p-2.5 rounded-none bg-secondary/20">
                     {missingSkills.length === 0 ? (
                       <span className="text-[11px] text-muted-foreground/85 italic">No missing skills!</span>
                     ) : (
@@ -422,12 +424,12 @@ export function JobCard({
                               track("gap_nudge_click", { jobId: id, skill: s, hasCourse: true, source: "modal" });
                               track("gap_course_view", { skill: s, provider: course.provider, source: "modal" });
                             }}
-                            className="bg-secondary text-accent border border-accent/30 text-[10px] font-semibold px-2 py-0.5 rounded-md hover:opacity-80 underline underline-offset-2"
+                            className="bg-secondary text-accent border border-accent/30 text-[10px] font-semibold px-2 py-0.5 rounded-none hover:opacity-80 underline underline-offset-2"
                           >
                             {s}
                           </a>
                         ) : (
-                          <span key={s} className="bg-secondary text-muted-foreground border border-border/50 text-[10px] font-semibold px-2 py-0.5 rounded-md">
+                          <span key={s} className="bg-secondary text-muted-foreground border border-border/50 text-[10px] font-semibold px-2 py-0.5 rounded-none">
                             {s}
                           </span>
                         );

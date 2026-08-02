@@ -1,0 +1,235 @@
+/* ---------------------------------------------------------------------------
+   Umbrix landing page — design tokens + component styles
+   Ported 1:1 from the HTML design reference. Scoped under .um-page so it
+   cannot leak into /feed, /tracker or the rest of the app.
+   --------------------------------------------------------------------------- */
+
+:root, body, .um-page {
+  /* ground */
+  --um-bg: #E8E2D0;
+  --um-surface: #DBD3BD;
+  --um-text: #16352A;
+  --um-invert: #16352A;
+  --um-divider: rgba(22, 53, 42, 0.26);
+
+  /* neutral ramp — tinted toward the forest ink so muted copy stays in family */
+  --um-n100: #F1EDE0;
+  --um-n200: #E3DCC8;
+  --um-n300: #CFC7B0;
+  --um-n400: #ADA894;
+  --um-n500: #86846E;
+  --um-n600: #666B57;
+  --um-n700: #4A5642;
+  --um-n800: #2E4234;
+  --um-n900: #16352A;
+
+  /* brass accent — base is AA against --um-bg at 14px bold */
+  --um-accent: #8F5313;
+  --um-accent-100: #EFE3CC;
+  --um-accent-500: #BE7C2C;
+  --um-accent-600: #75420C;
+  --um-accent-700: #5C3409;
+  --um-accent-800: #472807;
+
+  --um-shadow-sm: 0 1px 2px rgba(22, 53, 42, 0.14);
+
+  --um-heading: var(--font-archivo), "Archivo", system-ui, sans-serif;
+  --um-body: var(--font-archivo), "Archivo", system-ui, sans-serif;
+  --um-logo: var(--font-jost), "Jost", system-ui, sans-serif;
+
+  background: var(--um-bg);
+  color: var(--um-text);
+  font-family: var(--um-body);
+  font-size: 15px;
+  line-height: 1.55;
+  overflow-x: hidden;
+}
+
+:root *,
+body *,
+.um-page *,
+.um-page *::before,
+.um-page *::after { box-sizing: border-box; }
+
+:root h1, :root h2, :root h3, :root h4,
+body h1, body h2, body h3, body h4,
+.um-page h1, .um-page h2, .um-page h3, .um-page h4 {
+  font-family: var(--um-heading);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  margin: 0 0 8px;
+}
+:root p, body p, .um-page p { margin: 0 0 12px; text-wrap: pretty; }
+:root a, body a, .um-page a { color: var(--um-accent-700); text-underline-offset: 3px; }
+:root a:hover, body a:hover, .um-page a:hover { color: var(--um-accent-800); }
+:root :focus-visible, body :focus-visible, .um-page :focus-visible { outline: 2px solid var(--um-accent); outline-offset: 2px; }
+:root ::selection, body ::selection, .um-page ::selection { background: color-mix(in srgb, var(--um-accent) 30%, transparent); }
+
+/* ── layout ─────────────────────────────────────────────────────────────── */
+.um-wrap { max-width: 1240px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 40px); }
+.um-section { border-bottom: 2px solid var(--um-divider); }
+.um-section--surface { background: var(--um-surface); }
+.um-section--invert { background: var(--um-invert); color: var(--um-bg); }
+.um-pad { padding: clamp(56px, 8vw, 104px) 0; }
+
+/* ── type roles ─────────────────────────────────────────────────────────── */
+.um-kicker {
+  font-family: var(--um-heading); font-weight: 800; font-size: 11px;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--um-accent-700);
+}
+.um-eyebrow {
+  display: flex; align-items: center; gap: 9px;
+  font-family: var(--um-heading); font-weight: 800; font-size: 11px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+}
+.um-eyebrow i { width: 8px; height: 8px; background: var(--um-accent); flex: none; animation: um-blink 2.4s ease-in-out infinite; }
+.um-h1 { font-size: clamp(42px, 8.8vw, 124px); line-height: 1.02; letter-spacing: -0.038em; margin: 0 0 clamp(22px, 3vw, 34px); text-wrap: balance; }
+.um-h2 { font-size: clamp(30px, 4.6vw, 54px); line-height: 1.02; letter-spacing: -0.03em; margin: 0; }
+.um-lede { font-size: clamp(15px, 1.6vw, 18px); line-height: 1.6; max-width: 56ch; color: var(--um-n800); }
+.um-muted { color: var(--um-n700); }
+.um-fine { font-size: 12px; color: var(--um-n700); }
+
+/* ── buttons ────────────────────────────────────────────────────────────── */
+.um-btn {
+  display: inline-flex; align-items: center; justify-content: flex-start; gap: 6px;
+  font-family: var(--um-heading); font-weight: 800; font-size: 14px; line-height: 1.2;
+  padding: 14px 22px; border: 1px solid transparent; border-radius: 0;
+  text-decoration: none; cursor: pointer; white-space: nowrap;
+  transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+.um-btn--primary { background: var(--um-accent); color: var(--um-bg); }
+.um-btn--primary:hover { background: var(--um-accent-600); color: var(--um-bg); }
+.um-btn--primary:active { background: var(--um-accent-700); }
+.um-btn--secondary { border-color: var(--um-divider); color: var(--um-text); }
+.um-btn--secondary:hover { background: color-mix(in srgb, var(--um-text) 7%, transparent); color: var(--um-text); }
+.um-btn--onDark { background: var(--um-bg); color: var(--um-text); }
+.um-btn--onDark:hover { background: #fff; color: var(--um-text); }
+.um-btn--ghostDark { border-color: color-mix(in srgb, var(--um-bg) 60%, transparent); color: var(--um-bg); }
+.um-btn--block { width: 100%; }
+
+/* ── tags ───────────────────────────────────────────────────────────────── */
+.um-tag { display: inline-flex; align-items: center; font-size: 11px; padding: 3px 10px; border-radius: 0; }
+.um-tag--accent { background: var(--um-accent-100); color: var(--um-accent-800); }
+.um-tag--neutral { background: var(--um-n100); color: var(--um-n800); }
+.um-tag--outline { border: 1px solid var(--um-accent); color: var(--um-accent-700); }
+
+/* ── header ─────────────────────────────────────────────────────────────── */
+.um-header {
+  position: sticky; top: 0; z-index: 60;
+  background: color-mix(in srgb, var(--um-bg) 92%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 2px solid var(--um-divider);
+}
+.um-header__bar { height: 64px; display: flex; align-items: center; gap: clamp(16px, 3vw, 40px); }
+.um-brand { display: flex; align-items: center; gap: 11px; margin-right: auto; text-decoration: none; color: var(--um-text); }
+.um-brand img { display: block; width: auto; height: 34px; }
+.um-brand span { font-family: var(--um-logo); font-weight: 300; font-size: 19px; letter-spacing: 0.24em; text-indent: 0.24em; line-height: 1; }
+.um-nav { display: none; align-items: center; gap: clamp(14px, 2vw, 28px); }
+.um-nav a { font-size: 13px; color: var(--um-text); text-decoration: none; }
+.um-nav a:hover { color: var(--um-accent-700); }
+.um-auth { display: none; align-items: center; gap: 10px; }
+.um-burger { display: inline-flex; padding: 8px 12px; background: transparent; border: 1px solid var(--um-divider); color: var(--um-text); cursor: pointer; }
+.um-sheet { border-top: 1px solid var(--um-divider); background: var(--um-bg); padding: clamp(16px, 4vw, 40px); display: flex; flex-direction: column; }
+.um-sheet a { padding: 12px 0; font-family: var(--um-heading); font-weight: 800; font-size: 22px; color: var(--um-text); text-decoration: none; border-bottom: 1px solid var(--um-divider); }
+@media (min-width: 940px) {
+  .um-nav, .um-auth { display: flex; }
+  .um-burger { display: none; }
+}
+
+/* ── hero ───────────────────────────────────────────────────────────────── */
+.um-hero {
+  position: relative;
+  background-image: repeating-linear-gradient(to right, color-mix(in srgb, var(--um-text) 7%, transparent) 0 1px, transparent 1px 25%);
+  border-bottom: 2px solid var(--um-divider);
+}
+.um-hero__inner { padding: clamp(40px, 6vw, 80px) 0 clamp(48px, 7vw, 88px); }
+.um-hero__ticks {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 12px 32px; padding-top: clamp(20px, 3vw, 28px); border-top: 2px solid var(--um-divider);
+}
+.um-tick { display: flex; gap: 9px; align-items: flex-start; font-size: 13px; }
+.um-tick svg { flex: none; margin-top: 3px; }
+
+/* ── stat band ──────────────────────────────────────────────────────────── */
+.um-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(205px, 1fr)); }
+.um-stat { padding: clamp(26px, 3.5vw, 40px) clamp(18px, 2vw, 28px); border-right: 1px solid var(--um-divider); }
+.um-stat:first-child { padding-left: 0; }
+.um-stat:last-child { padding-right: 0; border-right: 0; }
+.um-stat__n { font-family: var(--um-heading); font-weight: 800; font-size: clamp(34px, 4.4vw, 52px); line-height: 1; letter-spacing: -0.04em; }
+.um-stat__l { font-size: 13px; font-weight: 600; margin-top: 8px; }
+.um-stat__s { font-size: 12px; color: var(--um-n700); margin-top: 2px; }
+
+/* ── source ticker ──────────────────────────────────────────────────────── */
+.um-ticker { overflow: hidden; padding: 16px 0; background: var(--um-invert); }
+.um-ticker__track { display: flex; width: max-content; animation: um-marquee 42s linear infinite; }
+.um-ticker__run {
+  display: flex; align-items: center; gap: 40px; padding-right: 40px;
+  font-family: var(--um-heading); font-weight: 800; font-size: 13px;
+  letter-spacing: 0.14em; text-transform: uppercase; white-space: nowrap;
+  color: color-mix(in srgb, var(--um-bg) 72%, transparent);
+}
+.um-ticker__run em { font-style: normal; color: var(--um-accent-500); }
+
+/* ── grids that must never orphan a cell ────────────────────────────────── */
+.um-steps { display: grid; grid-template-columns: 1fr; gap: clamp(24px, 3vw, 40px); }
+.um-step { border-top: 2px solid var(--um-text); padding-top: 20px; }
+@media (min-width: 700px) { .um-steps { grid-template-columns: repeat(3, 1fr); } }
+
+.um-surfaces { display: grid; grid-template-columns: 1fr; gap: 2px; background: var(--um-divider); border: 2px solid var(--um-divider); }
+.um-surface { background: var(--um-bg); padding: clamp(22px, 2.6vw, 32px); transition: background-color 150ms ease; }
+.um-surface:hover { background: var(--um-surface); }
+@media (min-width: 620px) { .um-surfaces { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1000px) { .um-surfaces { grid-template-columns: repeat(4, 1fr); } }
+
+.um-plans { display: grid; grid-template-columns: 1fr; gap: 2px; background: var(--um-divider); border: 2px solid var(--um-text); }
+.um-plan { background: var(--um-bg); padding: clamp(24px, 3vw, 36px); }
+@media (min-width: 700px) { .um-plans { grid-template-columns: repeat(2, 1fr); } }
+
+.um-foot-cols { display: grid; grid-template-columns: 1fr; gap: clamp(28px, 4vw, 56px); margin-bottom: clamp(32px, 4vw, 52px); }
+@media (min-width: 1020px) { .um-foot-cols { grid-template-columns: 1.1fr 2fr 0.8fr; } }
+
+/* ── two-column editorial rows ──────────────────────────────────────────── */
+.um-split { display: flex; flex-wrap: wrap; gap: clamp(36px, 5vw, 72px); }
+.um-signal { padding: 18px 0; border-bottom: 1px solid var(--um-divider); }
+.um-signal:first-child { border-top: 2px solid var(--um-text); }
+.um-signal__head { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; margin-bottom: 8px; }
+.um-signal__name { font-family: var(--um-heading); font-weight: 800; font-size: 16px; }
+.um-signal__meta { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--um-n700); text-align: right; }
+.um-bar { height: 5px; background: var(--um-n300); margin-bottom: 10px; }
+.um-bar > i { display: block; height: 100%; background: var(--um-accent); transform-origin: left; animation: um-grow 1.3s cubic-bezier(.2,.7,.2,1) both; }
+
+/* ── table ──────────────────────────────────────────────────────────────── */
+.um-tablewrap { overflow-x: auto; background: var(--um-bg); border: 2px solid var(--um-divider); }
+.um-table { width: 100%; min-width: 640px; border-collapse: collapse; font-size: 14px; }
+.um-table th {
+  text-align: left; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--um-n700); padding: 8px; border-bottom: 2px solid var(--um-divider);
+}
+.um-table td { padding: 8px; border-bottom: 1px solid var(--um-divider); }
+.um-table tbody tr { transition: background-color 150ms ease; }
+.um-table tbody tr:hover { background: color-mix(in srgb, var(--um-text) 4%, transparent); }
+
+/* ── footer ─────────────────────────────────────────────────────────────── */
+.um-footer { border-top: 2px solid var(--um-divider); background: var(--um-bg); }
+.um-linkgrid { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; }
+.um-linkgrid a { color: var(--um-text); text-decoration: none; }
+.um-linkgrid a:hover { color: var(--um-accent-700); }
+.um-collabel { font-family: var(--um-heading); font-weight: 800; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--um-n700); margin-bottom: 14px; }
+
+/* ── motion ─────────────────────────────────────────────────────────────── */
+@keyframes um-marquee { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-50%, 0, 0); } }
+@keyframes um-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.15; } }
+@keyframes um-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  :root *,
+  body *,
+  .um-page *,
+  .um-page *::before,
+  .um-page *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

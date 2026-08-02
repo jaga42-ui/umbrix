@@ -114,7 +114,7 @@ export function TailorResumeModal({ jobId, jobTitle, company, onClose }: Props) 
             </p>
             <button
               onClick={generate}
-              className="w-full h-11 bg-primary text-primary-foreground rounded-xl text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all cursor-pointer"
+              className="um-btn um-btn--primary w-full h-11 rounded-none text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer"
             >
               <Sparkles className="w-4 h-4" />
               Generate tailored résumé
@@ -137,14 +137,15 @@ export function TailorResumeModal({ jobId, jobTitle, company, onClose }: Props) 
         {/* ERROR */}
         {phase === "error" && error && (
           <div className="py-4">
-            <div className="flex items-start gap-2 text-sm text-red-500 bg-red-500/10 border border-red-500/25 rounded-xl p-3.5 mb-4">
+            <div className="flex items-start gap-2 text-sm text-red-500 bg-red-500/10 border border-red-500/25 rounded-none p-3.5 mb-4">
               <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
               <span>{error.msg}</span>
             </div>
             {error.code === "NO_RESUME" ? (
               <Link
                 href="/profile"
-                className="w-full h-11 bg-primary text-primary-foreground rounded-xl text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-all"
+                className="um-btn um-btn--primary w-full h-11 rounded-none text-sm font-semibold flex items-center justify-center gap-2"
+                style={{ textDecoration: "none" }}
               >
                 Upload your résumé
               </Link>
@@ -155,7 +156,7 @@ export function TailorResumeModal({ jobId, jobTitle, company, onClose }: Props) 
             ) : (
               <button
                 onClick={generate}
-                className="w-full h-11 bg-secondary text-foreground border border-border rounded-xl text-sm font-semibold hover:bg-secondary/70 transition-all cursor-pointer"
+                className="um-btn um-btn--secondary w-full h-11 rounded-none text-sm font-semibold cursor-pointer"
               >
                 Try again
               </button>
@@ -166,7 +167,7 @@ export function TailorResumeModal({ jobId, jobTitle, company, onClose }: Props) 
         {/* DONE — preview + download */}
         {phase === "done" && resume && (
           <div>
-            <div className="border border-border rounded-xl p-4 bg-secondary/20 mb-4 max-h-[42vh] overflow-y-auto">
+            <div className="border border-border rounded-none p-4 bg-secondary/20 mb-4 max-h-[42vh] overflow-y-auto">
               <div className="font-semibold text-foreground">{resume.contact.name}</div>
               {resume.summary && (
                 <p className="text-xs text-muted-foreground leading-relaxed mt-1.5">{resume.summary}</p>
@@ -176,7 +177,7 @@ export function TailorResumeModal({ jobId, jobTitle, company, onClose }: Props) 
                   {resume.skills.slice(0, 14).map((s) => (
                     <span
                       key={s}
-                      className="px-2 py-0.5 text-[10px] font-medium bg-background border border-border/60 rounded-md text-foreground/80"
+                      className="px-2 py-0.5 text-[10px] font-medium bg-background border border-border/60 rounded-none text-foreground/80"
                     >
                       {s}
                     </span>
@@ -204,7 +205,7 @@ export function TailorResumeModal({ jobId, jobTitle, company, onClose }: Props) 
             <button
               onClick={download}
               disabled={downloading}
-              className="w-full h-11 bg-primary text-primary-foreground rounded-xl text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
+              className="um-btn um-btn--primary w-full h-11 rounded-none text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
               Download .docx

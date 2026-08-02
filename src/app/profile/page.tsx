@@ -6,6 +6,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { authedFetch } from "@/lib/authedFetch";
 import { track } from "@/lib/analytics";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import { 
   User as UserIcon, 
   Mail, 
@@ -439,7 +440,7 @@ export default function ProfilePage() {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="absolute left-0 right-0 bg-secondary border border-stage-interview/25 text-stage-interview text-sm py-2 px-4 rounded-xl flex items-center gap-2"
+                className="absolute left-0 right-0 bg-secondary border border-stage-interview/25 text-stage-interview text-sm py-2 px-4 rounded-none flex items-center gap-2"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 <span>{successMessage}</span>
@@ -451,7 +452,7 @@ export default function ProfilePage() {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="absolute left-0 right-0 bg-destructive/10 border border-destructive/20 text-destructive text-sm py-2 px-4 rounded-xl flex items-center gap-2"
+                className="absolute left-0 right-0 bg-destructive/10 border border-destructive/20 text-destructive text-sm py-2 px-4 rounded-none flex items-center gap-2"
               >
                 <AlertCircle className="w-4 h-4" />
                 <span>{errorMessage}</span>
@@ -468,10 +469,10 @@ export default function ProfilePage() {
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              className="mb-6 bg-card border border-border rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+              className="mb-6 bg-surface border border-border rounded-none p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
             >
               <div className="flex items-start gap-3">
-                <div className="p-2 bg-secondary rounded-xl text-accent mt-0.5 shrink-0">
+                <div className="p-2 bg-secondary rounded-none text-accent mt-0.5 shrink-0">
                   <CheckCircle2 className="w-5 h-5" />
                 </div>
                 <div>
@@ -843,6 +844,8 @@ export default function ProfilePage() {
         </div>
 
       </main>
+
+      <Footer />
     </div>
   );
 }

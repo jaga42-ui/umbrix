@@ -6,6 +6,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { authedFetch } from "@/lib/authedFetch";
 import { FIELD_LABELS } from "@/lib/seoFields";
 import { Search, Loader2, Lock, Unlock, GraduationCap, Briefcase, Mail, Copy, ShieldCheck } from "lucide-react";
+import { Footer } from "@/components/Footer";
 
 const FIELD_OPTIONS = Object.entries(FIELD_LABELS);
 
@@ -126,19 +127,24 @@ export default function RecruiterSearchPage() {
       <div className="min-h-screen bg-background text-foreground flex flex-col">
         {Header}
         <main className="flex-1 max-w-lg w-full mx-auto px-6 py-20 text-center">
-          <div className="inline-flex p-3 bg-secondary rounded-2xl border border-border text-accent mb-5">
+          <div className="inline-flex p-3 bg-secondary rounded-none border border-border text-accent mb-5">
             <ShieldCheck className="w-6 h-6" />
           </div>
-          <h1 className="font-serif text-2xl tracking-tight mb-2">Recruiter access</h1>
+          <h1
+            className="text-2xl font-extrabold tracking-tight mb-2"
+            style={{ fontFamily: "var(--um-heading)", color: "var(--um-text)" }}
+          >
+            Recruiter access
+          </h1>
           <p className="text-muted-foreground text-sm leading-relaxed mb-6">
             Umbrix candidate search is invite-only right now. Send us the account ID below and we&rsquo;ll set
             you up with credits.
           </p>
-          <div className="bg-card border border-border rounded-xl p-4 flex items-center justify-between gap-3">
+          <div className="bg-card border border-border rounded-none p-4 flex items-center justify-between gap-3">
             <code className="text-xs text-foreground break-all text-left">{uid}</code>
             <button
               onClick={() => navigator.clipboard?.writeText(uid)}
-              className="shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-border hover:bg-secondary transition-colors"
+              className="shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-none border border-border hover:bg-secondary transition-colors cursor-pointer"
             >
               <Copy className="w-3.5 h-3.5" /> Copy
             </button>
@@ -147,6 +153,7 @@ export default function RecruiterSearchPage() {
             Email it to <a href="mailto:recruiters@umbrix.in" className="text-accent underline">recruiters@umbrix.in</a>.
           </p>
         </main>
+        <Footer />
       </div>
     );
   }
@@ -155,24 +162,29 @@ export default function RecruiterSearchPage() {
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       {Header}
       <main className="flex-1 max-w-5xl w-full mx-auto px-6 py-10">
-        <h1 className="font-serif text-2xl sm:text-3xl tracking-tight mb-1">Find candidates</h1>
+        <h1
+          className="text-2xl sm:text-3xl font-extrabold tracking-tight mb-1"
+          style={{ fontFamily: "var(--um-heading)", color: "var(--um-text)" }}
+        >
+          Find candidates
+        </h1>
         <p className="text-muted-foreground text-sm mb-6">
           Search freshers who&rsquo;ve opted in to be discovered. Cards are anonymous until you unlock them.
         </p>
 
         {/* Filters */}
-        <div className="bg-card border border-border rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <div className="bg-surface border border-border rounded-none p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
           <input
             value={skill}
             onChange={(e) => setSkill(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && runSearch()}
             placeholder="Skills (comma-separated)"
-            className="bg-secondary/30 border border-border h-11 px-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/15 sm:col-span-2"
+            className="bg-background border border-border h-11 px-3 rounded-none text-sm focus:outline-none focus:ring-2 focus:ring-primary/15 sm:col-span-2"
           />
           <select
             value={field}
             onChange={(e) => setField(e.target.value)}
-            className="bg-secondary/30 border border-border h-11 px-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/15 cursor-pointer"
+            className="bg-background border border-border h-11 px-3 rounded-none text-sm focus:outline-none focus:ring-2 focus:ring-primary/15 cursor-pointer"
           >
             <option value="">All fields</option>
             {FIELD_OPTIONS.map(([k, label]) => (
@@ -182,7 +194,7 @@ export default function RecruiterSearchPage() {
           <button
             onClick={runSearch}
             disabled={searching}
-            className="bg-primary text-primary-foreground h-11 px-4 rounded-xl text-sm font-semibold inline-flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all"
+            className="um-btn um-btn--primary h-11 px-4 rounded-none text-sm font-semibold inline-flex items-center justify-center gap-2 cursor-pointer"
           >
             {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
             Search
@@ -198,12 +210,12 @@ export default function RecruiterSearchPage() {
           </label>
         </div>
 
-        {error && <div className="mb-4 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-xl px-4 py-2.5">{error}</div>}
+        {error && <div className="mb-4 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-none px-4 py-2.5">{error}</div>}
 
         <div className="text-xs text-muted-foreground mb-3">{candidates.length} candidate{candidates.length === 1 ? "" : "s"}</div>
 
         {candidates.length === 0 ? (
-          <div className="border border-dashed border-border rounded-2xl p-10 text-center text-muted-foreground">
+          <div className="border border-dashed border-border rounded-none p-10 text-center text-muted-foreground">
             No opted-in candidates match yet. Widen your filters, or check back as more candidates join.
           </div>
         ) : (
@@ -247,10 +259,10 @@ export default function RecruiterSearchPage() {
                     <button
                       onClick={() => unlock(c.id)}
                       disabled={unlockingId === c.id}
-                      className={`w-full h-10 rounded-xl text-sm font-semibold inline-flex items-center justify-center gap-2 transition-all ${
+                      className={`um-btn w-full h-10 rounded-none text-sm font-semibold inline-flex items-center justify-center gap-2 cursor-pointer ${
                         c.unlocked
-                          ? "bg-secondary text-foreground border border-border hover:bg-secondary/70"
-                          : "bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98]"
+                          ? "um-btn--secondary"
+                          : "um-btn--primary"
                       }`}
                     >
                       {unlockingId === c.id ? (
@@ -268,6 +280,7 @@ export default function RecruiterSearchPage() {
           </div>
         )}
       </main>
+      <Footer />
     </div>
   );
 }

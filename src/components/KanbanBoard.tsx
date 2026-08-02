@@ -492,14 +492,19 @@ export function KanbanBoard() {
             return (
               <div
                 key={columnId}
-                className={`w-80 flex-shrink-0 flex flex-col bg-secondary/30 rounded-2xl border border-border border-t-2 ${STAGE_BORDER[columnId]} p-4`}
+                className={`w-80 flex-shrink-0 flex flex-col bg-surface rounded-none border border-border border-t-2 ${STAGE_BORDER[columnId]} p-4`}
               >
                 {/* Column Header */}
                 <div className="flex items-center justify-between mb-4 px-1.5">
                   <div className="flex items-center space-x-2">
-                    <span className={`w-1.5 h-1.5 rounded-full ${STAGE_DOT[columnId]}`} aria-hidden="true" />
-                    <h3 className="font-mono text-xs font-semibold text-foreground tracking-wider uppercase">{columnId}</h3>
-                    <span className="text-[10px] font-mono font-semibold bg-secondary border border-border text-muted-foreground px-2 py-0.5 rounded-full">
+                    <span className={`w-1.5 h-1.5 rounded-none ${STAGE_DOT[columnId]}`} aria-hidden="true" />
+                    <h3
+                      className="text-xs font-bold text-foreground tracking-wider uppercase"
+                      style={{ fontFamily: "var(--um-heading)" }}
+                    >
+                      {columnId}
+                    </h3>
+                    <span className="text-[10px] font-mono font-semibold bg-secondary border border-border text-muted-foreground px-2 py-0.5 rounded-none">
                       {columnTasks.length}
                     </span>
                   </div>
@@ -520,12 +525,12 @@ export function KanbanBoard() {
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className={`flex-1 min-h-[300px] overflow-y-auto max-h-[60vh] space-y-3 rounded-xl p-1.5 transition-colors duration-250 ${
+                      className={`flex-1 min-h-[300px] overflow-y-auto max-h-[60vh] space-y-3 rounded-none p-1.5 transition-colors duration-250 ${
                         snapshot.isDraggingOver ? "bg-primary/5 border border-dashed border-primary/20" : ""
                       }`}
                     >
                       {columnTasks.length === 0 ? (
-                        <div className="h-32 flex flex-col items-center justify-center border border-dashed border-border/50 rounded-xl text-center px-4">
+                        <div className="h-32 flex flex-col items-center justify-center border border-dashed border-border/50 rounded-none text-center px-4">
                           <span className="text-[10px] text-muted-foreground font-semibold">Drop applications here</span>
                         </div>
                       ) : (
@@ -540,10 +545,10 @@ export function KanbanBoard() {
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
                                 onClick={() => handleOpenDetailModal(task)}
-                                className={`bg-card text-card-foreground p-4 rounded-xl border transition-all cursor-pointer group/card select-none ${
+                                className={`bg-card text-foreground p-4 rounded-none border transition-all cursor-pointer group/card select-none ${
                                   snapshot.isDragging
-                                    ? "shadow-lg border-foreground/25 scale-[1.03] z-50"
-                                    : "border-border hover:border-foreground/25"
+                                    ? "shadow-lg border-foreground/40 scale-[1.03] z-50"
+                                    : "border-border hover:border-foreground/30"
                                 }`}
                               >
                                 <div className="flex items-start gap-2.5">

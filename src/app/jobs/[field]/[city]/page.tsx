@@ -71,7 +71,10 @@ export async function generateMetadata({
   };
 }
 
-export default async function CityFieldJobsPage({
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
+
+export default async function CityJobsPage({
   params,
 }: {
   params: Promise<{ field: string; city: string }>;
@@ -106,17 +109,7 @@ export default async function CityFieldJobsPage({
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
 
-      <header className="border-b border-border">
-        <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent" aria-hidden="true" />
-            <span className="text-lg font-mono font-semibold tracking-[0.2em]">UMBRIX</span>
-          </Link>
-          <Link href="/feed" className="text-sm font-semibold text-primary hover:opacity-80">
-            Open the feed →
-          </Link>
-        </div>
-      </header>
+      <Header />
 
       <main className="flex-1 max-w-4xl w-full mx-auto px-6 py-12">
         <nav className="font-mono text-xs text-muted-foreground mb-4">
@@ -124,7 +117,10 @@ export default async function CityFieldJobsPage({
           <Link href={`/jobs/${field}`} className="hover:text-foreground">{label}</Link> / {cityObj.label}
         </nav>
 
-        <h1 className="font-serif text-3xl sm:text-4xl tracking-tight mb-3">
+        <h1
+          className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-3"
+          style={{ fontFamily: "var(--um-heading)", color: "var(--um-text)" }}
+        >
           Fresher {label} jobs in {cityObj.label}
         </h1>
         <p className="text-muted-foreground leading-relaxed max-w-2xl mb-2">
@@ -136,7 +132,8 @@ export default async function CityFieldJobsPage({
 
         <Link
           href="/feed"
-          className="inline-flex items-center gap-2 bg-primary text-primary-foreground text-sm font-semibold px-5 py-2.5 rounded-xl hover:opacity-90 active:scale-[0.98] transition-all my-6"
+          className="um-btn um-btn--primary inline-flex items-center gap-2 px-5 py-2.5 rounded-none text-sm font-semibold my-6"
+          style={{ textDecoration: "none" }}
         >
           See your matches <ArrowRight className="w-4 h-4" />
         </Link>
@@ -146,7 +143,7 @@ export default async function CityFieldJobsPage({
             {jobs.map((j: any) => {
               const fresher = j.minExperience != null && j.minExperience <= 1;
               return (
-                <li key={String(j._id)} className="bg-card border border-border rounded-xl p-4">
+                <li key={String(j._id)} className="bg-surface border border-border rounded-none p-4">
                   <h3 className="font-semibold tracking-tight">{j.title}</h3>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground mt-1">
                     <span className="font-medium text-foreground/90">{companyName(j)}</span>
@@ -155,7 +152,7 @@ export default async function CityFieldJobsPage({
                       {j.location}
                     </span>
                     {fresher && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-accent bg-accent/10 border border-accent/25 px-2 py-0.5 rounded-full">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-accent bg-accent/10 border border-accent/25 px-2 py-0.5 rounded-none">
                         <GraduationCap className="w-3.5 h-3.5" />
                         Fresher-friendly
                       </span>
@@ -166,7 +163,7 @@ export default async function CityFieldJobsPage({
             })}
           </ul>
         ) : (
-          <div className="border border-dashed border-border rounded-xl p-8 text-center text-muted-foreground mb-12">
+          <div className="border border-dashed border-border rounded-none p-8 text-center text-muted-foreground mb-12">
             No live {label.toLowerCase()} roles in {cityObj.label} right now. See{" "}
             <Link href={`/jobs/${field}`} className="text-primary font-semibold">all {label.toLowerCase()} jobs</Link>{" "}
             across India, or <Link href="/feed" className="text-primary font-semibold">open the feed</Link>.
@@ -178,14 +175,7 @@ export default async function CityFieldJobsPage({
         <CityLinks field={field} currentCity={city} />
       </main>
 
-      <footer className="border-t border-border">
-        <div className="max-w-4xl mx-auto px-6 py-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
-          <span>© {YEAR} Umbrix</span>
-          <Link href="/privacy" className="hover:text-foreground">Privacy</Link>
-          <Link href="/terms" className="hover:text-foreground">Terms</Link>
-          <Link href="/" className="hover:text-foreground ml-auto">Back to Umbrix →</Link>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

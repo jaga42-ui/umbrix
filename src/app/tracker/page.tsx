@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { LayoutDashboard, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -46,7 +47,12 @@ export default function TrackerPage() {
             <LayoutDashboard className="w-3.5 h-3.5" />
             Application tracker
           </div>
-          <h1 className="font-serif text-3xl sm:text-4xl tracking-tight">Your pipeline</h1>
+          <h1
+            className="text-3xl sm:text-4xl font-extrabold tracking-tight"
+            style={{ fontFamily: "var(--um-heading)", color: "var(--um-text)" }}
+          >
+            Your pipeline
+          </h1>
           <p className="text-muted-foreground text-sm sm:text-base mt-1.5">
             Drag cards between stages, add notes, or manage details.
           </p>
@@ -62,6 +68,8 @@ export default function TrackerPage() {
           <KanbanBoard />
         </motion.div>
       </main>
+
+      <Footer />
     </div>
   );
 }
