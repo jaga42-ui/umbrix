@@ -147,6 +147,7 @@ export function AuthProvider({ children, firebaseConfig }: { children: React.Rea
     }
 
     console.log("👉 Executing live Firebase Google Sign-In");
+    const start = Date.now();
     try {
       const cred = await signInWithPopup(firebaseAuth, googleProvider);
       if (getAdditionalUserInfo(cred)?.isNewUser) {
@@ -154,16 +155,20 @@ export function AuthProvider({ children, firebaseConfig }: { children: React.Rea
       }
     } catch (error: any) {
       const code = error?.code || "";
+      const elapsed = Date.now() - start;
 
-      // The user intentionally dismissed the popup — not an error worth surfacing.
-      if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
+      // Only treat as intentional user dismissal if the popup was open for more than 4 seconds.
+      // If closed in < 4 seconds, Chrome's COOP likely severed the window handle instantly.
+      if ((code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") && elapsed >= 4000) {
         return;
       }
 
-      // Strict popup blockers, COOP restrictions, or environments that disallow popups throw these.
+      // Strict popup blockers, COOP restrictions, quick disconnects (<4s), or environments that disallow popups throw these.
       // Fall back to a full-page redirect, which is never popup-blocked and avoids COOP window.closed errors.
       if (
         code === "auth/popup-blocked" ||
+        code === "auth/popup-closed-by-user" ||
+        code === "auth/cancelled-popup-request" ||
         code === "auth/operation-not-supported-in-this-environment" ||
         code === "auth/internal-error" ||
         code === "auth/network-request-failed" ||
@@ -171,7 +176,7 @@ export function AuthProvider({ children, firebaseConfig }: { children: React.Rea
         error?.message?.includes("window.closed") ||
         error?.message?.includes("window.close")
       ) {
-        console.warn("Popup blocked or COOP restricted; falling back to signInWithRedirect:", code, error);
+        console.warn("Popup blocked or COOP restricted (<4s); falling back to signInWithRedirect:", code, error);
         try {
           await signInWithRedirect(firebaseAuth, googleProvider);
           return;
