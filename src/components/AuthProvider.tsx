@@ -160,9 +160,18 @@ export function AuthProvider({ children, firebaseConfig }: { children: React.Rea
         return;
       }
 
-      // Strict popup blockers (or environments that disallow popups) throw these.
-      // Fall back to a full-page redirect, which is never popup-blocked.
-      if (code === "auth/popup-blocked" || code === "auth/operation-not-supported-in-this-environment") {
+      // Strict popup blockers, COOP restrictions, or environments that disallow popups throw these.
+      // Fall back to a full-page redirect, which is never popup-blocked and avoids COOP window.closed errors.
+      if (
+        code === "auth/popup-blocked" ||
+        code === "auth/operation-not-supported-in-this-environment" ||
+        code === "auth/internal-error" ||
+        code === "auth/network-request-failed" ||
+        error?.message?.includes("Cross-Origin-Opener-Policy") ||
+        error?.message?.includes("window.closed") ||
+        error?.message?.includes("window.close")
+      ) {
+        console.warn("Popup blocked or COOP restricted; falling back to signInWithRedirect:", code, error);
         try {
           await signInWithRedirect(firebaseAuth, googleProvider);
           return;
