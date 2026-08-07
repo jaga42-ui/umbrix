@@ -49,6 +49,23 @@ export interface IOpportunity extends Document {
   /** When the LLM eligibility pass last processed this posting (dedup guard). */
   eligibilityLLMAt?: Date;
 
+  // --- Written by the ingestion platform (apps/ingest); all optional --------
+  /** Connector that last wrote this document, e.g. "greenhouse". */
+  sourceId?: string;
+  /** The posting's stable id at its source, where the source exposes one. */
+  sourceJobId?: string;
+  /** Normalized category (see @umbrix/normalizer). Distinct from `tags`. */
+  category?: string;
+  /** Cross-source duplicate identity — see @umbrix/dedupe. */
+  identityKey?: string;
+  /** When the source says the job was posted. */
+  postedAt?: Date;
+  /** Graded freshness state — see @umbrix/freshness. */
+  freshnessState?: string;
+  freshnessScore?: number;
+  /** Why a listing was closed, e.g. "freshness-sweep". */
+  closedReason?: string;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -82,6 +99,26 @@ const OpportunitySchema = new Schema<IOpportunity>(
     closedAt: { type: Date },
     eligibilitySource: { type: String },
     eligibilityLLMAt: { type: Date },
+
+    // --- Written by the ingestion platform (apps/ingest) ---------------------
+    // All optional and all additive: existing documents simply lack them until
+    // their next ingest, no backfill is required, and no index changes. Readers
+    // must treat every one of these as absent-by-default.
+    /** Connector that last wrote this document, e.g. "greenhouse". */
+    sourceId: { type: String },
+    /** The posting's stable id at its source, where the source exposes one. */
+    sourceJobId: { type: String },
+    /** Normalized category (see @umbrix/normalizer). Distinct from `tags`. */
+    category: { type: String },
+    /** Cross-source duplicate identity — see @umbrix/dedupe. */
+    identityKey: { type: String },
+    /** When the source says the job was posted. */
+    postedAt: { type: Date },
+    /** Graded freshness — "fresh" | "possibly-stale" | … (see @umbrix/freshness). */
+    freshnessState: { type: String },
+    freshnessScore: { type: Number },
+    /** Why a listing was closed, e.g. "freshness-sweep". */
+    closedReason: { type: String },
   },
   { timestamps: true }
 );

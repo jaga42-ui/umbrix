@@ -2,6 +2,10 @@
   "name": "umbrix",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -9,7 +13,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "ingest": "node scripts/ingest-jobs.js",
-    "test": "node --import tsx --test scripts/*.test.js src/lib/*.test.ts"
+    "ingest:next": "tsx apps/ingest/src/main.ts",
+    "test": "node --import tsx --test scripts/*.test.js src/lib/*.test.ts packages/*/test/*.test.ts apps/*/test/*.test.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.12",

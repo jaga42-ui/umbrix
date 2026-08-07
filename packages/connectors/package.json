@@ -1,0 +1,13 @@
+{
+  "name": "@umbrix/connectors",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@umbrix/core": "*",
+    "@umbrix/eligibility": "*",
+    "@umbrix/normalizer": "*"
+  }
+}
