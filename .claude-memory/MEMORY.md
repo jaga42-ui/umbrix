@@ -7,3 +7,5 @@
 - [Umbrix auth Google-only](umbrix-auth-google-only.md) — keep sign-in to Google only; never add email/password; phone-OTP is a post-launch experiment gated on signup-funnel data
 - [Umbrix roadmap](umbrix-roadmap.md) — post-launch priority order: 1) ingest expansion (Internshala/scrapers + company career pages), 2) PWA→Android→iOS, 3) legal pages, 4) SEO
 - [Umbrix recruiter marketplace](umbrix-recruiter-marketplace.md) — reverse-marketplace built but dormant; blocked on candidate supply (0 opted-in), not code; watch `recruiter-supply.js`
+- [GetFreeToolsAI repo](getfreetoolsai-repo.md) — separate repo at `Downloads/multi tool`; Next 14 App Router; branches often sit behind `main`
+- [GetFreeToolsAI SEO audit](getfreetoolsai-seo-audit.md) — 68/100 on 2026-08-06; real ceiling is zero external authority, not on-page
