@@ -10,9 +10,14 @@ on:
   workflow_dispatch:
     inputs:
       tier:
-        description: "Tier to run (1 = Adzuna, 3 = ATS; blank = every source)"
+        description: "Tier to run (1 = Adzuna/Jooble, 3 = ATS; blank = every source)"
         required: false
         default: ""
+        # Tier 5 (Careerjet) is deliberately absent and currently dormant: it
+        # authenticates by declared static IP, which no GitHub-hosted runner can
+        # satisfy. Leaving `tier` blank here runs every source, which means
+        # Careerjet will 403 — harmless, since failures are isolated per
+        # company, but expect it in the log.
 
 concurrency:
   # One group per tier (keyed by the cron that fired, or the dispatch input), so
@@ -63,5 +68,11 @@ jobs:
           # ATS tier still ingests.
           ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
           ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
+          # Jooble aggregator (Tier 1). Free key with a 500-request default
+          # quota; the adapter caps itself at JOOBLE_MAX_REQUESTS per run.
+          JOOBLE_API_KEY: ${{ secrets.JOOBLE_API_KEY }}
+          # Careerjet aggregator (Tier 1). India-native, with a structured
+          # contract_type=i internship filter rather than keyword guessing.
+          CAREERJET_API_KEY: ${{ secrets.CAREERJET_API_KEY }}
           INGEST_TIER: ${{ steps.tier.outputs.tier }}
         run: npm run ingest

@@ -179,15 +179,24 @@ const ADAPTERS = [
   require('./adapters/ingest-smartrecruiters'),
   require('./adapters/ingest-adzuna'),
   require('./adapters/ingest-jooble'),
+  require('./adapters/ingest-careerjet'),
 ];
 
 const ATS_FETCHERS = Object.fromEntries(ADAPTERS.map((a) => [a.ats, a.fetch]));
 
 // Staggered-cron tier assignment, declared by each adapter. The rulebook's
 // 4-tier schedule (APIs / India scrapers / ATS / government) is aspirational —
-// only two tiers have a real source today: Tier 1 (aggregator APIs) and Tier 3
-// (company ATS boards). Tiers 2 and 4 have no adapters yet, so a `--tier=2` run
-// cleanly no-ops. Tier is keyed by `ats`, so companies.json stays untouched.
+// the tiers with a real source today are Tier 1 (aggregator APIs), Tier 3
+// (company ATS boards) and Tier 5. Tiers 2 and 4 have no adapters yet, so a
+// `--tier=2` run cleanly no-ops. Tier is keyed by `ats`, so companies.json stays
+// untouched.
+//
+// Tier 5 is the odd one out: it partitions by INFRASTRUCTURE, not by clock. It
+// holds sources that authenticate the caller by IP address and so cannot run on
+// GitHub-hosted runners, whose egress spans thousands of rotating ranges. Those
+// run from the self-hosted runner with a reserved static IP
+// (.github/workflows/ingest-careerjet.yml). Reusing the tier mechanism keeps the
+// split to a single number per adapter instead of a second partitioning concept.
 const TIER_BY_ATS = Object.fromEntries(ADAPTERS.map((a) => [a.ats, a.tier]));
 
 /**
@@ -377,6 +386,14 @@ async function processCompany(company) {
         type: classifyType(job.title),
         isIndia: isIndiaLocation(job.location),
         ...extractEligibility(job.title, job.content),
+        // A source that KNOWS a posting's eligibility overrides the inferred
+        // value. Careerjet's contract_type=i, for instance, guarantees an
+        // internship even when the title ("Marketing Specialist") carries no
+        // fresher keyword and the excerpt states no years. Without this the
+        // field lands unstated — which silently PASSES the fresher filter on
+        // the /jobs/<field> SEO pages. Optional and additive: adapters that
+        // omit it keep the inferred values exactly as before.
+        ...(job.eligibility || {}),
         lastSeenAt: now,
       });
     }

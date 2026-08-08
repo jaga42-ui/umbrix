@@ -33,18 +33,36 @@ export function isSeoField(field: string): boolean {
   return Object.prototype.hasOwnProperty.call(FIELD_LABELS, field);
 }
 
+/** Aggregator sources whose companySlugs are field shards, not real companies. */
+export const AGGREGATOR_PREFIXES = ["adzuna", "jooble", "careerjet"] as const;
+
+// A source may run more than one shard family over the same field — Careerjet
+// has `careerjet-in-<field>` (structured internships) alongside
+// `careerjet-fresher-<field>` (keyword sweep). Both are aggregator shards and
+// both must be recognised as such.
+const SHARD_INFIXES = ["in", "fresher"] as const;
+
+// Anything matching this is an aggregator field shard; anything else is a
+// company ATS board. Both lists feed it, so adding a source or a shard family is
+// a one-line change — and missing one is not a silent typo but a real defect: an
+// unrecognised shard is hidden from its own field page AND swept onto /jobs/it
+// by the catch-all branch below, publishing (say) warehouse roles as IT jobs.
+const AGGREGATOR_SHARD_RE = new RegExp(
+  `^(?:${AGGREGATOR_PREFIXES.join("|")})-(?:${SHARD_INFIXES.join("|")})-`
+);
+
 /**
  * Mongo `$or` conditions for "jobs in this field" — mirrors the feed's field
- * scoping. Aggregator shards are `<source>-in-<field>`; "it" also covers every
- * ATS board (software/product). Shared by the field and city SEO pages.
+ * scoping. Shared by the field and city SEO pages.
  */
 export function fieldSlugConds(field: string): Record<string, unknown>[] {
+  const shards = AGGREGATOR_PREFIXES.flatMap((source) =>
+    SHARD_INFIXES.map((infix) => ({ companySlug: `${source}-${infix}-${field}` }))
+  );
   if (field === "it") {
-    return [
-      { companySlug: "adzuna-in-it" },
-      { companySlug: "jooble-in-it" },
-      { companySlug: { $not: /^(?:adzuna|jooble)-in-/ } },
-    ];
+    // ATS boards are software/product companies, so they belong to IT — but only
+    // the genuine ones, not another aggregator's non-IT shard.
+    return [...shards, { companySlug: { $not: AGGREGATOR_SHARD_RE } }];
   }
-  return [{ companySlug: `adzuna-in-${field}` }, { companySlug: `jooble-in-${field}` }];
+  return shards;
 }
