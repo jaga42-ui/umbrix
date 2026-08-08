@@ -46,6 +46,10 @@ const limiters = {
   // Analytics event ingest — events arrive batched, so a generous per-identifier
   // bucket is plenty for real usage while bounding a firehose of spoofed beacons.
   events: makeLimiter(60, "1 m"),
+  // Résumé analysis. The scoring itself is pure and cheap, but each call also
+  // samples live listings for the market comparison, so this bounds how often
+  // one account can trigger that query. Generous enough to re-run after edits.
+  resumeAnalyze: makeLimiter(10, "1 m"),
 } as const;
 
 export type LimiterName = keyof typeof limiters;
