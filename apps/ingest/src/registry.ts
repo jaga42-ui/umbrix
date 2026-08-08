@@ -10,7 +10,7 @@
  */
 
 import { createRequire } from 'node:module';
-import type { RegistryEntry } from './pool.js';
+import type { RegistryEntry } from './pool';
 
 const require = createRequire(import.meta.url);
 

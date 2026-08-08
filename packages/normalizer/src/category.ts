@@ -14,7 +14,7 @@
  */
 
 import { JOB_CATEGORIES, type JobCategory } from '@umbrix/core';
-import { comparableText } from './text.js';
+import { comparableText } from './text';
 
 interface CategoryRule {
   category: JobCategory;

@@ -476,6 +476,8 @@ export default function FeedPage() {
                   minExperience={job.minExperience}
                   source={typeof job.companySlug === "string" && job.companySlug.startsWith("adzuna-in-") ? "Adzuna" : undefined}
                   createdAt={job.createdAt}
+                  lastSeenAt={job.lastSeenAt}
+                  postedAt={job.postedAt}
                   type={job.type}
                   isSaved={savedJobIds.has(job._id || job.id)}
                   onSave={() => handleSaveJob(job)}

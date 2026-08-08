@@ -1,2 +1,2 @@
-export * from './score.js';
-export * from './sweep.js';
+export * from './score';
+export * from './sweep';

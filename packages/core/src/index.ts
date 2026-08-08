@@ -1,3 +1,3 @@
-export * from './job.js';
-export * from './connector.js';
-export * from './persistence.js';
+export * from './job';
+export * from './connector';
+export * from './persistence';

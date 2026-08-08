@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { normalizeCategory, stripHtml, decodeEntities, truncateWords, isIndiaLocation, extractCity, detectWorkMode, normalizeLocation, classifyType, extractTags } from '../src/index.js';
+import { normalizeCategory, stripHtml, decodeEntities, truncateWords, isIndiaLocation, extractCity, detectWorkMode, normalizeLocation, classifyType, extractTags } from '../src/index';
 
 test('normalizeCategory: narrow rules beat broad ones', () => {
   // "Sales Engineer" contains "engineer", but sales is the more specific claim.

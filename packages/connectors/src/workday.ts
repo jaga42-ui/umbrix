@@ -21,8 +21,8 @@
 import type { Connector, FetchContext, NormalizedJob } from '@umbrix/core';
 import { normalizeCategory, normalizeLocation, detectWorkMode, classifyType, extractTags, stripHtml, truncateWords, isIndiaLocation } from '@umbrix/normalizer';
 import { extractEligibility } from '@umbrix/eligibility';
-import { fetchJson, probe, USER_AGENT } from './http.js';
-import { validateJob } from './validation.js';
+import { fetchJson, probe, USER_AGENT } from './http';
+import { validateJob } from './validation';
 
 export interface WorkdayJob {
   title?: string;

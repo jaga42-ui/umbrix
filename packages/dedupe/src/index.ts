@@ -10,11 +10,11 @@
 
 import type { NormalizedJob } from '@umbrix/core';
 import { extractCity } from '@umbrix/normalizer';
-import { identityKey, companyKey, titleTokens } from './identity.js';
-import { scoreDuplicate, selectBest, DUPLICATE_THRESHOLD } from './similarity.js';
+import { identityKey, companyKey, titleTokens } from './identity';
+import { scoreDuplicate, selectBest, DUPLICATE_THRESHOLD } from './similarity';
 
-export * from './identity.js';
-export * from './similarity.js';
+export * from './identity';
+export * from './similarity';
 
 export interface DedupeStats {
   input: number;

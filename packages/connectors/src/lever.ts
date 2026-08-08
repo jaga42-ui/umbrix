@@ -10,8 +10,8 @@
 import type { Connector, FetchContext, NormalizedJob } from '@umbrix/core';
 import { normalizeCategory, normalizeLocation, detectWorkMode, classifyType, extractTags, stripHtml, truncateWords, isIndiaLocation } from '@umbrix/normalizer';
 import { extractEligibility } from '@umbrix/eligibility';
-import { fetchJson, probe } from './http.js';
-import { validateJob } from './validation.js';
+import { fetchJson, probe } from './http';
+import { validateJob } from './validation';
 
 export interface LeverJob {
   id?: string;

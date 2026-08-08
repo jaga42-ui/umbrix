@@ -8,13 +8,13 @@
  */
 
 import type { Connector } from '@umbrix/core';
-import { greenhouseConnector } from './greenhouse.js';
-import { leverConnector } from './lever.js';
-import { adzunaConnector } from './adzuna.js';
-import { workdayConnector } from './workday.js';
+import { greenhouseConnector } from './greenhouse';
+import { leverConnector } from './lever';
+import { adzunaConnector } from './adzuna';
+import { workdayConnector } from './workday';
 
-export * from './http.js';
-export * from './validation.js';
+export * from './http';
+export * from './validation';
 export { greenhouseConnector, leverConnector, adzunaConnector, workdayConnector };
 
 /** Every connector, keyed by id. */

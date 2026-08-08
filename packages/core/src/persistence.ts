@@ -14,7 +14,7 @@
  * until their next ingest, and every reader treats them as absent-by-default.
  */
 
-import type { EnrichedJob } from './job.js';
+import type { EnrichedJob } from './job';
 
 /** The persisted document shape, matching `src/models/Opportunity.ts`. */
 export interface OpportunityDoc {

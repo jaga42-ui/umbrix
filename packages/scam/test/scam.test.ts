@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { assessScam, isPublishable, BLOCK_THRESHOLD, SUSPICIOUS_THRESHOLD } from '../src/index.js';
+import { assessScam, isPublishable, BLOCK_THRESHOLD, SUSPICIOUS_THRESHOLD } from '../src/index';
 
 // These assert the WRAPPER's grading, not the heuristics themselves — those are
 // owned by scripts/scamFilter.js and pinned by scripts/scamFilter.test.js.

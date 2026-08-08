@@ -239,7 +239,10 @@ export async function GET(request: Request) {
       // trade-off so cost stays O(window), not O(all active jobs)).
       const candidateLimit = hasSkills ? CANDIDATE_LIMIT : FEED_MAX;
       const jobs = await Opportunity.find(query)
-        .select("companySlug companyName title location tags applyUrl createdAt minExperience type")
+        // lastSeenAt/postedAt drive the card's freshness label. createdAt alone
+        // is only a discovery date, and rendering it as "Posted Nd ago"
+        // understated real freshness on 78% of active postings.
+        .select("companySlug companyName title location tags applyUrl createdAt lastSeenAt postedAt minExperience type")
         .sort({ createdAt: -1 })
         .limit(candidateLimit)
         .lean();
@@ -273,6 +276,8 @@ export async function GET(request: Request) {
           matchSummary: match.matchSummary,
           matchExplanation: match.matchExplanation,
           createdAt: job.createdAt,
+          lastSeenAt: job.lastSeenAt,
+          postedAt: job.postedAt,
         };
       });
 

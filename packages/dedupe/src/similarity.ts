@@ -16,7 +16,7 @@
 
 import type { NormalizedJob } from '@umbrix/core';
 import { extractCity } from '@umbrix/normalizer';
-import { companyKey, titleTokens, canonicalUrl } from './identity.js';
+import { companyKey, titleTokens, canonicalUrl } from './identity';
 
 /** Jaccard overlap of two token sets: |A ∩ B| / |A ∪ B|. */
 function jaccard(a: string[], b: string[]): number {
