@@ -11,7 +11,7 @@
  * mapping with no network at all.
  */
 
-import type { NormalizedJob } from './job.js';
+import type { NormalizedJob } from './job';
 
 /** Per-run inputs a connector needs. One entry from the source registry. */
 export interface FetchContext {

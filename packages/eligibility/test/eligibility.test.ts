@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { extractEligibility, parseMinExperience, parseBatchYears, parseCgpa, parseBranches, isFresherTitle, mergeEligibility } from '../src/index.js';
+import { extractEligibility, parseMinExperience, parseBatchYears, parseCgpa, parseBranches, isFresherTitle, mergeEligibility } from '../src/index';
 
 // The regexes are ported from scripts/ingest-jobs.js; these assertions pin the
 // behaviour that tuning bought, so a refactor cannot quietly undo it.

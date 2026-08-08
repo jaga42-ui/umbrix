@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert';
 import type { NormalizedJob } from '@umbrix/core';
-import { dedupe, identityKey, canonicalUrl, scoreDuplicate, selectBest, DUPLICATE_THRESHOLD } from '../src/index.js';
+import { dedupe, identityKey, canonicalUrl, scoreDuplicate, selectBest, DUPLICATE_THRESHOLD } from '../src/index';
 
 function job(over: Partial<NormalizedJob> = {}): NormalizedJob {
   return {

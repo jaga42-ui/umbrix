@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert';
 import type { FetchContext } from '@umbrix/core';
-import { CONNECTORS, greenhouseConnector, leverConnector, adzunaConnector, validateJob, backoffDelay, HttpError } from '../src/index.js';
+import { CONNECTORS, greenhouseConnector, leverConnector, adzunaConnector, validateJob, backoffDelay, HttpError } from '../src/index';
 
 /** A context with a silent logger — normalize() must never touch the network. */
 const ctx = (slug: string, config: Record<string, unknown> = {}): FetchContext => ({

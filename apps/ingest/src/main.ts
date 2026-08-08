@@ -14,10 +14,10 @@
 import { CONNECTORS, getConnector } from '@umbrix/connectors';
 import { sweepStaleListings, formatSweepReport } from '@umbrix/freshness';
 import { createLogger, summarize, formatSummary, type ConnectorMetrics } from '@umbrix/observability';
-import { runSlug } from './pipeline.js';
-import { interleaveBySource, runWithRetryPass } from './pool.js';
-import { loadRegistry, filterRegistry } from './registry.js';
-import { connect, disconnect, upsertJobs, reconcileSlug, freshnessRepository, type StoreOptions } from './store.js';
+import { runSlug } from './pipeline';
+import { interleaveBySource, runWithRetryPass } from './pool';
+import { loadRegistry, filterRegistry } from './registry';
+import { connect, disconnect, upsertJobs, reconcileSlug, freshnessRepository, type StoreOptions } from './store';
 
 /** Moderate on purpose — a courteous client of free public APIs. */
 const DEFAULT_CONCURRENCY = 8;

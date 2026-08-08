@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { scoreFreshness, isFeedEligible, sweepStaleListings, formatSweepReport, type FreshnessRepository } from '../src/index.js';
+import { scoreFreshness, isFeedEligible, sweepStaleListings, formatSweepReport, type FreshnessRepository } from '../src/index';
 
 const NOW = new Date('2026-08-07T00:00:00Z');
 const daysAgo = (n: number) => new Date(NOW.getTime() - n * 86_400_000);

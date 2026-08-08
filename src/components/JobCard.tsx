@@ -7,6 +7,7 @@ import { TailorResumeModal } from "@/components/TailorResumeModal";
 import { track } from "@/lib/analytics";
 import { topMissingSkill } from "@/lib/matchScore";
 import { courseForSkill } from "@/lib/skillCourses";
+import { freshnessLabel } from "@/lib/jobFreshness";
 
 // A company monogram stands in for a logo — we don't have logo assets for
 // aggregator listings, and a consistent lettered avatar reads far more
@@ -28,17 +29,10 @@ function monogramTint(name: string): string {
 function companyInitial(name: string): string {
   return ((name || "?").trim()[0] || "?").toUpperCase();
 }
-/** "Posted today / 3d ago / 2mo ago" from a timestamp — freshness is a trust cue. */
-function postedAgo(when?: string | Date | null): string | null {
-  if (!when) return null;
-  const t = new Date(when).getTime();
-  if (Number.isNaN(t)) return null;
-  const days = Math.floor((Date.now() - t) / 86400000);
-  if (days <= 0) return "Posted today";
-  if (days === 1) return "Posted yesterday";
-  if (days < 30) return `Posted ${days}d ago`;
-  return `Posted ${Math.floor(days / 30)}mo ago`;
-}
+// Freshness is a trust cue, so the label must state only what we actually know.
+// It used to be derived from `createdAt` — UMBRIX's discovery date — and shown
+// as "Posted Nd ago", which understated real freshness on 78% of active
+// postings. See src/lib/jobFreshness.ts for the rules.
 /** Pay line — stipend (monthly INR) or a salary range string, when present. */
 function formatPay(salary?: string, stipend?: number | null): string | null {
   if (typeof stipend === "number" && stipend > 0) return `₹${stipend.toLocaleString("en-IN")}/mo`;
@@ -73,8 +67,12 @@ interface JobCardProps {
   minExperience?: number | null;
   /** Aggregator source (e.g. "Adzuna") when the apply link goes via a redirect; omit for direct ATS links. */
   source?: string;
-  /** Freshness — when the posting was first seen. */
+  /** When UMBRIX first ingested it — a discovery date, NOT a publication date. */
   createdAt?: string | Date;
+  /** When an ingest run last confirmed the role is still on the employer's board. */
+  lastSeenAt?: string | Date;
+  /** Publication date, only when the source actually reported one. */
+  postedAt?: string | Date;
   /** Monthly stipend in INR (internships). */
   stipend?: number | null;
   /** Salary range string (jobs). */
@@ -100,6 +98,8 @@ export function JobCard({
   minExperience,
   source,
   createdAt,
+  lastSeenAt,
+  postedAt,
   stipend,
   salary,
   type,
@@ -108,7 +108,7 @@ export function JobCard({
 }: JobCardProps) {
   const fresherEligible = minExperience != null && minExperience <= 1;
   const pay = formatPay(salary, stipend);
-  const posted = postedAgo(createdAt);
+  const freshness = freshnessLabel({ postedAt, lastSeenAt, createdAt });
   const facts = [expLabel(minExperience), type ? TYPE_LABEL[type] ?? null : null].filter(Boolean) as string[];
   // The single closest recognized skill to add — shown only when they already
   // match something, so it reads as "you're close, add this" not "you don't qualify".
@@ -224,7 +224,7 @@ export function JobCard({
 
                 {/* Naukri-style facts: pay · experience · type · freshness. Each
                     only shows when we actually have it — never a blank field. */}
-                {(pay || facts.length > 0 || posted) && (
+                {(pay || facts.length > 0 || freshness) && (
                   <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-2 text-xs">
                     {pay && (
                       <span className="font-semibold text-foreground bg-secondary/70 border border-border/60 px-2 py-0.5 rounded-none">
@@ -232,7 +232,22 @@ export function JobCard({
                       </span>
                     )}
                     {facts.length > 0 && <span className="text-muted-foreground">{facts.join(" · ")}</span>}
-                    {posted && <span className="text-muted-foreground/70">{posted}</span>}
+                    {/* A recently-confirmed role earns emphasis; one we can no
+                        longer vouch for is flagged rather than quietly shown. */}
+                    {freshness && (
+                      <span
+                        title={freshness.detail}
+                        className={
+                          freshness.tone === "fresh"
+                            ? "font-medium text-primary"
+                            : freshness.tone === "stale"
+                              ? "text-amber-700 dark:text-amber-500"
+                              : "text-muted-foreground/70"
+                        }
+                      >
+                        {freshness.text}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>

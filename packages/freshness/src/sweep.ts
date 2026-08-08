@@ -18,7 +18,7 @@
  * listings, something upstream is broken and the report should say so.
  */
 
-import { FRESHNESS_THRESHOLDS } from './score.js';
+import { FRESHNESS_THRESHOLDS } from './score';
 
 /**
  * Storage operations the sweep needs. An interface rather than a Mongoose
