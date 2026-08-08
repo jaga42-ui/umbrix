@@ -84,6 +84,25 @@ test("findings point at the offending lines so they can be found instantly", () 
   assert.ok(f!.evidence!.some((e) => /responsible for/i.test(e)));
 });
 
+test("section headings and personal-detail fields are not counted as bullets", () => {
+  // Caught in the browser: "Date of Birth: 22/08/2003" was being quoted back as
+  // a bullet lacking a measurable result, and inflating the denominator.
+  const a = analyzeResume({ text: WEAK, skills: [] });
+  const q = find(a, "low-quantification");
+  for (const line of q?.evidence ?? []) {
+    assert.ok(!/date of birth|father'?s name|marital status/i.test(line), `not a bullet: "${line}"`);
+    assert.ok(!/^CURRICULUM VITAE$|^EXPERIENCE$|^OBJECTIVE$/i.test(line), `heading quoted: "${line}"`);
+  }
+});
+
+test("explicit bullet markers are preferred over prose lines", () => {
+  const a = analyzeResume({
+    text: "Name: Ankit Verma\nCAREER OBJECTIVE\n- Built an attendance tracker used by 120 students daily\n",
+  });
+  // One real bullet, and it is quantified — so nothing to flag.
+  assert.equal(find(a, "low-quantification"), undefined);
+});
+
 test("findings are ordered worst-first", () => {
   const costs = { critical: 3, important: 2, polish: 1 } as const;
   const sev = analyzeResume({ text: WEAK }).findings.map((f) => costs[f.severity]);

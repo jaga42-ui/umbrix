@@ -111,16 +111,36 @@ const LINK_RE = /(linkedin\.com|github\.com|gitlab\.com|behance\.net|dribbble\.c
 const QUANTIFIER_RE = /\b\d+(?:\.\d+)?\s*(?:%|percent|x\b|k\b|lakh|crore|users?|customers?|students?|hours?|days?|weeks?|months?|projects?|members?|₹|rs\.?)|\b(?:₹|rs\.?)\s*\d/i;
 const FIRST_PERSON_RE = /\b(i|my|me|myself)\b/gi;
 
-/** Lines that look like résumé bullets. */
+/** "Date of Birth: 22/08/2003", "Father's Name: …" — a field, not an achievement. */
+const LABEL_VALUE_RE = /^[A-Za-z][A-Za-z'’. ]{0,24}:/;
+/** "TECHNICAL SKILLS", "CAREER OBJECTIVE" — a section heading. */
+const SECTION_HEADING_RE = /^[A-Z0-9 &,'()/\-]+$/;
+
+/**
+ * Lines that are genuinely résumé bullets.
+ *
+ * An earlier version accepted any line of 25+ characters starting with a
+ * capital, which swept up section headings and personal-detail fields. That was
+ * not cosmetic: it inflated the denominator of the quantification check ("1 of 8
+ * bullets") and quoted "Date of Birth: 22/08/2003" back to the user as a bullet
+ * lacking a measurable result.
+ *
+ * Explicit markers are trusted when present. Only when a résumé uses none do we
+ * fall back to prose lines, and even then headings and label/value fields are
+ * excluded.
+ */
 function extractBullets(text: string): string[] {
-  return text
+  const lines = text
     .split(/\r?\n/)
     .map((l) => l.trim())
-    .filter((l) => {
-      if (l.length < 25) return false; // headers and one-word lines
-      // Either an explicit bullet marker, or a long sentence-like line.
-      return /^[-•*▪·]/.test(l) || /^[A-Z]/.test(l);
-    });
+    .filter((l) => l.length >= 25);
+
+  const marked = lines.filter((l) => /^[-•*▪·]/.test(l));
+  if (marked.length > 0) return marked;
+
+  return lines.filter(
+    (l) => /^[A-Za-z]/.test(l) && !LABEL_VALUE_RE.test(l) && !SECTION_HEADING_RE.test(l)
+  );
 }
 
 function truncate(s: string, n = 90): string {
