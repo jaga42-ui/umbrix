@@ -1,0 +1,77 @@
+name: Ingestion Platform
+
+# The modular pipeline (apps/ingest). Runs alongside the legacy orchestrator in
+# ingest-jobs.yml rather than replacing it — the legacy run still owns Tier 1 and
+# Tier 3, and nothing is cut over until a full-tier parity run is clean.
+#
+# Two jobs, deliberately separate:
+#
+#   workday  a source the legacy orchestrator has no adapter for, so this is the
+#            only way its listings reach the feed.
+#   sweep    the time-based expiry backstop. Per-slug reconciliation only runs
+#            after a *successful fetch of that slug*, so a source that stops
+#            running entirely reconciles nothing and its listings stay Active
+#            forever with no alarm. That is not hypothetical: 22 listings for a
+#            board removed from the registry sat live and unconfirmed for 23 days
+#            before this sweep found them.
+
+on:
+  schedule:
+    # 05:00 UTC (10:30 IST) — after Tier 1 (00:00) and Tier 3 (04:00), so the
+    # three ingests never contend on the database.
+    - cron: "0 5 * * *"
+    # 06:00 UTC — the sweep runs last, once every source has had its chance to
+    # refresh lastSeenAt. Running it earlier would judge listings on stale data.
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "Which job to run (workday | sweep | both)"
+        required: false
+        default: "both"
+
+concurrency:
+  group: ingest-platform-${{ github.event.schedule || github.event.inputs.job || 'all' }}
+  cancel-in-progress: true
+
+jobs:
+  workday:
+    # Only on the 05:00 cron, or when dispatched for it.
+    if: github.event.schedule == '0 5 * * *' || github.event.inputs.job == 'workday' || github.event.inputs.job == 'both'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: "npm"
+      - run: npm ci
+      - name: Test
+        run: npm test
+      - name: Ingest Workday
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+        # --write is required; the runner defaults to a dry run precisely so a
+        # misconfigured job cannot quietly mutate the live feed.
+        run: npm run ingest:next -- --source=workday --write
+
+  sweep:
+    if: github.event.schedule == '0 6 * * *' || github.event.inputs.job == 'sweep' || github.event.inputs.job == 'both'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: "npm"
+      - run: npm ci
+      - name: Freshness sweep
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+        # Closes listings unconfirmed for longer than the expiry threshold (45
+        # days). With every source healthy this closes nothing — it is a safety
+        # net that only acts when something upstream has actually broken, and it
+        # prints a [HEALTH ALERT] naming any source that has gone quiet.
+        run: npm run ingest:next -- --sweep --write
