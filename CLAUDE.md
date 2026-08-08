@@ -20,6 +20,44 @@ means the feed is good enough. Optimize every decision toward this.
 
 ---
 
+## Engineering charter (governs how, before what)
+
+Act as principal architect and staff engineer on this codebase, not as a feature
+implementer. Umbrix is a career operating system for Indian students and freshers, and
+it should answer one question: **what is the fastest and safest path for this person to
+get hired?** Question anything that doesn't serve that.
+
+**When forced to choose, always prefer the latter:**
+
+> adding a feature · improving architecture · improving reliability ·
+> improving maintainability · improving user experience
+
+If a proposed feature moves none of the metrics below, say so and recommend a better
+alternative *before* building it.
+
+**Metrics any change should move:** activation · DAU · weekly retention · jobs applied ·
+interview rate · offer rate · scam-detection accuracy · job freshness · search quality ·
+user trust.
+
+**Quality targets:** 200,000+ active listings · <1% duplicates · <0.5% expired visible ·
+99% scam-free. **Freshness beats volume. Quality beats quantity.**
+
+**Sequence:** design → architect → implement → test → measure. Optimize for the best
+long-term product, never for the fastest implementation.
+
+**Measure before you claim.** Do not describe a source, a filter, or a fix as working
+without evidence from a live run. Real defects found this way that a feature-first pass
+would have shipped: an aggregator publishing mid-level roles as fresher jobs because
+short excerpts left `minExperience` unstated (which *passes* the fresher filter); a
+hardcoded source list in `fieldSlugConds` that hid every new source from its own page and
+leaked it onto `/jobs/it`; and 22 orphaned listings that no code in the pipeline could
+ever have closed.
+
+**A source returning zero results means the connector is broken, not that the source has
+no jobs.** Never treat it as a quiet success.
+
+---
+
 ## Stack (never deviate without explicit instruction)
 
 - **Frontend:** Next.js App Router (TypeScript)
@@ -27,7 +65,9 @@ means the feed is good enough. Optimize every decision toward this.
 - **Auth:** Firebase (`verifyFirebaseToken.ts`, `serverAuth.ts`)
 - **Rate limiting:** Upstash Redis (`src/lib/rateLimit.ts`)
 - **Styling:** Tailwind CSS
-- **Ingest pipeline:** Node.js scripts in `/scripts/` (CommonJS, not TypeScript)
+- **Ingest pipeline:** two systems during migration — the legacy orchestrator
+  `scripts/ingest-jobs.js` (CommonJS) currently serves production, and the modular
+  platform in `/packages/*` + `/apps/ingest` (TypeScript via `tsx`, no build step)
 - **CI/CD:** GitHub Actions → Vercel
 - **Ingest adapters:** `/scripts/adapters/ingest-{sourcename}.js`
 
@@ -80,9 +120,56 @@ const VALID_CATEGORIES = [
 If a raw category has no clear mapping → use `"general"`.
 Never leave `department` undefined or null.
 
+**Implementation:** `normalizeCategory()` in `packages/normalizer/src/category.ts`, with
+the list itself as `JOB_CATEGORIES` in `packages/core/src/job.ts`. This rule sat here
+unimplemented for a long time — the mapper it referenced did not exist, so every source's
+raw department string ("Engineering - Backend", "Sales & BD", "R&D") reached the database
+verbatim and category was unusable as a filter. Use the shared mapper; do not hand-roll
+one per connector.
+
+Rule ordering in that file is load-bearing: narrow categories are matched before broad
+ones, so "Sales Engineer" resolves to `sales` rather than `engineering`. Add new rules in
+the correct position and cover them with a test.
+
 ---
 
-## Ingest pipeline rules
+## Ingestion platform (`/packages/*`, `/apps/ingest`)
+
+New sources go here, not in `scripts/adapters/`. The legacy orchestrator still serves
+production and is untouched until parity is proven per tier; both read the same
+`scripts/companies.json` so they cannot drift.
+
+Pipeline: **Source → Fetch → Normalize → Validate → Deduplicate → Scam → Eligibility →
+Freshness → Store.** Every stage after `fetch` is pure, which is what makes a connector
+testable without the network.
+
+Each connector implements `fetch()` / `normalize()` / `validate()` / `healthCheck()`.
+`normalize()` **must stay pure** — no network, no clock, no randomness — so fixtures pin
+it exactly. Adding a source is a new file plus one line in the connector registry.
+
+Rules that are easy to get wrong:
+
+- **`--write` is required to touch the database; dry run is the default.** Never remove
+  this. A local verification run once wrote 697 documents straight to production because
+  the legacy script writes the moment `MONGODB_URI` is present.
+- **Dedup is not `applyUrl` alone.** Aggregators re-list one role under many URLs (34%
+  measured on one source), which defeats the upsert key entirely. Use `@umbrix/dedupe`.
+- **The freshness sweep is the only thing that closes listings from a source that stopped
+  running.** Per-slug reconciliation runs only after a *successful* fetch, so a removed or
+  broken source reconciles nothing and its listings stay Active forever. Keep the sweep
+  scheduled.
+- **Eligibility precedence is `source` > `llm` > `regex`.** A weaker pass must never
+  overwrite a stronger one. A connector reading a structured field is asserting; a regex
+  is guessing.
+- **Run `node scripts/validate-aggregator.js --source=<id>` before enabling any source.**
+  It reports the share of postings that would publish as "fresher" without evidence —
+  the check that kept a bad source out of production.
+- The LLM eligibility pass stays in `/api/cron/extract-eligibility`: it imports
+  `server-only` and cannot run under the ingest runner.
+
+---
+
+## Ingest pipeline rules (legacy orchestrator)
 
 ### Scraper ethics (follow every time, no exceptions)
 - Only scrape public pages — no login, no auth bypass, no cookie injection
@@ -107,7 +194,7 @@ Never leave `department` undefined or null.
 scripts/
   ingest-jobs.js          ← main orchestrator
   scamFilter.js           ← scam detection (never modify without explicit instruction)
-  normalizeCategory.js    ← category mapper
+  validate-aggregator.js  ← pre-flight gate; run before enabling any new source
   adapters/
     ingest-adzuna.js
     ingest-reed.js
@@ -287,7 +374,10 @@ Never hardcode tier logic in components — always go through `computeEntitlemen
 ## File naming conventions
 
 ```
-scripts/adapters/ingest-{sourcename}.js   ← all lowercase, hyphenated
+packages/connectors/src/{sourcename}.ts   ← NEW sources go here, lowercase
+packages/{package}/src/{module}.ts        ← camelCase module
+packages/{package}/test/{name}.test.ts    ← colocated with its package
+scripts/adapters/ingest-{sourcename}.js   ← legacy orchestrator only
 src/components/{Feature}/{Component}.tsx  ← PascalCase component
 src/lib/{utility}.ts                      ← camelCase utility
 src/app/api/{route}/route.ts              ← Next.js App Router convention
