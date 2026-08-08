@@ -7,6 +7,7 @@ import { authedFetch } from "@/lib/authedFetch";
 import { track } from "@/lib/analytics";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { ResumeAnalysis } from "@/components/ResumeAnalysis";
 import { 
   User as UserIcon, 
   Mail, 
@@ -661,6 +662,13 @@ export default function ProfilePage() {
                 <span>Changes auto-save on blur</span>
               </div>
             </div>
+
+            {/* Résumé analysis. Sits directly under the summary and above the
+                skills the analysis talks about, so a finding like "only 3
+                skills detected" is next to the list it refers to. `hasResume`
+                is keyed on extracted skills: if the parser got nothing there is
+                nothing to analyse, and the panel invites an upload instead. */}
+            <ResumeAnalysis hasResume={profile.skills.length > 0} />
 
             {/* Skills manager */}
             <div className="bg-card border border-border rounded-2xl p-6">
