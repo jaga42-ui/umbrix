@@ -39,6 +39,14 @@ export interface FetchOptions {
   backoffMs?: number;
   /** Per-attempt timeout, milliseconds. */
   timeoutMs?: number;
+  /**
+   * Defaults to GET. Some public job-board APIs are POST-only — Workday's
+   * career-site endpoint takes its paging and search in a JSON body rather than
+   * the query string.
+   */
+  method?: 'GET' | 'POST';
+  /** Request body, for POST. Retries re-send it unchanged. */
+  body?: string;
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -85,7 +93,9 @@ export async function fetchJson<T>(url: string, options: FetchOptions = {}): Pro
 
     try {
       const response = await fetch(url, {
+        method: options.method ?? 'GET',
         headers: { 'User-Agent': USER_AGENT, Accept: 'application/json', ...options.headers },
+        body: options.body,
         signal,
       });
 

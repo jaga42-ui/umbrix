@@ -11,14 +11,15 @@ import type { Connector } from '@umbrix/core';
 import { greenhouseConnector } from './greenhouse.js';
 import { leverConnector } from './lever.js';
 import { adzunaConnector } from './adzuna.js';
+import { workdayConnector } from './workday.js';
 
 export * from './http.js';
 export * from './validation.js';
-export { greenhouseConnector, leverConnector, adzunaConnector };
+export { greenhouseConnector, leverConnector, adzunaConnector, workdayConnector };
 
 /** Every connector, keyed by id. */
 export const CONNECTORS: Record<string, Connector<any>> = Object.fromEntries(
-  [greenhouseConnector, leverConnector, adzunaConnector].map((c) => [c.id, c])
+  [greenhouseConnector, leverConnector, adzunaConnector, workdayConnector].map((c) => [c.id, c])
 );
 
 export function getConnector(id: string): Connector<any> | undefined {
