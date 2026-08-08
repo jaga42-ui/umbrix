@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit",
     "ingest": "node scripts/ingest-jobs.js",
     "ingest:next": "tsx apps/ingest/src/main.ts",
-    "test": "node --import tsx --test scripts/*.test.js src/lib/*.test.ts packages/*/test/*.test.ts apps/*/test/*.test.ts"
+    "test": "node --import tsx --test scripts/*.test.js src/lib/*.test.ts src/lib/*/*.test.ts packages/*/test/*.test.ts apps/*/test/*.test.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.12",
