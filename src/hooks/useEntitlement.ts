@@ -15,7 +15,7 @@ const DEMO_PREMIUM_ENTITLEMENT: Entitlement = {
   status: "active",
   currentPeriodEnd: null,
   cancelAtPeriodEnd: false,
-  limits: { trackerActiveApplications: null, resumeTailorsPerMonth: null },
+  limits: { trackerActiveApplications: null, resumeTailorsPerMonth: null, resumeVersions: null },
 };
 
 export interface UseEntitlement extends Entitlement {
