@@ -34,6 +34,16 @@ export const FREE_TRACKER_ACTIVE_LIMIT = 10;
 export const FREE_RESUME_TAILORS_PER_MONTH = 3;
 
 /**
+ * Free-tier limit for saved résumé versions (premium == unlimited).
+ *
+ * One is deliberately a *working* résumé, not a teaser: the whole editor,
+ * analysis and X-Ray stay free on it. What Pro buys is keeping several targeted
+ * versions side by side, which is only worth anything once someone is applying
+ * to different kinds of role — so the limit bites exactly when the value does.
+ */
+export const FREE_RESUME_VERSIONS = 1;
+
+/**
  * A tracker application counts against the free cap unless it is Rejected —
  * a dead lead shouldn't consume a slot. "active" here means still in the
  * pipeline (Saved / Applied / Interview).
@@ -88,6 +98,8 @@ export interface Entitlement {
     trackerActiveApplications: number | null;
     /** Max AI résumé tailors per calendar month; null == unlimited. */
     resumeTailorsPerMonth: number | null;
+    /** Max saved résumé versions; null == unlimited. */
+    resumeVersions: number | null;
   };
 }
 
@@ -101,6 +113,7 @@ export const FREE_ENTITLEMENT: Entitlement = {
   limits: {
     trackerActiveApplications: FREE_TRACKER_ACTIVE_LIMIT,
     resumeTailorsPerMonth: FREE_RESUME_TAILORS_PER_MONTH,
+    resumeVersions: FREE_RESUME_VERSIONS,
   },
 };
 
@@ -121,6 +134,7 @@ export function computeEntitlement(
     limits: {
       trackerActiveApplications: premium ? null : FREE_TRACKER_ACTIVE_LIMIT,
       resumeTailorsPerMonth: premium ? null : FREE_RESUME_TAILORS_PER_MONTH,
+      resumeVersions: premium ? null : FREE_RESUME_VERSIONS,
     },
   };
 }

@@ -329,3 +329,73 @@ test("links are labelled by host", () => {
   assert.ok(links.some((l) => l.label === "GitHub"));
   assert.ok(links.some((l) => l.label === "LinkedIn"));
 });
+
+// --- Versions and diff ----------------------------------------------------
+
+import { diffDocuments, describeChange, branchVersion, missingFromVersion, type ResumeVersion } from "./versions";
+
+const NOW = "2026-08-09T00:00:00.000Z";
+
+test("an unchanged document diffs to nothing", () => {
+  const doc = buildDocument(fresherProfile);
+  const d = diffDocuments(doc, doc, fresherProfile);
+  assert.equal(d.identical, true);
+  assert.deepEqual(d.changes, []);
+});
+
+test("the diff names evidence in the candidate's own words, not ids", () => {
+  const before = buildDocument(fresherProfile);
+  const after = removeItem(before, "project", "p1");
+  const change = diffDocuments(before, after, fresherProfile).changes[0];
+  assert.equal(change.label, "Sahayam", "must resolve the id to its title");
+  assert.equal(change.kind, "removed");
+});
+
+test("reordering reads as promoted, with the distance moved", () => {
+  const before = buildDocument(fresherProfile);
+  const after = moveItem(before, "project", "p2", -1);
+  const change = diffDocuments(before, after, fresherProfile).changes.find((c) => c.kind === "promoted");
+  assert.equal(change?.label, "GetFreeTools");
+  assert.equal(change?.positions, 1);
+});
+
+test("removing the top item does not report every survivor as promoted", () => {
+  // Measuring against absolute position would make one removal look like a
+  // wholesale reshuffle — noise, not a change the candidate made.
+  const before = buildDocument(fresherProfile);
+  const after = removeItem(before, "project", "p1");
+  const promoted = diffDocuments(before, after, fresherProfile).changes.filter((c) => c.kind === "promoted");
+  assert.deepEqual(promoted, [], "p2 did not move relative to the other survivors");
+});
+
+test("hiding a section is reported as hidden, not removed", () => {
+  const before = buildDocument(fresherProfile);
+  const after = toggleSection(before, "project");
+  const change = diffDocuments(before, after, fresherProfile).changes.find((c) => c.kind === "hidden");
+  assert.ok(change, "hiding must be distinguishable from deleting");
+});
+
+test("each change describes itself in a readable line", () => {
+  const before = buildDocument(fresherProfile);
+  const after = removeItem(moveItem(before, "project", "p2", -1), "education", "e1");
+  for (const c of diffDocuments(before, after, fresherProfile).changes) {
+    const line = describeChange(c);
+    assert.ok(line.length > 8 && !line.includes("undefined"), `unreadable: "${line}"`);
+  }
+});
+
+test("a branched version cannot be reached by later edits to its parent", () => {
+  // A version's whole purpose is surviving changes to the master; sharing the
+  // section arrays by reference would quietly defeat that.
+  const master: ResumeVersion = { id: "m", name: "Master", document: buildDocument(fresherProfile), updatedAt: NOW };
+  const branch = branchVersion(master, "Frontend", "f", NOW);
+  master.document.sections[0].itemIds.push("p2");
+  assert.equal(branch.document.sections[0].itemIds.includes("p2"), false, "branch must be independent");
+  assert.equal(branch.derivedFrom, "m");
+});
+
+test("a version reports which evidence it is not showing", () => {
+  const doc = removeItem(buildDocument(fresherProfile), "project", "p1");
+  const version: ResumeVersion = { id: "v", name: "V", document: doc, updatedAt: NOW };
+  assert.ok(missingFromVersion(version, fresherProfile).includes("Sahayam"));
+});
