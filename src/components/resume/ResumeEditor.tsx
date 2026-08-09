@@ -96,9 +96,33 @@ function ItemCard({
   );
 }
 
-export function ResumeEditor({ profile }: { profile: CareerProfile }) {
-  const [doc, setDoc] = useState<ResumeDocument>(() => buildDocument(profile));
+export function ResumeEditor({
+  profile,
+  initialDocument,
+  onChange,
+}: {
+  profile: CareerProfile;
+  /** A saved version to edit. Omitted, a starting document is derived. */
+  initialDocument?: ResumeDocument;
+  /** Called with the current document after every edit, so the owner can save. */
+  onChange?: (doc: ResumeDocument) => void;
+}) {
+  const [doc, setDoc] = useState<ResumeDocument>(() => initialDocument ?? buildDocument(profile));
   const [pane, setPane] = useState<Pane>("document");
+
+  /**
+   * Apply an edit and notify the owner.
+   *
+   * Every mutation routes through here so no path can change the document
+   * without the page learning about it — a save button that silently misses an
+   * edit is worse than no save button.
+   */
+  const edit = (fn: (d: ResumeDocument) => ResumeDocument) =>
+    setDoc((current) => {
+      const next = fn(current);
+      onChange?.(next);
+      return next;
+    });
 
   // Recomputed from the document, never stored — so the panel cannot go stale
   // relative to what the candidate is looking at.
@@ -149,7 +173,7 @@ export function ResumeEditor({ profile }: { profile: CareerProfile }) {
                     </div>
                     <button
                       disabled={!target}
-                      onClick={() => target && setDoc((d) => addItem(d, target.id, item.id))}
+                      onClick={() => target && edit((d) => addItem(d, target.id, item.id))}
                       aria-label={`Add ${item.title} to the résumé`}
                       className="p-1 hover:bg-secondary/70 disabled:opacity-40 shrink-0"
                     >
@@ -194,13 +218,13 @@ export function ResumeEditor({ profile }: { profile: CareerProfile }) {
                     {section.heading}
                   </h4>
                   <div className="flex items-center gap-0.5">
-                    <button onClick={() => setDoc((d) => moveSection(d, section.id, -1))} aria-label={`Move ${section.heading} up`} className="p-1 hover:bg-secondary/70">
+                    <button onClick={() => edit((d) => moveSection(d, section.id, -1))} aria-label={`Move ${section.heading} up`} className="p-1 hover:bg-secondary/70">
                       <ChevronUp className="w-3.5 h-3.5" aria-hidden />
                     </button>
-                    <button onClick={() => setDoc((d) => moveSection(d, section.id, 1))} aria-label={`Move ${section.heading} down`} className="p-1 hover:bg-secondary/70">
+                    <button onClick={() => edit((d) => moveSection(d, section.id, 1))} aria-label={`Move ${section.heading} down`} className="p-1 hover:bg-secondary/70">
                       <ChevronDown className="w-3.5 h-3.5" aria-hidden />
                     </button>
-                    <button onClick={() => setDoc((d) => toggleSection(d, section.id))} aria-label={`Hide ${section.heading}`} className="p-1 hover:bg-secondary/70">
+                    <button onClick={() => edit((d) => toggleSection(d, section.id))} aria-label={`Hide ${section.heading}`} className="p-1 hover:bg-secondary/70">
                       <EyeOff className="w-3.5 h-3.5" aria-hidden />
                     </button>
                   </div>
@@ -218,8 +242,8 @@ export function ResumeEditor({ profile }: { profile: CareerProfile }) {
                     <ItemCard
                       key={item.id}
                       item={item}
-                      onMove={(delta) => setDoc((d) => moveItem(d, section.id, item.id, delta))}
-                      onRemove={() => setDoc((d) => removeItem(d, section.id, item.id))}
+                      onMove={(delta) => edit((d) => moveItem(d, section.id, item.id, delta))}
+                      onRemove={() => edit((d) => removeItem(d, section.id, item.id))}
                     />
                   ))}
                 </div>
@@ -235,7 +259,7 @@ export function ResumeEditor({ profile }: { profile: CareerProfile }) {
                 {doc.sections.filter((s) => !s.visible).map((s) => (
                   <button
                     key={s.id}
-                    onClick={() => setDoc((d) => toggleSection(d, s.id))}
+                    onClick={() => edit((d) => toggleSection(d, s.id))}
                     className="text-xs border border-border px-2 py-1 hover:bg-secondary/70 flex items-center gap-1"
                   >
                     <Eye className="w-3 h-3" aria-hidden />
