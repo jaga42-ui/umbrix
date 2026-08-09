@@ -399,3 +399,93 @@ test("a version reports which evidence it is not showing", () => {
   const version: ResumeVersion = { id: "v", name: "V", document: doc, updatedAt: NOW };
   assert.ok(missingFromVersion(version, fresherProfile).includes("Sahayam"));
 });
+
+// --- Job → résumé alignment -----------------------------------------------
+
+import { extractRequirements, alignToProfile, matchJob } from "./jobMatch";
+
+const JD = `Frontend Developer
+We are a fast growing company that uses Kubernetes across our platform.
+
+Requirements:
+- Strong knowledge of React and JavaScript
+- Experience with Node.js and MongoDB
+- 2+ years of experience in web development
+- B.Tech in Computer Science
+TypeScript is a nice to have.`;
+
+test("requirements come from the requirements block, not company boilerplate", () => {
+  const reqs = extractRequirements(JD, "Frontend Developer");
+  const labels = reqs.map((r) => r.label);
+  assert.ok(labels.includes("react"));
+  // "we use Kubernetes across our platform" is description, not a requirement.
+  assert.ok(!labels.includes("kubernetes"), `boilerplate leaked in: ${labels.join(", ")}`);
+});
+
+test("preferred items are not treated as essential", () => {
+  const ts = extractRequirements(JD).find((r) => r.label === "typescript");
+  assert.equal(ts?.essential, false, "'nice to have' must not be essential");
+  assert.equal(extractRequirements(JD).find((r) => r.label === "react")?.essential, true);
+});
+
+test("experience and education requirements are detected", () => {
+  const reqs = extractRequirements(JD);
+  assert.ok(reqs.some((r) => r.kind === "experience" && r.label.startsWith("2+")));
+  assert.ok(reqs.some((r) => r.kind === "education"));
+});
+
+test("proven beats claimed: a skill shown in a bullet names its evidence", () => {
+  const profile: CareerProfile = {
+    identity: { links: [] },
+    items: [{
+      id: "p1", kind: "project", title: "Sahayam", source: "user", confidence: 1, skills: [],
+      bullets: detectAll(["Built a matching service using Node.js and MongoDB."]),
+    }],
+    declaredSkills: ["React", "Node.js", "MongoDB"],
+    targetFields: ["it"],
+  };
+  const alignment = alignToProfile(extractRequirements(JD), profile, 0);
+
+  const node = alignment.matches.find((m) => m.requirement.label === "node.js")!;
+  assert.equal(node.status, "proven");
+  assert.equal(node.evidence[0].itemTitle, "Sahayam", "must name where it is proven");
+
+  // Listed on the résumé but demonstrated nowhere — the distinction that makes
+  // this different from keyword matching.
+  const react = alignment.matches.find((m) => m.requirement.label === "react")!;
+  assert.equal(react.status, "claimed");
+  assert.deepEqual(react.evidence, []);
+});
+
+test("a skill neither shown nor listed is missing, not claimed", () => {
+  const bare: CareerProfile = { identity: { links: [] }, items: [], declaredSkills: [], targetFields: [] };
+  const react = alignToProfile(extractRequirements(JD), bare).matches.find((m) => m.requirement.label === "react")!;
+  assert.equal(react.status, "missing");
+});
+
+test("the summary states a count, never a bare percentage", () => {
+  const bare: CareerProfile = { identity: { links: [] }, items: [], declaredSkills: [], targetFields: [] };
+  const summary = alignToProfile(extractRequirements(JD), bare).summary;
+  assert.ok(/\d+ of the \d+/.test(summary), `expected a count: "${summary}"`);
+  assert.ok(!/%/.test(summary), "a percentage implies precision this does not have");
+});
+
+test("unstated experience is reported as unproven, never assumed", () => {
+  const bare: CareerProfile = { identity: { links: [] }, items: [], declaredSkills: [], targetFields: [] };
+  const exp = alignToProfile(extractRequirements(JD), bare, undefined).matches.find((m) => m.requirement.kind === "experience")!;
+  assert.equal(exp.status, "missing", "silence is not evidence of experience");
+});
+
+test("only essential unmet requirements are critical gaps", () => {
+  const bare: CareerProfile = { identity: { links: [] }, items: [], declaredSkills: [], targetFields: [] };
+  const gaps = alignToProfile(extractRequirements(JD), bare).criticalGaps.map((r) => r.label);
+  assert.ok(gaps.includes("react"));
+  assert.ok(!gaps.includes("typescript"), "a nice-to-have is not a critical gap");
+});
+
+test("a posting with no listed requirements says so rather than scoring zero", () => {
+  const bare: CareerProfile = { identity: { links: [] }, items: [], declaredSkills: [], targetFields: [] };
+  const alignment = matchJob({ title: "Associate", description: "Join our team." }, bare);
+  assert.equal(alignment.total, 0);
+  assert.ok(alignment.summary.includes("doesn't list specific requirements"));
+});
