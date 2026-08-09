@@ -215,3 +215,117 @@ test("an unreadable document is flagged rather than reported as empty", () => {
   const doc = reconstruct("   \n \n");
   assert.equal(doc.lowConfidence, true, "no headings and no bullets means extraction failed");
 });
+
+// --- Résumé document ------------------------------------------------------
+
+import {
+  buildDocument, moveSection, moveItem, toggleSection, removeItem, addItem,
+  resolveDocument, unusedItems, isFresher,
+} from "./document";
+import { toCareerProfile } from "./adapt";
+
+const fresherProfile: CareerProfile = {
+  identity: { name: "A", email: "a@b.com", links: [], summary: "Fresher." },
+  items: [
+    { id: "p1", kind: "project", title: "Sahayam", source: "user", confidence: 1, skills: [], bullets: detectAll(["Built a matching service using Node.js and MongoDB."]) },
+    { id: "p2", kind: "project", title: "GetFreeTools", source: "user", confidence: 1, skills: [], bullets: [] },
+    { id: "e1", kind: "education", title: "MCA", source: "user", confidence: 1, skills: [], bullets: [] },
+  ],
+  declaredSkills: ["React", "Node.js"],
+  targetFields: ["it"],
+};
+
+test("a fresher's document leads with projects and omits an empty experience heading", () => {
+  assert.equal(isFresher(fresherProfile), true);
+  const doc = buildDocument(fresherProfile);
+  const kinds = doc.sections.map((s) => s.kind);
+  assert.ok(!kinds.includes("experience"), "an empty Experience heading advertises the gap");
+  assert.ok(kinds.indexOf("project") < kinds.indexOf("education"), "projects are a fresher's strongest evidence");
+});
+
+test("only sections with content are created", () => {
+  const bare: CareerProfile = { identity: { links: [] }, items: [], declaredSkills: [], targetFields: [] };
+  assert.deepEqual(buildDocument(bare).sections, []);
+});
+
+test("document operations never mutate the original", () => {
+  const doc = buildDocument(fresherProfile);
+  const before = JSON.stringify(doc);
+  moveSection(doc, doc.sections[0].id, 1);
+  toggleSection(doc, doc.sections[0].id);
+  removeItem(doc, "project", "p1");
+  assert.equal(JSON.stringify(doc), before, "operations must return new documents");
+});
+
+test("reordering is clamped at the ends rather than wrapping", () => {
+  const doc = buildDocument(fresherProfile);
+  const first = doc.sections[0].id;
+  assert.equal(moveSection(doc, first, -1).sections[0].id, first, "already first");
+});
+
+test("hiding a section keeps it recoverable", () => {
+  const doc = buildDocument(fresherProfile);
+  const hidden = toggleSection(doc, "project");
+  assert.equal(hidden.sections.find((s) => s.id === "project")!.visible, false);
+  assert.equal(resolveDocument(hidden, fresherProfile).some((r) => r.section.id === "project"), false);
+  // Still present in the document, so it can be brought back.
+  assert.ok(hidden.sections.some((s) => s.id === "project"));
+});
+
+test("removed evidence returns to the available pool, not the bin", () => {
+  const doc = removeItem(buildDocument(fresherProfile), "project", "p1");
+  assert.ok(unusedItems(doc, fresherProfile).some((i) => i.id === "p1"));
+  assert.equal(addItem(doc, "project", "p1").sections.find((s) => s.id === "project")!.itemIds.includes("p1"), true);
+});
+
+test("adding an item twice does not duplicate it", () => {
+  const doc = buildDocument(fresherProfile);
+  const twice = addItem(addItem(doc, "project", "p1"), "project", "p1");
+  const ids = twice.sections.find((s) => s.id === "project")!.itemIds;
+  assert.equal(ids.filter((i) => i === "p1").length, 1);
+});
+
+test("the document owns item order, not the profile", () => {
+  const doc = moveItem(buildDocument(fresherProfile), "project", "p1", 1);
+  const items = resolveDocument(doc, fresherProfile).find((r) => r.section.id === "project")!.items;
+  assert.equal(items[0].id, "p2", "p1 moved down, so p2 leads");
+});
+
+test("a section emptied of items does not print as a bare heading", () => {
+  let doc = buildDocument(fresherProfile);
+  doc = removeItem(removeItem(doc, "project", "p1"), "project", "p2");
+  assert.equal(resolveDocument(doc, fresherProfile).some((r) => r.section.id === "project"), false);
+});
+
+// --- Adapter --------------------------------------------------------------
+
+test("personal projects filed under experience are reclassified", () => {
+  // Parsers routinely file a project as employment; leading a fresher's résumé
+  // with it would overstate their history.
+  const p = toCareerProfile({
+    experience: [
+      { role: "Sahayam", company: "Personal Project", description: "Built a platform using Node.js." },
+      { role: "Intern", company: "Infosys", description: "Supported the reporting team." },
+    ],
+  });
+  assert.equal(p.items.find((i) => i.title === "Sahayam")!.kind, "project");
+  assert.equal(p.items.find((i) => i.title === "Intern")!.kind, "experience");
+});
+
+test("parsed profiles are marked for verification, typed ones are not", () => {
+  assert.ok(toCareerProfile({ education: ["MCA"], fromResume: true }).items[0].confidence < 0.7);
+  assert.equal(toCareerProfile({ education: ["MCA"] }).items[0].confidence, 1);
+});
+
+test("a duration is split into its ends and 'Present' becomes current", () => {
+  const item = toCareerProfile({ experience: [{ role: "R", company: "C", duration: "Jun 2024 – Present" }] }).items[0];
+  assert.equal(item.startDate, "Jun 2024");
+  assert.equal(item.current, true);
+  assert.equal(item.endDate, undefined);
+});
+
+test("links are labelled by host", () => {
+  const links = toCareerProfile({ resumeText: "github.com/jaga42-ui linkedin.com/in/x" }).identity.links;
+  assert.ok(links.some((l) => l.label === "GitHub"));
+  assert.ok(links.some((l) => l.label === "LinkedIn"));
+});

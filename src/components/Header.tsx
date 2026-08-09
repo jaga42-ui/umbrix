@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { LogOut, Menu, X, Compass, LayoutDashboard, ShieldCheck, User, Briefcase } from "lucide-react";
+import { LogOut, Menu, X, Compass, LayoutDashboard, ShieldCheck, User, Briefcase, FileText } from "lucide-react";
 
 export function Header() {
   const { user, isDemoMode, logout } = useAuth();
@@ -18,6 +18,7 @@ export function Header() {
     { href: "/feed", label: "Daily Discovery", icon: Compass },
     { href: "/tracker", label: "App Tracker", icon: LayoutDashboard },
     { href: "/scam-check", label: "Scam Check", icon: ShieldCheck },
+    { href: "/resume", label: "Résumé Lab", icon: FileText },
     { href: "/profile", label: "My Profile", icon: User },
     { href: "/jobs", label: "All Jobs", icon: Briefcase },
   ];
