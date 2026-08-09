@@ -18,6 +18,9 @@
  *     and never manufactures a strength to pad the report.
  */
 
+import { hasMeasurement } from "./career/detector";
+import { reconstructBullets } from "./career/reconstruct";
+
 export type Severity = "critical" | "important" | "polish";
 export type Category = "ats" | "impact" | "content" | "structure" | "regional";
 
@@ -107,8 +110,17 @@ const EMAIL_RE = /[\w.+-]+@[\w-]+\.[\w.]+/;
 // Indian mobile numbers, with or without +91 and common separators.
 const PHONE_RE = /(?:\+?91[\s-]?)?[6-9]\d{4}[\s-]?\d{5}\b|\b\d{10}\b/;
 const LINK_RE = /(linkedin\.com|github\.com|gitlab\.com|behance\.net|dribbble\.com|https?:\/\/)/i;
-/** A bullet is "quantified" if it carries a number that means something. */
-const QUANTIFIER_RE = /\b\d+(?:\.\d+)?\s*(?:%|percent|x\b|k\b|lakh|crore|users?|customers?|students?|hours?|days?|weeks?|months?|projects?|members?|₹|rs\.?)|\b(?:₹|rs\.?)\s*\d/i;
+/**
+ * Whether a bullet carries a meaningful figure.
+ *
+ * Delegated to the evidence detector rather than kept as a second pattern here.
+ * Two definitions of "quantified" drift, and this panel sits directly above the
+ * per-bullet breakdown — the two contradicting each other would destroy trust in
+ * both. An earlier local pattern lacked units like "tools" and "seconds" and
+ * reported "0 of 8 bullets quantified" on a résumé stating "70+ tools" and
+ * "under 2 seconds".
+ */
+const isQuantified = (text: string) => hasMeasurement(text);
 const FIRST_PERSON_RE = /\b(i|my|me|myself)\b/gi;
 
 /** "Date of Birth: 22/08/2003", "Father's Name: …" — a field, not an achievement. */
@@ -130,16 +142,15 @@ const SECTION_HEADING_RE = /^[A-Z0-9 &,'()/\-]+$/;
  * excluded.
  */
 function extractBullets(text: string): string[] {
-  const lines = text
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter((l) => l.length >= 25);
-
-  const marked = lines.filter((l) => /^[-•*▪·]/.test(l));
-  if (marked.length > 0) return marked;
-
-  return lines.filter(
-    (l) => /^[A-Za-z]/.test(l) && !LABEL_VALUE_RE.test(l) && !SECTION_HEADING_RE.test(l)
+  // Reconstruct first. A PDF stores visual lines, so a bullet wrapping onto a
+  // second line arrives as two strings; splitting on newlines truncates every
+  // bullet at its first break. On a real résumé that reported "0 of 8 bullets
+  // contain a measurable result" for a document stating "70+ tools", "under 2
+  // seconds" and "within 72 hours" — every figure sat on a discarded
+  // continuation line, and the candidate would have been told to add numbers
+  // they had already written.
+  return reconstructBullets(text).filter(
+    (l) => l.length >= 25 && !LABEL_VALUE_RE.test(l) && !SECTION_HEADING_RE.test(l)
   );
 }
 
@@ -160,7 +171,7 @@ export function analyzeResume(input: AnalyzerInput): ResumeAnalysis {
 
   const words = text.split(/\s+/).filter(Boolean).length;
   const bullets = extractBullets(text);
-  const quantified = bullets.filter((b) => QUANTIFIER_RE.test(b));
+  const quantified = bullets.filter((b) => isQuantified(b));
   const skills = input.skills ?? [];
 
   const hasEmail = EMAIL_RE.test(text) || Boolean(input.email);
@@ -214,10 +225,15 @@ export function analyzeResume(input: AnalyzerInput): ResumeAnalysis {
   // --- Impact: the single biggest quality gap on fresher résumés -----------
   if (bullets.length > 0) {
     const ratio = quantified.length / bullets.length;
-    if (ratio < 0.25) {
+    // Graded, because "a quarter of bullets show impact" and "none do" are
+    // different problems. A flat cut-off let a résumé with 2 of 8 measured
+    // bullets score 100 with nothing to work on, which is not a credible
+    // verdict on a document where three quarters of the bullets state no
+    // outcome.
+    if (ratio < 0.4) {
       findings.push({
         id: "low-quantification",
-        severity: "critical",
+        severity: ratio < 0.2 ? "critical" : "important",
         category: "impact",
         title: `Only ${quantified.length} of ${bullets.length} bullets contain a measurable result`,
         detail:
@@ -226,7 +242,7 @@ export function analyzeResume(input: AnalyzerInput): ResumeAnalysis {
           'Add a figure to your strongest bullets — users served, time saved, percentage improved, team size, marks or rank. "Built a booking page" becomes "Built a booking page used by 400+ students".',
         // Wrapped, not point-free: `.map(truncate)` would pass the array index
         // as the length argument and clip the first item to nothing.
-        evidence: bullets.filter((b) => !QUANTIFIER_RE.test(b)).slice(0, 3).map((b) => truncate(b)),
+        evidence: bullets.filter((b) => !isQuantified(b)).slice(0, 3).map((b) => truncate(b)),
       });
     } else if (ratio >= 0.5) {
       strengths.push(`${quantified.length} of ${bullets.length} bullets carry a concrete number`);

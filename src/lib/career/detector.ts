@@ -86,8 +86,15 @@ const TECH_MATCHERS = TECHNOLOGIES.map((t) => ({
  * Scope answers "how big was this?" and is weaker evidence than a result, which
  * answers "what changed?". "8 modules" is scope; "cut load time 40%" is result.
  */
+/**
+ * A stated size.
+ *
+ * Up to two words may sit between the figure and its noun: real résumés write
+ * "70+ browser-based tools", not "70 tools". Requiring adjacency missed that
+ * entirely on a live document.
+ */
 const SCOPE_RE =
-  /\b\d+(?:,\d{3})*\+?\s*(?:users?|customers?|students?|clients?|patients?|records?|rows?|requests?|transactions?|orders?|modules?|screens?|pages?|endpoints?|tables?|members?|people|employees?|stores?|branches?|schools?|hours?|days?|weeks?|months?|years?|lakh|crore|k\b|mb|gb|tb)\b/i;
+  /\b\d+(?:,\d{3})*\+?\s*(?:[a-z][\w-]*\s+){0,2}(?:users?|customers?|students?|clients?|patients?|records?|rows?|requests?|transactions?|orders?|modules?|screens?|pages?|endpoints?|tables?|members?|people|employees?|stores?|branches?|schools?|tools?|features?|components?|integrations?|tests?|files?|images?|videos?|articles?|courses?|sessions?|tickets?|leads?|accounts?|queries|hours?|days?|weeks?|months?|years?|lakh|crore|k\b|mb|gb|tb)\b/i;
 
 /**
  * A stated outcome, with the change it produced.
@@ -96,7 +103,22 @@ const SCOPE_RE =
  * otherwise "8 modules" would read as a measured improvement.
  */
 const RESULT_RE =
-  /\b(?:reduc\w+|increas\w+|improv\w+|cut|sav\w+|grew|grow\w*|boost\w*|dropp\w+|rais\w+|accelerat\w+|speed(?:ed)? up|from)\b[^.]{0,40}?\d+(?:\.\d+)?\s*(?:%|percent|x\b|hours?|days?|minutes?|seconds?|ms\b|₹|rs\.?|lakh|crore)|\b\d+(?:\.\d+)?\s*(?:%|percent|x\b)\s*(?:faster|slower|more|less|higher|lower|improvement|increase|reduction|growth)/i;
+  // a change verb followed by a figure — "reduced load time by 40%"
+  /\b(?:reduc\w+|increas\w+|improv\w+|cut|sav\w+|grew|grow\w*|boost\w*|dropp\w+|rais\w+|accelerat\w+|speed(?:ed)? up|from)\b[^.]{0,40}?\d+(?:\.\d+)?\s*(?:%|percent|x\b|hours?|days?|minutes?|seconds?|ms\b|₹|rs\.?|lakh|crore)/i;
+
+/**
+ * A stated performance or time threshold — "under 2 seconds", "within 72 hours".
+ *
+ * Added after a real résumé reported zero measured outcomes while stating
+ * exactly these. A threshold the work was held to is an outcome, not a size:
+ * "keeping initial page load under 2 seconds" says what the work achieved.
+ */
+const THRESHOLD_RE =
+  /\b(?:under|below|within|in|to)\s+\d+(?:\.\d+)?\s*(?:seconds?|secs?|ms\b|milliseconds?|minutes?|mins?|hours?|days?)\b/i;
+
+/** A comparative figure — "3x faster", "40% fewer". */
+const COMPARATIVE_RE =
+  /\b\d+(?:\.\d+)?\s*(?:%|percent|x\b)\s*(?:faster|slower|more|fewer|less|higher|lower|improvement|increase|reduction|growth)/i;
 
 /** A link in the text is external corroboration. */
 const URL_RE = /(https?:\/\/|www\.|github\.com\/|\.vercel\.app|\.netlify\.app|\.com\/)/i;
@@ -175,7 +197,8 @@ export function detectEvidence(text: string, id = ""): EvidenceBullet {
   const action = firstMatch(clean, ACTION_RE)?.replace(/^[-•*▪·]\s*/, "");
   const technologies = TECH_MATCHERS.filter((t) => t.re.test(clean)).map((t) => t.name);
   const scope = firstMatch(clean, SCOPE_RE);
-  const result = firstMatch(clean, RESULT_RE);
+  const result =
+    firstMatch(clean, RESULT_RE) ?? firstMatch(clean, THRESHOLD_RE) ?? firstMatch(clean, COMPARATIVE_RE);
   const verified = URL_RE.test(clean) || SHIPPED_RE.test(clean);
 
   const missing: EvidenceBullet["missing"] = [];
@@ -195,6 +218,18 @@ export function detectEvidence(text: string, id = ""): EvidenceBullet {
     missing,
     prompts: promptsFor(missing, technologies.length > 0),
   };
+}
+
+/**
+ * Whether a line states any figure that carries meaning — scope or outcome.
+ *
+ * Exported so the résumé analyser shares exactly this definition instead of
+ * keeping its own quantifier pattern. Two definitions of "is this quantified"
+ * would drift, and the panel would contradict the bullet-level detail beneath it.
+ */
+export function hasMeasurement(text: string): boolean {
+  const clean = String(text ?? "");
+  return SCOPE_RE.test(clean) || RESULT_RE.test(clean) || THRESHOLD_RE.test(clean) || COMPARATIVE_RE.test(clean);
 }
 
 /** Analyse many bullets, keeping their order. */

@@ -161,3 +161,57 @@ test("an empty profile degrades without throwing", () => {
   assert.equal(result.dimensions.length, 7);
   assert.ok(result.overall >= 0 && result.overall <= 100);
 });
+
+// --- Document reconstruction ----------------------------------------------
+
+import { reconstruct, reconstructBullets } from "./reconstruct";
+
+// A PDF stores visual lines, so this is what a wrapped bullet actually looks
+// like coming out of the text layer. Taken from a real résumé.
+const WRAPPED = `GURUPRASAD JENA
+PROJECTS
+GetFreeToolsAI | Production Tool Platform
+Tech Stack: Next.js, React, Tailwind CSS
+• Designed, built, and launched a production platform with 70+ browser-based tools covering PDF, image, calculator, and
+developer utilities, all processed entirely client-side via WebAssembly so user files never leave their device.
+• Engineered each tool as an isolated client-side module with lazy-loaded WebAssembly bundles, keeping initial page load
+under 2 seconds while supporting heavy operations.`;
+
+test("wrapped bullets are rejoined into whole sentences", () => {
+  const doc = reconstruct(WRAPPED);
+  assert.equal(doc.bullets.length, 2, "two bullets, not four lines");
+  // The regression that started this: the figure lives on the continuation line.
+  assert.ok(doc.bullets[1].includes("under 2 seconds"), doc.bullets[1]);
+});
+
+test("the truncation bug does not return: evidence on line two is seen", () => {
+  // Splitting on newlines reported "0 of 8 bullets quantified" for a résumé
+  // that plainly stated its numbers, because every figure was on a wrapped line.
+  const measured = detectAll(reconstruct(WRAPPED).bullets).filter((b) => b.result || b.scope);
+  assert.ok(measured.length >= 2, `expected figures to survive reflow, got ${measured.length}`);
+});
+
+test("ALL-CAPS headings split sections and are not treated as content", () => {
+  const doc = reconstruct(WRAPPED);
+  assert.ok(doc.headings.includes("PROJECTS"));
+  assert.ok(!doc.bullets.some((b) => b === "PROJECTS"));
+});
+
+test("labelled lists are kept out of the bullet stream", () => {
+  assert.ok(!reconstruct(WRAPPED).bullets.some((b) => /^Tech Stack:/.test(b)));
+});
+
+test("scope survives adjectives between the figure and its noun", () => {
+  // Real résumés write "70+ browser-based tools", not "70 tools".
+  assert.ok(detectEvidence("Shipped 70+ browser-based tools.").scope, "adjectives must not break scope detection");
+});
+
+test("a résumé with no markers still yields bullets", () => {
+  const prose = "SUMMARY\nBuilt an internal dashboard used by the operations team every day.\nLed the migration to a new database.";
+  assert.ok(reconstructBullets(prose).length >= 1, "prose résumés must not analyse as empty");
+});
+
+test("an unreadable document is flagged rather than reported as empty", () => {
+  const doc = reconstruct("   \n \n");
+  assert.equal(doc.lowConfidence, true, "no headings and no bullets means extraction failed");
+});
