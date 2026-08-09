@@ -50,7 +50,7 @@ const ACTION_RE = new RegExp(`^\\s*(?:[-•*▪·]\\s*)?(${ACTION_VERBS.join("|"
  * inside "trainee" — a substring match on a two-letter token once tagged every
  * fresher posting on Umbrix with machine learning.
  */
-const TECHNOLOGIES = [
+export const TECHNOLOGIES = [
   // languages
   "javascript", "typescript", "python", "java", "c++", "c#", "go", "rust", "ruby",
   "php", "kotlin", "swift", "scala", "r", "matlab", "sql", "html", "css", "bash",
@@ -75,7 +75,7 @@ const TECHNOLOGIES = [
   "revit", "primavera", "canvas lms", "moodle",
 ];
 
-const TECH_MATCHERS = TECHNOLOGIES.map((t) => ({
+export const TECH_MATCHERS = TECHNOLOGIES.map((t) => ({
   name: t,
   re: new RegExp(`(?<![a-z0-9])${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![a-z0-9])`, "i"),
 }));
