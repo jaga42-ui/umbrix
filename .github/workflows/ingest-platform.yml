@@ -52,6 +52,9 @@ jobs:
       - name: Ingest Workday
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          # SerpAPI is quota-bound (250 searches/month); the connector caps
+          # itself per run via SERPAPI_MAX_SEARCHES.
+          SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
         # --write is required; the runner defaults to a dry run precisely so a
         # misconfigured job cannot quietly mutate the live feed.
         run: npm run ingest:next -- --source=workday --write

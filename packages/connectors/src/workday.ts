@@ -92,7 +92,7 @@ interface WorkdayConfig {
 /** Workday's own page size cap for this endpoint. */
 const PAGE_SIZE = 20;
 const DEFAULT_MAX_PAGES = Number(process.env.WORKDAY_MAX_PAGES) || 15;
-const MAX_DESCRIPTION = 4_000;
+const MAX_DESCRIPTION = 20_000;
 
 /**
  * Server-side India filter. Workday searches the whole posting, so this is a

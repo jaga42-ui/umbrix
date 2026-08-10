@@ -226,5 +226,8 @@
   { "slug": "careerjet-fresher-finance", "ats": "careerjet", "keywords": "(fresher OR trainee OR \"graduate trainee\") AND (finance OR accounts OR accounting OR audit OR taxation)" },
   { "slug": "careerjet-fresher-customer-service", "ats": "careerjet", "keywords": "(fresher OR trainee OR \"graduate trainee\") AND (\"customer support\" OR \"customer service\" OR bpo OR \"voice process\")" },
   { "slug": "careerjet-fresher-hr", "ats": "careerjet", "keywords": "(fresher OR trainee OR \"graduate trainee\") AND (\"human resources\" OR recruitment OR \"talent acquisition\" OR hr)" },
-  { "slug": "careerjet-fresher-admin", "ats": "careerjet", "keywords": "(fresher OR trainee OR \"graduate trainee\") AND (admin OR administration OR operations OR \"data entry\" OR \"back office\")" }
+  { "slug": "careerjet-fresher-admin", "ats": "careerjet", "keywords": "(fresher OR trainee OR \"graduate trainee\") AND (admin OR administration OR operations OR \"data entry\" OR \"back office\")" },
+  { "slug": "serpapi-fresher-it", "ats": "serpapi", "query": "fresher software developer jobs", "location": "India", "pages": 1 },
+  { "slug": "serpapi-fresher-general", "ats": "serpapi", "query": "fresher jobs for graduates", "location": "India", "pages": 1 },
+  { "slug": "serpapi-internship", "ats": "serpapi", "query": "internship for students", "location": "India", "pages": 1 }
 ]

@@ -216,7 +216,7 @@ async function fetchCareerjetJobs(_slug, company = {}) {
         title,
         companyName,
         location: (r.locations && stripHtmlTags(r.locations)) || 'India',
-        content: stripHtmlTags(r.description).slice(0, 4000),
+        content: stripHtmlTags(r.description).slice(0, 20000),
         applyUrl,
         department: null,
         // Ground truth beats inference. On an internship shard the API has
