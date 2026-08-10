@@ -30,7 +30,7 @@ const BOARD_URL = (slug: string) => `https://boards-api.greenhouse.io/v1/boards/
  * stored content, and the downstream consumers (eligibility, scam, tagging)
  * all read the opening section where requirements actually appear.
  */
-const MAX_DESCRIPTION = 4_000;
+const MAX_DESCRIPTION = 20_000;
 
 export const greenhouseConnector: Connector<GreenhouseJob> = {
   id: 'greenhouse',

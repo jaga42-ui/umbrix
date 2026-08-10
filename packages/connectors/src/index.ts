@@ -12,14 +12,15 @@ import { greenhouseConnector } from './greenhouse';
 import { leverConnector } from './lever';
 import { adzunaConnector } from './adzuna';
 import { workdayConnector } from './workday';
+import { serpapiConnector } from './serpapi';
 
 export * from './http';
 export * from './validation';
-export { greenhouseConnector, leverConnector, adzunaConnector, workdayConnector };
+export { greenhouseConnector, leverConnector, adzunaConnector, workdayConnector, serpapiConnector };
 
 /** Every connector, keyed by id. */
 export const CONNECTORS: Record<string, Connector<any>> = Object.fromEntries(
-  [greenhouseConnector, leverConnector, adzunaConnector, workdayConnector].map((c) => [c.id, c])
+  [greenhouseConnector, leverConnector, adzunaConnector, workdayConnector, serpapiConnector].map((c) => [c.id, c])
 );
 
 export function getConnector(id: string): Connector<any> | undefined {

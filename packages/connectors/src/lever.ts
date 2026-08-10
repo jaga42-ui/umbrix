@@ -24,7 +24,7 @@ export interface LeverJob {
 }
 
 const BOARD_URL = (slug: string) => `https://api.lever.co/v0/postings/${slug}?mode=json`;
-const MAX_DESCRIPTION = 4_000;
+const MAX_DESCRIPTION = 20_000;
 
 export const leverConnector: Connector<LeverJob> = {
   id: 'lever',

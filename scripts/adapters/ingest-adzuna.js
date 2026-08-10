@@ -78,7 +78,7 @@ async function fetchAdzunaJobs(_slug, company = {}) {
         title: stripHtmlTags(r.title).slice(0, 200),
         companyName: (r.company && r.company.display_name) || undefined,
         location: (r.location && r.location.display_name) || 'India',
-        content: stripHtmlTags(r.description).slice(0, 4000),
+        content: stripHtmlTags(r.description).slice(0, 20000),
         applyUrl,
         department: (r.category && r.category.label) || null,
       });

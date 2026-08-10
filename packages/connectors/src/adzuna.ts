@@ -35,7 +35,7 @@ const MAX_DAYS_OLD = 30;
  * spans every stream. Adzuna treats `what_or` as OR, so any one term qualifies.
  */
 const FRESHER_TERMS = 'fresher trainee graduate intern entry associate';
-const MAX_DESCRIPTION = 4_000;
+const MAX_DESCRIPTION = 20_000;
 
 function credentials(): { appId: string; appKey: string } {
   const appId = process.env.ADZUNA_APP_ID;

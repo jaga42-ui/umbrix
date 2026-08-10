@@ -150,7 +150,7 @@ async function fetchJoobleJobs(_slug, company = {}) {
         title,
         companyName,
         location: (r.location && stripHtmlTags(r.location)) || 'India',
-        content: stripHtmlTags(r.snippet).slice(0, 4000),
+        content: stripHtmlTags(r.snippet).slice(0, 20000),
         applyUrl,
         department: null,
       });

@@ -82,7 +82,7 @@ Every job source, scraper, and API adapter must produce exactly this shape befor
   title: string;           // Job title — title case
   companyName: string;     // Company name
   location: string;        // "City, State" or "Remote" or "Pan India"
-  content: string;         // Max 500 chars — summary only, never full JD
+  content: string;         // Full job description text (see the storage rule)
   applyUrl: string;        // Original listing URL — primary dedup key
   department: string;      // Normalized category (see CATEGORY_MAP)
   type: "job" | "internship" | "scholarship";
@@ -173,7 +173,11 @@ Rules that are easy to get wrong:
 
 ### Scraper ethics (follow every time, no exceptions)
 - Only scrape public pages — no login, no auth bypass, no cookie injection
-- Store metadata only — `content` max 500 chars, never full job description text
+- **Store the full job description.** Matching needs it: a 500-character summary
+  almost never contains a requirements list, so requirement extraction and
+  résumé alignment had nothing to read. Cap at 20,000 characters, which holds a
+  long posting without letting one pathological document bloat the collection.
+  Only store descriptions from sources whose terms permit it.
 - Always set User-Agent: `"UmbrixBot/1.0 (+https://umbrix.vercel.app/bot)"`
 - Rate limit: minimum 2 seconds between requests to the same domain
 - Respect robots.txt — check before writing any new scraper
@@ -326,7 +330,7 @@ Never hardcode tier logic in components — always go through `computeEntitlemen
 ### Never do in any situation
 - Bypass the daily ingest rate limit guard
 - Scrape behind login walls or bypass auth
-- Store full job description text (content field max 500 chars)
+- Store a description from a source whose terms forbid it (check before adding a source)
 - Add `console.log` in production API routes (use structured logging)
 - Hardcode API keys, MongoDB URIs, or secrets anywhere in code
 - Install a new npm package without checking if an existing utility covers it
