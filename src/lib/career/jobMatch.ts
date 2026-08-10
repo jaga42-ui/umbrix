@@ -72,6 +72,36 @@ const PREFERRED_RE = /\b(preferred|plus|bonus|nice to have|good to have|desirabl
 const EXPERIENCE_RE =
   /\b(\d{1,2})\s*\+?\s*(?:-|–|to)?\s*(?:\d{1,2})?\s*(?:years?|yrs?)[^.]{0,24}?\b(?:experience|exp)\b/i;
 
+/**
+ * Competencies that are not technologies.
+ *
+ * The technology dictionary alone found requirements in only 28% of real India
+ * listings, because most of them are not software roles — customer service,
+ * BPO, sales, analyst and admin postings ask for shift availability, language
+ * fluency and communication, and named none of the tools it knows about. This
+ * is the same mistake the evidence detector deliberately avoids in its verb
+ * list, repeated here and now corrected.
+ *
+ * Each entry is a competency a candidate can genuinely evidence, so it can
+ * resolve to proven/claimed/missing like any other requirement.
+ */
+const COMPETENCY_PATTERNS: { label: string; re: RegExp }[] = [
+  { label: "communication skills", re: /\b(communication skills?|verbal and written|excellent communication)\b/i },
+  { label: "customer service", re: /\b(customer (?:service|support|handling|care)|client servicing)\b/i },
+  { label: "voice process", re: /\b(voice process|inbound|outbound|international voice|bpo)\b/i },
+  { label: "English fluency", re: /\b(fluen\w+ in english|english (?:fluency|proficiency)|good english)\b/i },
+  { label: "night / rotational shifts", re: /\b(night shifts?|rotational shifts?|24\*7|24x7|shift timings?)\b/i },
+  { label: "sales", re: /\b(sales target|lead generation|cold call\w*|business development|b2b sales|b2c sales)\b/i },
+  { label: "MS Office", re: /\b(ms[- ]office|microsoft office|word, excel|advanced excel)\b/i },
+  { label: "accounting", re: /\b(accounting|book ?keeping|gst|taxation|accounts payable|accounts receivable)\b/i },
+  { label: "data entry", re: /\b(data entry|typing speed|back ?office)\b/i },
+  { label: "teamwork", re: /\b(team ?player|work in a team|cross[- ]functional teams?)\b/i },
+  { label: "problem solving", re: /\b(problem[- ]solving|analytical skills?|troubleshoot\w*)\b/i },
+  { label: "project management", re: /\b(project management|stakeholder management|client management)\b/i },
+  { label: "teaching", re: /\b(teaching|lesson plan\w*|curriculum|tutoring)\b/i },
+  { label: "patient care", re: /\b(patient care|clinical|nursing|bedside)\b/i },
+];
+
 /** Degree requirements common to Indian postings. */
 const EDUCATION_PATTERNS: { label: string; re: RegExp }[] = [
   { label: "B.Tech / B.E.", re: /\b(b\.?\s?tech|b\.?\s?e\.?|bachelor of (?:technology|engineering))\b/i },
@@ -84,17 +114,42 @@ const EDUCATION_PATTERNS: { label: string; re: RegExp }[] = [
 ];
 
 /**
- * Whether a mention sits in a sentence framed as optional.
+ * How far either side of a mention counts as "the same statement".
  *
- * Scoped to the sentence containing the term, because a posting often lists
- * essentials and preferences in adjacent lines — judging by the whole document
- * would mark everything optional the moment "nice to have" appears once.
+ * Real postings are frequently punctuated with bullets, asterisks and pipes
+ * rather than sentences — 51 of 120 sampled India listings contained fewer than
+ * three full stops in the entire description. Scoping by full stop alone made
+ * the window the whole document, so a single "preferred" anywhere marked every
+ * requirement optional. A bounded window degrades sanely whatever the
+ * punctuation.
+ */
+const PREFERENCE_WINDOW = 100;
+
+/** Anything that plausibly ends a statement in a job posting. */
+const STATEMENT_BREAK = /[.\n;|•*]/;
+
+/**
+ * Whether a mention sits in a statement framed as optional.
+ *
+ * Bounded on both sides, then narrowed to the nearest statement break inside
+ * that window. A posting lists essentials and preferences in adjacent lines, so
+ * judging by the whole document would be wrong in the common case.
  */
 function isPreferred(text: string, index: number): boolean {
-  const start = text.lastIndexOf(".", index) + 1;
-  const end = text.indexOf(".", index);
-  const sentence = text.slice(start, end === -1 ? text.length : end);
-  return PREFERRED_RE.test(sentence);
+  const from = Math.max(0, index - PREFERENCE_WINDOW);
+  const to = Math.min(text.length, index + PREFERENCE_WINDOW);
+
+  const before = text.slice(from, index);
+  const after = text.slice(index, to);
+
+  // Trim back to the nearest break so an adjacent line cannot bleed in.
+  const breakBefore = Math.max(...[...before.matchAll(new RegExp(STATEMENT_BREAK, "g"))].map((m) => m.index ?? -1), -1);
+  const breakAfter = after.search(STATEMENT_BREAK);
+
+  const statement =
+    before.slice(breakBefore + 1) + (breakAfter === -1 ? after : after.slice(0, breakAfter));
+
+  return PREFERRED_RE.test(statement);
 }
 
 /**
@@ -121,6 +176,18 @@ export function extractRequirements(description: string, title = ""): JobRequire
     requirements.push({
       id: `skill:${name}`,
       label: name,
+      kind: "skill",
+      essential: !isPreferred(scope, match.index),
+    });
+  }
+
+  for (const { label, re } of COMPETENCY_PATTERNS) {
+    const match = re.exec(scope);
+    if (!match || seen.has(label)) continue;
+    seen.add(label);
+    requirements.push({
+      id: `skill:${label}`,
+      label,
       kind: "skill",
       essential: !isPreferred(scope, match.index),
     });
