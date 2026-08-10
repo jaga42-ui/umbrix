@@ -128,11 +128,16 @@ export async function fetchJson<T>(url: string, options: FetchOptions = {}): Pro
  * Single attempt on purpose — a health check that retries would mask exactly
  * the flakiness it exists to detect.
  */
-export async function probe(url: string, timeoutMs = 10_000): Promise<{ healthy: boolean; latencyMs: number; detail?: string }> {
+export async function probe(
+  url: string,
+  timeoutMs = 10_000,
+  /** Auth headers, for sources whose endpoints reject an unauthenticated probe. */
+  headers: Record<string, string> = {}
+): Promise<{ healthy: boolean; latencyMs: number; detail?: string }> {
   const started = Date.now();
   try {
     const response = await fetch(url, {
-      headers: { 'User-Agent': USER_AGENT },
+      headers: { 'User-Agent': USER_AGENT, ...headers },
       signal: AbortSignal.timeout(timeoutMs),
     });
     return {

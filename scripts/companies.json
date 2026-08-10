@@ -229,5 +229,7 @@
   { "slug": "careerjet-fresher-admin", "ats": "careerjet", "keywords": "(fresher OR trainee OR \"graduate trainee\") AND (admin OR administration OR operations OR \"data entry\" OR \"back office\")" },
   { "slug": "serpapi-fresher-it", "ats": "serpapi", "query": "fresher software developer jobs", "location": "India", "pages": 1 },
   { "slug": "serpapi-fresher-general", "ats": "serpapi", "query": "fresher jobs for graduates", "location": "India", "pages": 1 },
-  { "slug": "serpapi-internship", "ats": "serpapi", "query": "internship for students", "location": "India", "pages": 1 }
+  { "slug": "serpapi-internship", "ats": "serpapi", "query": "internship for students", "location": "India", "pages": 1 },
+  { "slug": "jsearch-fresher-it", "ats": "jsearch", "query": "fresher software developer jobs in India", "country": "in", "pages": 1 },
+  { "slug": "jsearch-internship", "ats": "jsearch", "query": "internship for freshers in India", "country": "in", "pages": 1 }
 ]
