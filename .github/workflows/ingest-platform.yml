@@ -4,7 +4,7 @@ name: Ingestion Platform
 # ingest-jobs.yml rather than replacing it — the legacy run still owns Tier 1 and
 # Tier 3, and nothing is cut over until a full-tier parity run is clean.
 #
-# Two jobs, deliberately separate:
+# Three jobs, deliberately separate:
 #
 #   workday  a source the legacy orchestrator has no adapter for, so this is the
 #            only way its listings reach the feed.
@@ -26,7 +26,7 @@ on:
   workflow_dispatch:
     inputs:
       job:
-        description: "Which job to run (workday | sweep | both)"
+        description: "Which job to run (workday | aggregators | sweep | both)"
         required: false
         default: "both"
 
@@ -52,13 +52,43 @@ jobs:
       - name: Ingest Workday
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
-          # SerpAPI is quota-bound (250 searches/month); the connector caps
-          # itself per run via SERPAPI_MAX_SEARCHES.
-          SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
-          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
         # --write is required; the runner defaults to a dry run precisely so a
         # misconfigured job cannot quietly mutate the live feed.
         run: npm run ingest:next -- --source=workday --write
+
+  # Google-for-Jobs aggregators. These exist for description quality rather than
+  # volume: they return the full posting (median ~950–1,950 characters against
+  # ~500 across the rest of the collection), which is what requirement
+  # extraction and résumé matching read. Roughly 30–50 jobs a day.
+  #
+  # Both are quota-bound on free plans — SerpAPI 250 searches/month, JSearch 200
+  # requests/month. At the registered shard counts a daily run spends about 90
+  # and 60 respectively, which fits with headroom. Each connector also enforces
+  # its own hard per-run cap, so a registry change cannot silently burn a month.
+  aggregators:
+    if: github.event.schedule == '0 5 * * *' || github.event.inputs.job == 'aggregators' || github.event.inputs.job == 'both'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: "npm"
+      - run: npm ci
+      - name: Ingest SerpAPI
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
+        run: npm run ingest:next -- --source=serpapi --write
+      - name: Ingest JSearch
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
+        # Runs even if SerpAPI failed — one quota-exhausted source must not
+        # take the other down with it.
+        if: always()
+        run: npm run ingest:next -- --source=jsearch --write
 
   sweep:
     if: github.event.schedule == '0 6 * * *' || github.event.inputs.job == 'sweep' || github.event.inputs.job == 'both'
