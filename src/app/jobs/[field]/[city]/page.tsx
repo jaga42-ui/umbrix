@@ -6,6 +6,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { Opportunity } from "@/models/Opportunity";
 import { fieldLabel, isSeoField, fieldSlugConds } from "@/lib/seoFields";
 import { cityBySlug, MIN_CITY_JOBS_TO_INDEX } from "@/lib/seoCities";
+import { jobPath } from "@/lib/jobUrl";
 import { CityLinks } from "@/components/CityLinks";
 import { JobsFaq } from "@/components/JobsFaq";
 
@@ -143,21 +144,27 @@ export default async function CityJobsPage({
             {jobs.map((j: any) => {
               const fresher = j.minExperience != null && j.minExperience <= 1;
               return (
-                <li key={String(j._id)} className="bg-surface border border-border rounded-none p-4">
-                  <h3 className="font-semibold tracking-tight">{j.title}</h3>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground mt-1">
-                    <span className="font-medium text-foreground/90">{companyName(j)}</span>
-                    <span className="flex items-center">
-                      <MapPin className="w-3.5 h-3.5 mr-1 text-muted-foreground/70" />
-                      {j.location}
-                    </span>
-                    {fresher && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-accent bg-accent/10 border border-accent/25 px-2 py-0.5 rounded-none">
-                        <GraduationCap className="w-3.5 h-3.5" />
-                        Fresher-friendly
+                <li key={String(j._id)}>
+                  {/* Links, not inert text — see the note on the field page. */}
+                  <Link
+                    href={jobPath(j)}
+                    className="block bg-surface border border-border rounded-none p-4 hover:border-foreground/40 transition-colors"
+                  >
+                    <h3 className="font-semibold tracking-tight">{j.title}</h3>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground mt-1">
+                      <span className="font-medium text-foreground/90">{companyName(j)}</span>
+                      <span className="flex items-center">
+                        <MapPin className="w-3.5 h-3.5 mr-1 text-muted-foreground/70" />
+                        {j.location}
                       </span>
-                    )}
-                  </div>
+                      {fresher && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-accent bg-accent/10 border border-accent/25 px-2 py-0.5 rounded-none">
+                          <GraduationCap className="w-3.5 h-3.5" />
+                          Fresher-friendly
+                        </span>
+                      )}
+                    </div>
+                  </Link>
                 </li>
               );
             })}

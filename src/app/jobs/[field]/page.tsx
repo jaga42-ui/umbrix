@@ -5,6 +5,7 @@ import { MapPin, GraduationCap, ArrowRight } from "lucide-react";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Opportunity } from "@/models/Opportunity";
 import { fieldLabel, isSeoField, fieldSlugConds } from "@/lib/seoFields";
+import { jobPath } from "@/lib/jobUrl";
 import { FieldLinks } from "@/components/FieldLinks";
 import { CityLinks } from "@/components/CityLinks";
 import { JobsFaq } from "@/components/JobsFaq";
@@ -119,7 +120,15 @@ export default async function FieldJobsPage({ params }: { params: Promise<{ fiel
             {jobs.map((j: any) => {
               const fresher = j.minExperience != null && j.minExperience <= 1;
               return (
-                <li key={String(j._id)} className="bg-surface border border-border rounded-none p-4">
+                <li key={String(j._id)}>
+                  {/* Links, not inert text: the sitemap alone is a weak
+                      discovery signal, and a job page a crawler can only reach
+                      via the sitemap accumulates far less authority than one
+                      linked from its field hub. */}
+                  <Link
+                    href={jobPath(j)}
+                    className="block bg-surface border border-border rounded-none p-4 hover:border-foreground/40 transition-colors"
+                  >
                   <h3 className="font-semibold tracking-tight">{j.title}</h3>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground mt-1">
                     <span className="font-medium text-foreground/90">{companyName(j)}</span>
@@ -134,6 +143,7 @@ export default async function FieldJobsPage({ params }: { params: Promise<{ fiel
                       </span>
                     )}
                   </div>
+                  </Link>
                 </li>
               );
             })}
