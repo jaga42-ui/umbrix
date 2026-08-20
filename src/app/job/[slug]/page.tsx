@@ -9,6 +9,7 @@ import { Footer } from "@/components/Footer";
 import { fieldLabel, fieldForSlug, fieldSlugConds } from "@/lib/seoFields";
 import { cityBySlug } from "@/lib/seoCities";
 import { parseJobId, jobPath } from "@/lib/jobUrl";
+import { fresherEligibleConditions } from "@/lib/fresherFilter";
 import { parseJobLocation } from "@/lib/jobLocation";
 import { parseDescriptionHtml, descriptionSummary, hasIndexableDescription } from "@/lib/jobDescription";
 import { serializeJsonLd } from "@/lib/jsonLd";
@@ -74,8 +75,10 @@ async function getSimilar(job: JobDoc, field: string, citySlug?: string): Promis
       _id: { $ne: job._id },
       status: "Active",
       isIndia: true,
-      minExperience: { $not: { $gte: 2 } },
-      $or: fieldSlugConds(field),
+      // Same eligibility rule as every other fresher surface — recommending a
+      // senior role as "similar" to a fresher is the same defect wearing a
+      // different hat.
+      $and: [...fresherEligibleConditions(), { $or: fieldSlugConds(field) }],
     };
 
     const city = citySlug ? cityBySlug(citySlug) : undefined;

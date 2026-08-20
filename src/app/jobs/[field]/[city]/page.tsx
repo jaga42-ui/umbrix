@@ -7,6 +7,7 @@ import { Opportunity } from "@/models/Opportunity";
 import { fieldLabel, isSeoField, fieldSlugConds } from "@/lib/seoFields";
 import { cityBySlug, MIN_CITY_JOBS_TO_INDEX } from "@/lib/seoCities";
 import { jobPath } from "@/lib/jobUrl";
+import { fresherEligibleConditions } from "@/lib/fresherFilter";
 import { CityLinks } from "@/components/CityLinks";
 import { JobsFaq } from "@/components/JobsFaq";
 
@@ -19,9 +20,10 @@ function buildQuery(field: string, cityPattern: string): Record<string, unknown>
   return {
     status: "Active",
     isIndia: true,
-    minExperience: { $not: { $gte: 2 } }, // fresher-eligible (0-1) or unstated
     location: { $regex: cityPattern, $options: "i" },
-    $or: fieldSlugConds(field),
+    // $and, because fresher-eligibility contributes its own $or and a document
+    // can only carry one.
+    $and: [...fresherEligibleConditions(), { $or: fieldSlugConds(field) }],
   };
 }
 

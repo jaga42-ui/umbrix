@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { SEO_FIELDS, fieldSlugConds } from "@/lib/seoFields";
+import { fresherEligibleConditions } from "@/lib/fresherFilter";
 import { CITIES, MIN_CITY_JOBS_TO_INDEX } from "@/lib/seoCities";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Opportunity } from "@/models/Opportunity";
@@ -30,9 +31,11 @@ async function cityCountsForField(field: string): Promise<Map<string, number>> {
   const rows = await Opportunity.find({
     status: "Active",
     isIndia: true,
-    minExperience: { $not: { $gte: 2 } }, // fresher-eligible (0-1) or unstated
-    $or: fieldSlugConds(field),
-  })
+    // $and, because fresher-eligibility contributes its own $or and a document
+    // can only carry one. Must stay identical to the city page's own query —
+    // if these diverge the sitemap promises pages that then render noindex.
+    $and: [...fresherEligibleConditions(), { $or: fieldSlugConds(field) }],
+  } as Record<string, unknown>)
     .select("location")
     .lean();
 

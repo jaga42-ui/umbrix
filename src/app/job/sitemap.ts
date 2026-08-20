@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Opportunity } from "@/models/Opportunity";
 import { jobPath } from "@/lib/jobUrl";
+import { fresherEligibleConditions } from "@/lib/fresherFilter";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.umbrix.in";
 
@@ -51,7 +52,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const query: Record<string, unknown> = {
       status: "Active",
       isIndia: true,
-      minExperience: { $not: { $gte: 2 } },
+      $and: fresherEligibleConditions(),
       // Postings with no description render as `noindex` (see the job page).
       // Listing them here would spend crawl budget to be told no — the same
       // reasoning the root sitemap applies to thin city pages.
