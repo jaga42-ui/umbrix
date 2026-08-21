@@ -27,14 +27,15 @@ import { adzunaConnector } from './adzuna';
 import { workdayConnector } from './workday';
 import { serpapiConnector } from './serpapi';
 import { jsearchConnector } from './jsearch';
+import { unstopConnector } from './unstop';
 
 export * from './http';
 export * from './validation';
-export { greenhouseConnector, leverConnector, adzunaConnector, workdayConnector, serpapiConnector, jsearchConnector };
+export { greenhouseConnector, leverConnector, adzunaConnector, workdayConnector, serpapiConnector, jsearchConnector, unstopConnector };
 
 /** Every connector, keyed by id. */
 export const CONNECTORS: Record<string, AnyConnector> = Object.fromEntries(
-  [greenhouseConnector, leverConnector, adzunaConnector, workdayConnector, serpapiConnector, jsearchConnector].map((c) => [c.id, c])
+  [greenhouseConnector, leverConnector, adzunaConnector, workdayConnector, serpapiConnector, jsearchConnector, unstopConnector].map((c) => [c.id, c])
 );
 
 export function getConnector(id: string): AnyConnector | undefined {
