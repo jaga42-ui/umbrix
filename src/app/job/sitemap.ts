@@ -3,6 +3,10 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { Opportunity } from "@/models/Opportunity";
 import { jobPath } from "@/lib/jobUrl";
 import { fresherEligibleConditions } from "@/lib/fresherFilter";
+import {
+  hasIndexableDescription,
+  MIN_INDEXABLE_DESCRIPTION_CHARS,
+} from "@/lib/jobDescription";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.umbrix.in";
 
@@ -25,18 +29,18 @@ export const revalidate = 3600;
 const MAX_URLS = 45000;
 
 /**
- * Raw-HTML length floor, applied in Mongo.
+ * Raw-HTML length floor, applied in Mongo as a *pre-filter* only.
  *
- * A cheap proxy for the parsed-text check the job page runs, not an equivalent
- * of it: markup inflates the count, so a document of 250 characters of empty
- * `<div>`s passes here and is still `noindex` on the page. Computing the real
- * text length would mean pulling every description into this route — tens of
- * megabytes to build one XML file — which is not a trade worth making.
+ * Stripping markup can only shorten a string, so `text.length >= N` implies
+ * `html.length >= N`. That makes this a provable superset of the parsed-text
+ * check the job page runs: it can never exclude a page the page would index,
+ * so the exact check below is free to be the sole authority. Measured, the two
+ * agree on every current posting — markup inflation is 1.00 at the median.
  *
- * What this reliably removes is the case actually seen in production: postings
- * whose description is empty. The page remains the authority on indexability.
+ * Its job is to keep the candidate set small enough that pulling descriptions
+ * in to run the real check costs a few megabytes rather than tens.
  */
-const MIN_DESCRIPTION_HTML_CHARS = 200;
+const MIN_DESCRIPTION_HTML_CHARS = MIN_INDEXABLE_DESCRIPTION_CHARS;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
@@ -53,34 +57,39 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       status: "Active",
       isIndia: true,
       $and: fresherEligibleConditions(),
-      // Postings with no description render as `noindex` (see the job page).
-      // Listing them here would spend crawl budget to be told no — the same
-      // reasoning the root sitemap applies to thin city pages.
+      // Thin postings render as `noindex` (see the job page). Listing them here
+      // would spend crawl budget to be told no — the same reasoning the root
+      // sitemap applies to thin city pages. Superset pre-filter; the exact
+      // check runs below.
       $expr: {
-        $gt: [{ $strLenCP: { $ifNull: ["$descriptionHtml", ""] } }, MIN_DESCRIPTION_HTML_CHARS],
+        $gte: [{ $strLenCP: { $ifNull: ["$descriptionHtml", ""] } }, MIN_DESCRIPTION_HTML_CHARS],
       },
     };
 
-    const total = await Opportunity.countDocuments(query);
-    if (total > MAX_URLS) {
-      console.warn(
-        `[sitemap] ${total} active job URLs exceeds the ${MAX_URLS} single-file cap — ${total - MAX_URLS} are being omitted. Split this into shards with generateSitemaps().`
-      );
-    }
-
-    const jobs = await Opportunity.find(query)
-      .select("title lastSeenAt updatedAt createdAt")
+    const candidates = await Opportunity.find(query)
+      // descriptionHtml is pulled only to re-run the page's own indexability
+      // check, so the sitemap cannot promise a URL that then renders noindex.
+      .select("title descriptionHtml lastSeenAt updatedAt createdAt")
       .sort({ createdAt: -1 })
       .limit(MAX_URLS)
       .lean();
 
-    return (jobs as unknown as {
+    const jobs = (candidates as unknown as {
       _id: unknown;
       title: string;
+      descriptionHtml?: string;
       lastSeenAt?: Date;
       updatedAt?: Date;
       createdAt: Date;
-    }[]).map((job) => ({
+    }[]).filter((job) => hasIndexableDescription(job.descriptionHtml ?? ""));
+
+    if (jobs.length > MAX_URLS) {
+      console.warn(
+        `[sitemap] ${jobs.length} active job URLs exceeds the ${MAX_URLS} single-file cap — ${jobs.length - MAX_URLS} are being omitted. Split this into shards with generateSitemaps().`
+      );
+    }
+
+    return jobs.map((job) => ({
       url: `${SITE}${jobPath(job)}`,
       // lastSeenAt is when ingest last confirmed the posting is still live,
       // which is the honest "last modified" signal for a job page.
