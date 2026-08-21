@@ -52,6 +52,36 @@ const AGGREGATOR_SHARD_RE = new RegExp(
 );
 
 /**
+ * Whether a companySlug is an aggregator field shard rather than a real company
+ * ATS board. Exported so callers outside this module (JobPosting schema, which
+ * must not claim `directApply` for a link that bounces through an aggregator)
+ * share the one definition instead of re-deriving the pattern.
+ */
+export function isAggregatorSlug(companySlug: string): boolean {
+  return AGGREGATOR_SHARD_RE.test(String(companySlug ?? ""));
+}
+
+// Same shape as AGGREGATOR_SHARD_RE, but capturing the field so a posting can
+// be mapped back to the field page it belongs under.
+const AGGREGATOR_SHARD_FIELD_RE = new RegExp(
+  `^(?:${AGGREGATOR_PREFIXES.join("|")})-(?:${SHARD_INFIXES.join("|")})-(.+)$`
+);
+
+/**
+ * The field a posting belongs to, derived from its companySlug.
+ *
+ * The exact inverse of `fieldSlugConds`: aggregator shards carry their field in
+ * the slug, and every genuine ATS board belongs to "it" — which is the rule
+ * that function's `it` branch encodes. Keeping the two in one file is what
+ * stops a job's breadcrumb from disagreeing with the page that lists it.
+ */
+export function fieldForSlug(companySlug: string): string {
+  const match = AGGREGATOR_SHARD_FIELD_RE.exec(String(companySlug ?? ""));
+  if (match && isSeoField(match[1])) return match[1];
+  return "it";
+}
+
+/**
  * Mongo `$or` conditions for "jobs in this field" — mirrors the feed's field
  * scoping. Shared by the field and city SEO pages.
  */

@@ -67,6 +67,22 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  // Search Console / Bing Webmaster site verification.
+  //
+  // Read from the environment rather than hardcoded: the token is per-property,
+  // and a DNS TXT record is the better verification method anyway (it survives
+  // redeploys and covers every subdomain). This exists so the HTML-tag method
+  // works without a code change if DNS isn't available.
+  //
+  // Only emitted when set — an empty verification tag is worse than none.
+  verification: {
+    ...(process.env.GOOGLE_SITE_VERIFICATION
+      ? { google: process.env.GOOGLE_SITE_VERIFICATION }
+      : {}),
+    ...(process.env.BING_SITE_VERIFICATION
+      ? { other: { "msvalidate.01": process.env.BING_SITE_VERIFICATION } }
+      : {}),
+  },
 };
 
 export const viewport: Viewport = {

@@ -13,7 +13,10 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: ["/api/", "/feed", "/profile", "/tracker"],
     },
-    sitemap: `${baseUrl}/sitemap.xml`,
+    // Individual job postings live in their own sitemap so a slow job query can
+    // never take down the static and field URLs. Both must be listed here —
+    // robots.txt is the only place that points at the second one.
+    sitemap: [`${baseUrl}/sitemap.xml`, `${baseUrl}/job/sitemap.xml`],
     host: baseUrl,
   };
 }
