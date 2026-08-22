@@ -135,13 +135,36 @@ export function parseDescriptionHtml(html: string): DescriptionBlock[] {
 /**
  * Minimum real description text before a posting is worth indexing.
  *
- * Matches the bar `/api/cron/extract-eligibility` already uses to decide a
- * posting has enough content to read. Below it a job page has nothing unique to
- * offer — and `description` is a *required* property on `JobPosting`, so
- * emitting the markup without one produces Search Console errors rather than a
- * carousel entry.
+ * `description` is a *required* property on `JobPosting`, so a page without one
+ * produces Search Console errors rather than a carousel entry. But the bar is
+ * set well above "non-empty" for a second reason, measured on production:
+ *
+ *   description text   pages   share
+ *   <300                  19    0.5%
+ *   300-600            3,536   89.1%   <- one source, hard-truncated at 500
+ *   600-1,200             17    0.4%
+ *   1,200-3,000           92    2.3%
+ *   3,000+               305    7.7%
+ *
+ * 89% of postings came from an aggregator that truncates every description at
+ * exactly 500 characters — the median, p25 and p75 are all 500. Publishing
+ * thousands of near-identically-shaped stub pages is thin content at scale, and
+ * the resulting site-level quality signal would drag down the field and city
+ * pages too, which are the strongest thing on the domain.
+ *
+ * The distribution is bimodal — a wall at 500, a gap, then real descriptions
+ * from 1,700 up — so 600 is not an arbitrary line, it is the seam in the data.
+ *
+ * Nothing is hidden from users by this: a thin posting still renders, still
+ * appears in the feed, and still links out to the employer. It just doesn't
+ * enter the index until it has something unique to say. That is the same rule
+ * `MIN_CITY_JOBS_TO_INDEX` already applies to thin city pages.
+ *
+ * This number falls as the full-description sources (SerpAPI, JSearch, company
+ * ATS boards — all averaging 1,700-9,700 characters) grow their share, so the
+ * indexed surface widens on its own without loosening the bar.
  */
-export const MIN_INDEXABLE_DESCRIPTION_CHARS = 200;
+export const MIN_INDEXABLE_DESCRIPTION_CHARS = 600;
 
 /**
  * Whether a posting carries enough description to index and to publish

@@ -1,6 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseDescriptionHtml, decodeEntities, descriptionSummary } from "./jobDescription";
+import {
+  parseDescriptionHtml,
+  decodeEntities,
+  descriptionSummary,
+  hasIndexableDescription,
+  MIN_INDEXABLE_DESCRIPTION_CHARS,
+} from "./jobDescription";
 
 test("parseDescriptionHtml: preserves headings, paragraphs and list items", () => {
   const blocks = parseDescriptionHtml(
@@ -87,4 +93,37 @@ test("descriptionSummary: trims at a word boundary and skips headings", () => {
 
 test("descriptionSummary: returns the whole text when it already fits", () => {
   assert.equal(descriptionSummary("<p>Short one.</p>", 100), "Short one.");
+});
+
+test("hasIndexableDescription: the gate sits above the aggregator truncation point", () => {
+  // 89% of postings come from a source that hard-truncates at exactly 500
+  // characters. The gate has to sit above that or it lets every stub through.
+  assert.ok(
+    MIN_INDEXABLE_DESCRIPTION_CHARS > 500,
+    "a gate at or below 500 would admit every truncated aggregator stub"
+  );
+});
+
+test("hasIndexableDescription: a 500-char truncated stub is not indexable", () => {
+  const stub = `<p>${"a".repeat(500)}</p>`;
+  assert.equal(hasIndexableDescription(stub), false);
+});
+
+test("hasIndexableDescription: a real job description is indexable", () => {
+  const real = `<p>${"word ".repeat(400)}</p>`; // ~2000 chars, typical of ATS sources
+  assert.equal(hasIndexableDescription(real), true);
+});
+
+test("hasIndexableDescription: measures parsed text, not raw markup", () => {
+  // The failure this guards: a document padded with empty markup passing a
+  // raw-length check while having nothing to actually read.
+  const padded = `${"<div></div>".repeat(200)}<p>Short.</p>`;
+  assert.ok(padded.length > MIN_INDEXABLE_DESCRIPTION_CHARS, "raw markup is long");
+  assert.equal(hasIndexableDescription(padded), false, "but there is no real text");
+});
+
+test("hasIndexableDescription: empty and missing descriptions are not indexable", () => {
+  assert.equal(hasIndexableDescription(""), false);
+  assert.equal(hasIndexableDescription("   "), false);
+  assert.equal(hasIndexableDescription("<div><p></p></div>"), false);
 });
