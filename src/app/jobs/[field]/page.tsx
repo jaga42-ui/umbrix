@@ -6,6 +6,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { Opportunity } from "@/models/Opportunity";
 import { fieldLabel, isSeoField, fieldSlugConds } from "@/lib/seoFields";
 import { jobPath } from "@/lib/jobUrl";
+import { fresherEligibleConditions } from "@/lib/fresherFilter";
 import { FieldLinks } from "@/components/FieldLinks";
 import { CityLinks } from "@/components/CityLinks";
 import { JobsFaq } from "@/components/JobsFaq";
@@ -23,8 +24,9 @@ async function getFieldJobs(field: string) {
     const query: Record<string, unknown> = {
       status: "Active",
       isIndia: true,
-      minExperience: { $not: { $gte: 2 } }, // fresher-eligible (0-1) or unstated
-      $or: fieldSlugConds(field),
+      // $and, because fresher-eligibility contributes its own $or and a
+      // document can only carry one.
+      $and: [...fresherEligibleConditions(), { $or: fieldSlugConds(field) }],
     };
     const [jobs, total] = await Promise.all([
       Opportunity.find(query)

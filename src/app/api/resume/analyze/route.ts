@@ -7,6 +7,7 @@ import { checkRateLimit } from "@/lib/rateLimit";
 import { analyzeResume } from "@/lib/resumeAnalyzer";
 import { analyzeSkillGap } from "@/lib/skillGap";
 import { fieldSlugConds } from "@/lib/seoFields";
+import { fresherEligibleConditions } from "@/lib/fresherFilter";
 
 /**
  * How many live listings to sample for the market comparison. Large enough that
@@ -90,8 +91,15 @@ export async function POST(request: Request) {
     const marketQuery: Record<string, unknown> = {
       status: "Active",
       isIndia: true,
-      minExperience: { $not: { $gte: 2 } },
-      ...(fieldConds.length > 0 ? { $or: fieldConds } : {}),
+      // $and, because fresher-eligibility contributes its own $or and a
+      // document can only carry one. This filter is what makes the comment
+      // above true: with the old `$not: { $gte: 2 }` alone, senior roles with
+      // an unstated experience level leaked into the sample and the skill gap
+      // recommended exactly the senior skills it set out to exclude.
+      $and: [
+        ...fresherEligibleConditions(),
+        ...(fieldConds.length > 0 ? [{ $or: fieldConds }] : []),
+      ],
     };
 
     const marketJobs = await Opportunity.find(marketQuery)
