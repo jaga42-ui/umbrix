@@ -89,6 +89,20 @@ jobs:
         # take the other down with it.
         if: always()
         run: npm run ingest:next -- --source=jsearch --write
+      - name: Ingest Unstop
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+        # No API key: Unstop's opportunity search is a public, unauthenticated
+        # endpoint that its own robots.txt allows (`Allow: /api/public/*`), so
+        # unlike the two above it carries no quota and cannot be exhausted.
+        #
+        # Measured pre-flight over 180 live postings: 99% clear the 600-character
+        # indexing bar and 84% are both fresher-eligible and indexable, against
+        # 0% for Adzuna, which supplies 70% of the collection and yields nothing
+        # publishable. The internships stream returns source-stated experience on
+        # every posting.
+        if: always()
+        run: npm run ingest:next -- --source=unstop --write
 
   sweep:
     if: github.event.schedule == '0 6 * * *' || github.event.inputs.job == 'sweep' || github.event.inputs.job == 'both'
