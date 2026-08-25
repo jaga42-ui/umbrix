@@ -50,6 +50,14 @@ export default function JobsHubPage() {
         </Link>
 
         <FieldLinks />
+
+        <p className="text-sm text-muted-foreground mt-8">
+          Looking for an internship instead?{" "}
+          <Link href="/internships" className="text-primary font-semibold">
+            Browse internships in India
+          </Link>{" "}
+          open to students and freshers.
+        </p>
       </main>
 
       <Footer />
