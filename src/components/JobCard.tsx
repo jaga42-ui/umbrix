@@ -8,6 +8,8 @@ import { track } from "@/lib/analytics";
 import { topMissingSkill } from "@/lib/matchScore";
 import { courseForSkill } from "@/lib/skillCourses";
 import { freshnessLabel } from "@/lib/jobFreshness";
+import { SourceAttribution } from "@/components/SourceAttribution";
+import { attributionFor } from "@/lib/aggregatorAttribution";
 
 // A company monogram stands in for a logo — we don't have logo assets for
 // aggregator listings, and a consistent lettered avatar reads far more
@@ -65,8 +67,6 @@ interface JobCardProps {
   matchExplanation?: string[];
   applyUrl: string;
   minExperience?: number | null;
-  /** Aggregator source (e.g. "Adzuna") when the apply link goes via a redirect; omit for direct ATS links. */
-  source?: string;
   /** When UMBRIX first ingested it — a discovery date, NOT a publication date. */
   createdAt?: string | Date;
   /** When an ingest run last confirmed the role is still on the employer's board. */
@@ -96,7 +96,6 @@ export function JobCard({
   matchExplanation = [],
   applyUrl,
   minExperience,
-  source,
   createdAt,
   lastSeenAt,
   postedAt,
@@ -106,6 +105,10 @@ export function JobCard({
   isSaved = false,
   onSave,
 }: JobCardProps) {
+  // Derived from the apply URL, not a caller-supplied prop: the feed used to
+  // compute it from `companySlug`, which only aggregator shards carry, so a
+  // listing could route via an aggregator and go uncredited.
+  const attribution = attributionFor(applyUrl);
   const fresherEligible = minExperience != null && minExperience <= 1;
   const pay = formatPay(salary, stipend);
   const freshness = freshnessLabel({ postedAt, lastSeenAt, createdAt });
@@ -212,14 +215,12 @@ export function JobCard({
                       Fresher-friendly
                     </span>
                   )}
-                  {source && (
-                    <span
-                      className="text-[11px] text-muted-foreground/70"
-                      title={`Listing aggregated from ${source} — Apply opens ${source} first, then the employer's page`}
-                    >
-                      via {source}
-                    </span>
-                  )}
+                  {/* Contractually required credit where the apply link routes
+                      via an aggregator. Derived from applyUrl rather than a
+                      prop: the old optional `source` prop was documented for
+                      exactly this and no caller ever passed it, so nothing
+                      rendered. */}
+                  <SourceAttribution applyUrl={applyUrl} />
                 </div>
 
                 {/* Naukri-style facts: pay · experience · type · freshness. Each
@@ -288,7 +289,13 @@ export function JobCard({
                 href={applyUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => track("apply_click", { jobId: id, score: matchScore, ...(source ? { source } : {}) })}
+                onClick={() =>
+                  track("apply_click", {
+                    jobId: id,
+                    score: matchScore,
+                    ...(attribution ? { source: attribution.name } : {}),
+                  })
+                }
                 className="um-btn um-btn--primary flex-1 sm:flex-initial h-10 px-5 rounded-none text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
                 style={{ textDecoration: "none" }}
               >
