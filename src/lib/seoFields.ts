@@ -22,11 +22,43 @@ export const FIELD_LABELS: Record<string, string> = {
   manufacturing: "Manufacturing",
 };
 
+/**
+ * The same labels written for mid-sentence use, e.g. "scam-checked IT & software
+ * jobs". Spelled out per field rather than derived, because `toLowerCase()` on
+ * the display label destroys the acronyms: "IT & Software" became "it & software"
+ * in the meta description Google renders, and "HR & Recruiting" became "hr &
+ * recruiting". A heuristic that guessed which words were acronyms would be more
+ * code and one more thing to get wrong on the next field added.
+ */
+export const FIELD_LABELS_INLINE: Record<string, string> = {
+  it: "IT & software",
+  engineering: "engineering",
+  sales: "sales",
+  marketing: "marketing",
+  finance: "finance & accounting",
+  "customer-service": "customer service & BPO",
+  hr: "HR & recruiting",
+  admin: "admin & operations",
+  retail: "retail",
+  logistics: "logistics & supply chain",
+  healthcare: "healthcare",
+  teaching: "teaching & education",
+  hospitality: "hospitality",
+  creative: "creative & design",
+  consultancy: "consulting",
+  manufacturing: "manufacturing",
+};
+
 /** The fields that get a /jobs/<field> SEO page. */
 export const SEO_FIELDS = Object.keys(FIELD_LABELS);
 
 export function fieldLabel(field: string): string {
   return FIELD_LABELS[field] ?? field;
+}
+
+/** The field label as it should read mid-sentence. Never use `toLowerCase()`. */
+export function fieldLabelInline(field: string): string {
+  return FIELD_LABELS_INLINE[field] ?? fieldLabel(field).toLowerCase();
 }
 
 export function isSeoField(field: string): boolean {

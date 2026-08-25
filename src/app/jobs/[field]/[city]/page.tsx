@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { MapPin, GraduationCap, ArrowRight } from "lucide-react";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Opportunity } from "@/models/Opportunity";
-import { fieldLabel, isSeoField, fieldSlugConds } from "@/lib/seoFields";
+import { fieldLabel, fieldLabelInline, isSeoField, fieldSlugConds } from "@/lib/seoFields";
 import { cityBySlug, MIN_CITY_JOBS_TO_INDEX } from "@/lib/seoCities";
 import { jobPath } from "@/lib/jobUrl";
 import { fresherEligibleConditions } from "@/lib/fresherFilter";
@@ -56,8 +56,9 @@ export async function generateMetadata({
   if (!isSeoField(field) || !cityObj) return {};
 
   const label = fieldLabel(field);
+  const inlineLabel = fieldLabelInline(field);
   const title = `Fresher ${label} Jobs in ${cityObj.label} (${YEAR})`;
-  const description = `Scam-checked ${label.toLowerCase()} jobs and internships open to freshers in ${cityObj.label}. See which ones you qualify for — matched to your branch, batch, and skills on Umbrix.`;
+  const description = `Scam-checked ${inlineLabel} jobs and internships open to freshers in ${cityObj.label}. See which ones you qualify for — matched to your branch, batch, and skills on Umbrix.`;
   const url = `${SITE}/jobs/${field}/${city}`;
 
   // Thin pages hurt SEO — only let a city page into the index once it has enough
@@ -87,6 +88,7 @@ export default async function CityJobsPage({
   if (!isSeoField(field) || !cityObj) notFound();
 
   const label = fieldLabel(field);
+  const inlineLabel = fieldLabelInline(field);
   const { jobs, total } = await getCityJobs(field, cityObj.pattern);
 
   const breadcrumb = {
@@ -128,7 +130,7 @@ export default async function CityJobsPage({
         </h1>
         <p className="text-muted-foreground leading-relaxed max-w-2xl mb-2">
           {total > 0 ? `${total.toLocaleString("en-IN")}+ ` : ""}
-          {label.toLowerCase()} roles and internships open to freshers in {cityObj.label} — each from a real
+          {inlineLabel} roles and internships open to freshers in {cityObj.label} — each from a real
           company or aggregator and checked by our scam filter before it&rsquo;s listed. Upload your résumé on
           Umbrix to see a match score and which of these you qualify for.
         </p>
@@ -173,8 +175,8 @@ export default async function CityJobsPage({
           </ul>
         ) : (
           <div className="border border-dashed border-border rounded-none p-8 text-center text-muted-foreground mb-12">
-            No live {label.toLowerCase()} roles in {cityObj.label} right now. See{" "}
-            <Link href={`/jobs/${field}`} className="text-primary font-semibold">all {label.toLowerCase()} jobs</Link>{" "}
+            No live {inlineLabel} roles in {cityObj.label} right now. See{" "}
+            <Link href={`/jobs/${field}`} className="text-primary font-semibold">all {inlineLabel} jobs</Link>{" "}
             across India, or <Link href="/feed" className="text-primary font-semibold">open the feed</Link>.
           </div>
         )}

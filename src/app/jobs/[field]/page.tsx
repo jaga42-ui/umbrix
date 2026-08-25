@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { MapPin, GraduationCap, ArrowRight } from "lucide-react";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Opportunity } from "@/models/Opportunity";
-import { fieldLabel, isSeoField, fieldSlugConds } from "@/lib/seoFields";
+import { fieldLabel, fieldLabelInline, isSeoField, fieldSlugConds } from "@/lib/seoFields";
 import { jobPath } from "@/lib/jobUrl";
 import { fresherEligibleConditions } from "@/lib/fresherFilter";
 import { FieldLinks } from "@/components/FieldLinks";
@@ -46,8 +46,9 @@ export async function generateMetadata({ params }: { params: Promise<{ field: st
   const { field } = await params;
   if (!isSeoField(field)) return {};
   const label = fieldLabel(field);
+  const inlineLabel = fieldLabelInline(field);
   const title = `Fresher ${label} Jobs & Internships in India (${YEAR})`;
-  const description = `Real, scam-checked ${label.toLowerCase()} jobs and internships open to freshers across India. See which roles you actually qualify for — matched to your branch, batch, and skills on Umbrix.`;
+  const description = `Real, scam-checked ${inlineLabel} jobs and internships open to freshers across India. See which roles you actually qualify for — matched to your branch, batch, and skills on Umbrix.`;
   const url = `${SITE}/jobs/${field}`;
   return {
     title,
@@ -65,6 +66,7 @@ export default async function FieldJobsPage({ params }: { params: Promise<{ fiel
   if (!isSeoField(field)) notFound();
 
   const label = fieldLabel(field);
+  const inlineLabel = fieldLabelInline(field);
   const { jobs, total } = await getFieldJobs(field);
 
   const breadcrumb = {
@@ -104,7 +106,7 @@ export default async function FieldJobsPage({ params }: { params: Promise<{ fiel
         </h1>
         <p className="text-muted-foreground leading-relaxed max-w-2xl mb-2">
           {total > 0 ? `${total.toLocaleString("en-IN")}+ ` : ""}
-          {label.toLowerCase()} roles and internships open to freshers across India — each sourced from a real
+          {inlineLabel} roles and internships open to freshers across India — each sourced from a real
           company or aggregator and checked by our scam filter before it&rsquo;s listed. Upload your résumé on
           Umbrix to see a match score and exactly which of these you qualify for.
         </p>
@@ -152,7 +154,7 @@ export default async function FieldJobsPage({ params }: { params: Promise<{ fiel
           </ul>
         ) : (
           <div className="border border-dashed border-border rounded-none p-8 text-center text-muted-foreground mb-12">
-            New {label.toLowerCase()} roles land here every day. <Link href="/feed" className="text-primary font-semibold">Open the feed</Link> to see the latest.
+            New {inlineLabel} roles land here every day. <Link href="/feed" className="text-primary font-semibold">Open the feed</Link> to see the latest.
           </div>
         )}
 
