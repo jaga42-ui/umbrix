@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SourceAttribution } from "@/components/SourceAttribution";
 import { notFound } from "next/navigation";
 import { MapPin, GraduationCap, ShieldCheck, ExternalLink, Building2, CalendarClock, Archive } from "lucide-react";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Opportunity } from "@/models/Opportunity";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { fieldLabel, fieldForSlug, fieldSlugConds } from "@/lib/seoFields";
+import { fieldLabel, fieldLabelInline, fieldForSlug, fieldSlugConds } from "@/lib/seoFields";
 import { cityBySlug } from "@/lib/seoCities";
 import { parseJobId, jobPath } from "@/lib/jobUrl";
 import { fresherEligibleConditions } from "@/lib/fresherFilter";
@@ -161,6 +162,7 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
   const company = hiringOrganizationName(job);
   const field = fieldForSlug(job.companySlug);
   const label = fieldLabel(field);
+  const inlineLabel = fieldLabelInline(field);
   const place = parseJobLocation(job.location);
   const city = place.citySlug ? cityBySlug(place.citySlug) : undefined;
   const blocks = parseDescriptionHtml(job.descriptionHtml);
@@ -243,7 +245,7 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
                 It&rsquo;s no longer listed by the employer, so applying won&rsquo;t reach anyone.
                 Similar openings are below, and{" "}
                 <Link href={`/jobs/${field}`} className="text-primary font-semibold">
-                  more {label.toLowerCase()} roles
+                  more {inlineLabel} roles
                 </Link>{" "}
                 land every day.
               </p>
@@ -298,12 +300,15 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
             href={job.applyUrl}
             target="_blank"
             rel="noopener noreferrer nofollow"
-            className="um-btn um-btn--primary inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold mb-9"
+            className="um-btn um-btn--primary inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold mb-3"
             style={{ textDecoration: "none" }}
           >
             Apply on {company}&rsquo;s site <ExternalLink className="w-4 h-4" aria-hidden />
           </a>
         )}
+
+        {/* Required by the aggregator's terms — see lib/aggregatorAttribution. */}
+        <SourceAttribution applyUrl={job.applyUrl} className="mb-9" />
 
         <Eligibility job={job} fresher={fresher} />
 
@@ -319,12 +324,12 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
           )}
         </section>
 
-        <Faq job={job} company={company} label={label} fresher={fresher} closed={closed} />
+        <Faq job={job} company={company} inlineLabel={inlineLabel} fresher={fresher} closed={closed} />
 
         {similar.length > 0 && (
           <section className="mb-10">
             <h2 className="text-lg font-bold tracking-tight mb-3">
-              Similar {label.toLowerCase()} roles{city ? ` in ${city.label}` : ""}
+              Similar {inlineLabel} roles{city ? ` in ${city.label}` : ""}
             </h2>
             <ul className="space-y-2.5">
               {similar.map((s) => (
@@ -346,7 +351,7 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
 
         <div className="border-t border-border pt-6 text-sm">
           <Link href={`/jobs/${field}`} className="text-primary font-semibold">
-            Browse all fresher {label.toLowerCase()} jobs in India
+            Browse all fresher {inlineLabel} jobs in India
           </Link>
         </div>
       </main>
@@ -450,13 +455,14 @@ function Eligibility({ job, fresher }: { job: JobDoc; fresher: boolean }) {
 function Faq({
   job,
   company,
-  label,
+  inlineLabel,
   fresher,
   closed,
 }: {
   job: JobDoc;
   company: string;
-  label: string;
+  /** Mid-sentence field label — never `label.toLowerCase()`, which eats acronyms. */
+  inlineLabel: string;
   fresher: boolean;
   closed: boolean;
 }) {
@@ -480,7 +486,7 @@ function Faq({
   if (!closed) {
     qa.push([
       "Is this job still open?",
-      `Umbrix re-checks every listing against its source on a schedule and closes any posting that disappears. This ${label.toLowerCase()} role was still live at the last check. If the employer's page says otherwise, it closed since then.`,
+      `Umbrix re-checks every listing against its source on a schedule and closes any posting that disappears. This ${inlineLabel} role was still live at the last check. If the employer's page says otherwise, it closed since then.`,
     ]);
   }
 
