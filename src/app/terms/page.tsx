@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
 import { LegalShell, LegalSection } from "@/components/LegalShell";
+import { PAGE_UPDATED, updatedAsHuman } from "@/lib/contentDates";
+
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.umbrix.in";
 
 export const metadata: Metadata = {
   title: "Terms & Conditions",
   description: "The terms for using Umbrix.",
+  alternates: { canonical: `${SITE}/terms` },
 };
 
-const UPDATED = "25 July 2026";
+/** Shared with the sitemap so the visible date and `lastmod` cannot drift. */
+const UPDATED = updatedAsHuman(PAGE_UPDATED.terms);
 
 const ul = "list-disc pl-5 space-y-1.5 marker:text-muted-foreground/50";
 const strong = "font-semibold text-foreground";

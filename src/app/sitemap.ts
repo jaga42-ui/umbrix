@@ -3,6 +3,11 @@ import { SEO_FIELDS, fieldSlugConds } from "@/lib/seoFields";
 import { fresherEligibleConditions } from "@/lib/fresherFilter";
 import { CITIES, MIN_CITY_JOBS_TO_INDEX } from "@/lib/seoCities";
 import { connectToDatabase } from "@/lib/mongodb";
+import {
+  PAGE_UPDATED,
+  updatedAsDate,
+  startOfUtcDay,
+} from "@/lib/contentDates";
 import { Opportunity } from "@/models/Opportunity";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.umbrix.in";
@@ -60,19 +65,39 @@ async function cityCountsForField(field: string): Promise<Map<string, number>> {
  * `noindex` — listing those would spend crawl budget to be told no.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const now = new Date();
+  // Day granularity, not `new Date()`. These pages revalidate hourly, so a raw
+  // timestamp would advertise a fresh modification every hour on URLs that
+  // change at most daily — see the note in @/lib/contentDates.
+  const today = startOfUtcDay(new Date());
 
+  // Editorial pages carry their own last-updated date; only the pages that
+  // genuinely track daily job inventory move with `today`.
   const staticPages: MetadataRoute.Sitemap = [
-    { url: `${SITE}/`, lastModified: now, changeFrequency: "daily", priority: 1 },
-    { url: `${SITE}/jobs`, lastModified: now, changeFrequency: "daily", priority: 0.9 },
-    { url: `${SITE}/scam-check`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
-    { url: `${SITE}/privacy`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
-    { url: `${SITE}/terms`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${SITE}/`, lastModified: today, changeFrequency: "daily", priority: 1 },
+    { url: `${SITE}/jobs`, lastModified: today, changeFrequency: "daily", priority: 0.9 },
+    {
+      url: `${SITE}/scam-check`,
+      lastModified: updatedAsDate(PAGE_UPDATED.scamCheck),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${SITE}/privacy`,
+      lastModified: updatedAsDate(PAGE_UPDATED.privacy),
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
+    {
+      url: `${SITE}/terms`,
+      lastModified: updatedAsDate(PAGE_UPDATED.terms),
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
   ];
 
   const fieldPages: MetadataRoute.Sitemap = SEO_FIELDS.map((f) => ({
     url: `${SITE}/jobs/${f}`,
-    lastModified: now,
+    lastModified: today,
     changeFrequency: "daily",
     priority: 0.8,
   }));
@@ -93,7 +118,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           if ((counts.get(city.slug) ?? 0) < MIN_CITY_JOBS_TO_INDEX) continue;
           cityPages.push({
             url: `${SITE}/jobs/${field}/${city.slug}`,
-            lastModified: now,
+            lastModified: today,
             changeFrequency: "daily",
             priority: 0.7,
           });
