@@ -9,18 +9,20 @@ import { cityBySlug, MIN_CITY_JOBS_TO_INDEX } from "@/lib/seoCities";
 import { CityLinks } from "@/components/CityLinks";
 import { JobsFaq } from "@/components/JobsFaq";
 import { JobList, realCompanyNames, type ListedJob } from "@/components/JobList";
-import { JOBS_SECTION, sectionQuery } from "@/lib/seoSection";
+import { INTERNSHIPS_SECTION, sectionQuery } from "@/lib/seoSection";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 
 export const revalidate = 3600;
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.umbrix.in";
 const YEAR = new Date().getFullYear();
 
-async function getCityJobs(field: string, cityPattern: string) {
+async function getCityInternships(field: string, cityPattern: string) {
   try {
     const db = await connectToDatabase();
     if (!db) return { jobs: [] as ListedJob[], total: 0 };
-    const query = sectionQuery(JOBS_SECTION, field, cityPattern);
+    const query = sectionQuery(INTERNSHIPS_SECTION, field, cityPattern);
     const [jobs, total] = await Promise.all([
       Opportunity.find(query)
         .select("title companyName companySlug location createdAt minExperience")
@@ -46,13 +48,14 @@ export async function generateMetadata({
 
   const label = fieldLabel(field);
   const inlineLabel = fieldLabelInline(field);
-  const title = `Fresher ${label} Jobs in ${cityObj.label} (${YEAR})`;
-  const description = `Scam-checked ${inlineLabel} jobs and internships open to freshers in ${cityObj.label}. See which ones you qualify for — matched to your branch, batch, and skills on Umbrix.`;
-  const url = `${SITE}/jobs/${field}/${city}`;
+  const title = `${label} Internships in ${cityObj.label} for Freshers (${YEAR})`;
+  const description = `Scam-checked ${inlineLabel} internships in ${cityObj.label}, open to students and freshers with no experience. See which ones you qualify for — matched to your branch, batch, and skills on Umbrix.`;
+  const url = `${SITE}/internships/${field}/${city}`;
 
-  // Thin pages hurt SEO — only let a city page into the index once it has enough
-  // real listings. Below the threshold it still works for users, just noindex.
-  const { total } = await getCityJobs(field, cityObj.pattern);
+  // Only index once the page has enough real listings — below the threshold it
+  // still works for users, it just stays out of the index. Mirrors the jobs
+  // city pages exactly, and is the same rule the sitemap gates on.
+  const { total } = await getCityInternships(field, cityObj.pattern);
   const indexable = total >= MIN_CITY_JOBS_TO_INDEX;
 
   return {
@@ -64,10 +67,7 @@ export async function generateMetadata({
   };
 }
 
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
-
-export default async function CityJobsPage({
+export default async function CityInternshipsPage({
   params,
 }: {
   params: Promise<{ field: string; city: string }>;
@@ -78,20 +78,24 @@ export default async function CityJobsPage({
 
   const label = fieldLabel(field);
   const inlineLabel = fieldLabelInline(field);
-  const { jobs, total } = await getCityJobs(field, cityObj.pattern);
+  const { jobs, total } = await getCityInternships(field, cityObj.pattern);
+  const companies = realCompanyNames(jobs);
 
   const breadcrumb = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Umbrix", item: SITE },
-      { "@type": "ListItem", position: 2, name: "Fresher jobs", item: `${SITE}/jobs` },
-      { "@type": "ListItem", position: 3, name: label, item: `${SITE}/jobs/${field}` },
-      { "@type": "ListItem", position: 4, name: cityObj.label, item: `${SITE}/jobs/${field}/${city}` },
+      { "@type": "ListItem", position: 2, name: "Internships", item: `${SITE}/internships` },
+      { "@type": "ListItem", position: 3, name: label, item: `${SITE}/internships/${field}` },
+      {
+        "@type": "ListItem",
+        position: 4,
+        name: cityObj.label,
+        item: `${SITE}/internships/${field}/${city}`,
+      },
     ],
   };
-
-  const companies = realCompanyNames(jobs);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -101,21 +105,27 @@ export default async function CityJobsPage({
 
       <main className="flex-1 max-w-4xl w-full mx-auto px-6 py-12">
         <nav className="font-mono text-xs text-muted-foreground mb-4">
-          <Link href="/jobs" className="hover:text-foreground">Fresher jobs</Link> /{" "}
-          <Link href={`/jobs/${field}`} className="hover:text-foreground">{label}</Link> / {cityObj.label}
+          <Link href="/internships" className="hover:text-foreground">
+            Internships
+          </Link>{" "}
+          /{" "}
+          <Link href={`/internships/${field}`} className="hover:text-foreground">
+            {label}
+          </Link>{" "}
+          / {cityObj.label}
         </nav>
 
         <h1
           className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-3"
           style={{ fontFamily: "var(--um-heading)", color: "var(--um-text)" }}
         >
-          Fresher {label} jobs in {cityObj.label}
+          {label} internships in {cityObj.label}
         </h1>
         <p className="text-muted-foreground leading-relaxed max-w-2xl mb-2">
           {total > 0 ? `${total.toLocaleString("en-IN")}+ ` : ""}
-          {inlineLabel} roles and internships open to freshers in {cityObj.label} — each from a real
-          company or aggregator and checked by our scam filter before it&rsquo;s listed. Upload your résumé on
-          Umbrix to see a match score and which of these you qualify for.
+          {inlineLabel} internships in {cityObj.label} open to students and freshers &mdash; each from a
+          real company or aggregator and checked by our scam filter before it&rsquo;s listed. Upload your
+          r&eacute;sum&eacute; on Umbrix to see a match score and which of these you qualify for.
         </p>
 
         <Link
@@ -130,15 +140,33 @@ export default async function CityJobsPage({
           <JobList jobs={jobs} />
         ) : (
           <div className="border border-dashed border-border rounded-none p-8 text-center text-muted-foreground mb-12">
-            No live {inlineLabel} roles in {cityObj.label} right now. See{" "}
-            <Link href={`/jobs/${field}`} className="text-primary font-semibold">all {inlineLabel} jobs</Link>{" "}
-            across India, or <Link href="/feed" className="text-primary font-semibold">open the feed</Link>.
+            No live {inlineLabel} internships in {cityObj.label} right now. See{" "}
+            <Link href={`/internships/${field}`} className="text-primary font-semibold">
+              all {inlineLabel} internships
+            </Link>{" "}
+            across India, or{" "}
+            <Link href={`/jobs/${field}/${city}`} className="text-primary font-semibold">
+              fresher jobs in {cityObj.label}
+            </Link>
+            .
           </div>
         )}
 
-        <JobsFaq field={label} fieldInline={inlineLabel} city={cityObj.label} total={total} companies={companies} />
+        <JobsFaq
+          field={label}
+          fieldInline={inlineLabel}
+          city={cityObj.label}
+          total={total}
+          companies={companies}
+          internships
+        />
 
-        <CityLinks field={field} currentCity={city} />
+        <CityLinks
+          field={field}
+          currentCity={city}
+          basePath="/internships"
+          noun="internships"
+        />
       </main>
 
       <Footer />

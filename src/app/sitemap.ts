@@ -1,7 +1,12 @@
 import type { MetadataRoute } from "next";
-import { SEO_FIELDS, fieldSlugConds } from "@/lib/seoFields";
-import { fresherEligibleConditions } from "@/lib/fresherFilter";
+import { SEO_FIELDS } from "@/lib/seoFields";
 import { CITIES, MIN_CITY_JOBS_TO_INDEX } from "@/lib/seoCities";
+import {
+  JOBS_SECTION,
+  INTERNSHIPS_SECTION,
+  sectionQuery,
+  type SeoSection,
+} from "@/lib/seoSection";
 import { connectToDatabase } from "@/lib/mongodb";
 import {
   PAGE_UPDATED,
@@ -21,37 +26,73 @@ const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.umbrix.in";
 export const revalidate = 3600;
 
 /**
- * Count fresher-eligible listings per city for one field.
+ * Per-city counts, plus the field total, for one section and field.
  *
  * Deliberately ONE query per field rather than one per field×city pair: at 16
- * fields × 15 cities that would be 240 round trips to build a single document.
- * The city split is a regex over a free-text location, which Mongo cannot group
- * by anyway, so locations are fetched once and bucketed in memory.
+ * fields × 15 cities that would be 240 round trips per section to build a
+ * single document. The city split is a regex over a free-text location, which
+ * Mongo cannot group by anyway, so locations are fetched once and bucketed in
+ * memory.
  *
- * The filter mirrors the city page's own query exactly — same status, India,
- * fresher and field conditions. If these ever diverge the sitemap would promise
- * pages that then render as noindex, which is worse than omitting them.
+ * The filter comes from `sectionQuery`, the same builder the pages call, so the
+ * sitemap cannot promise a URL that then renders `noindex` — the failure mode
+ * that a hand-copied filter here would reintroduce.
  */
-async function cityCountsForField(field: string): Promise<Map<string, number>> {
-  const rows = await Opportunity.find({
-    status: "Active",
-    isIndia: true,
-    // $and, because fresher-eligibility contributes its own $or and a document
-    // can only carry one. Must stay identical to the city page's own query —
-    // if these diverge the sitemap promises pages that then render noindex.
-    $and: [...fresherEligibleConditions(), { $or: fieldSlugConds(field) }],
-  } as Record<string, unknown>)
+async function countsForField(
+  section: SeoSection,
+  field: string
+): Promise<{ total: number; byCity: Map<string, number> }> {
+  const rows = await Opportunity.find(sectionQuery(section, field))
     .select("location")
-    .lean();
+    .lean<{ location?: string }[]>();
 
-  const counts = new Map<string, number>();
+  const byCity = new Map<string, number>();
   for (const city of CITIES) {
     const re = new RegExp(city.pattern, "i");
     let n = 0;
     for (const row of rows) if (re.test(String(row.location ?? ""))) n++;
-    counts.set(city.slug, n);
+    byCity.set(city.slug, n);
   }
-  return counts;
+  return { total: rows.length, byCity };
+}
+
+/**
+ * Every indexable URL for one section: its field pages and its field×city pages.
+ *
+ * `gateFieldPages` is the one difference between the two sections. Every /jobs
+ * field page has real inventory, so all 16 are always listed. An /internships
+ * field page can be genuinely empty — logistics has 3 listings nationwide — and
+ * those render `noindex`, so listing them would spend crawl budget to be told no.
+ */
+async function sectionUrls(
+  section: SeoSection,
+  lastModified: Date,
+  { gateFieldPages }: { gateFieldPages: boolean }
+): Promise<MetadataRoute.Sitemap> {
+  const urls: MetadataRoute.Sitemap = [];
+  for (const field of SEO_FIELDS) {
+    const { total, byCity } = await countsForField(section, field);
+
+    if (!gateFieldPages || total >= MIN_CITY_JOBS_TO_INDEX) {
+      urls.push({
+        url: `${SITE}${section.basePath}/${field}`,
+        lastModified,
+        changeFrequency: "daily",
+        priority: 0.8,
+      });
+    }
+
+    for (const city of CITIES) {
+      if ((byCity.get(city.slug) ?? 0) < MIN_CITY_JOBS_TO_INDEX) continue;
+      urls.push({
+        url: `${SITE}${section.basePath}/${field}/${city.slug}`,
+        lastModified,
+        changeFrequency: "daily",
+        priority: 0.7,
+      });
+    }
+  }
+  return urls;
 }
 
 /**
@@ -75,6 +116,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
     { url: `${SITE}/`, lastModified: today, changeFrequency: "daily", priority: 1 },
     { url: `${SITE}/jobs`, lastModified: today, changeFrequency: "daily", priority: 0.9 },
+    { url: `${SITE}/internships`, lastModified: today, changeFrequency: "daily", priority: 0.9 },
     {
       url: `${SITE}/scam-check`,
       lastModified: updatedAsDate(PAGE_UPDATED.scamCheck),
@@ -95,41 +137,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  const fieldPages: MetadataRoute.Sitemap = SEO_FIELDS.map((f) => ({
-    url: `${SITE}/jobs/${f}`,
-    lastModified: today,
-    changeFrequency: "daily",
-    priority: 0.8,
-  }));
-
-  const cityPages: MetadataRoute.Sitemap = [];
+  // Field and city URLs for both public sections. /jobs field pages are always
+  // listed — every one has inventory. /internships field pages are gated,
+  // because a field can genuinely have almost no internships and those pages
+  // render `noindex`.
+  let sectionPages: MetadataRoute.Sitemap = [];
   try {
     // connectToDatabase races a 3s timeout to avoid hanging on offline DNS.
     // That is right for a page render — falling back to demo mode beats a
     // spinner — but wrong here: losing the race once would cache a sitemap
-    // missing all 150 city URLs for a full revalidation window, silently
+    // missing every field and city URL for a full revalidation window, silently
     // undoing this file's entire purpose. A cold serverless instance can
     // plausibly lose it, so try twice before giving up.
     const db = (await connectToDatabase()) ?? (await connectToDatabase());
     if (db) {
-      for (const field of SEO_FIELDS) {
-        const counts = await cityCountsForField(field);
-        for (const city of CITIES) {
-          if ((counts.get(city.slug) ?? 0) < MIN_CITY_JOBS_TO_INDEX) continue;
-          cityPages.push({
-            url: `${SITE}/jobs/${field}/${city.slug}`,
-            lastModified: today,
-            changeFrequency: "daily",
-            priority: 0.7,
-          });
-        }
-      }
+      sectionPages = [
+        ...(await sectionUrls(JOBS_SECTION, today, { gateFieldPages: false })),
+        ...(await sectionUrls(INTERNSHIPS_SECTION, today, { gateFieldPages: true })),
+      ];
     }
   } catch {
     // A database blip must not produce an empty or failed sitemap — losing the
-    // static and field URLs would be far worse than temporarily omitting the
-    // city ones, which the next revalidation restores.
+    // static URLs would be far worse than temporarily omitting the rest, which
+    // the next revalidation restores.
   }
 
-  return [...staticPages, ...fieldPages, ...cityPages];
+  return [...staticPages, ...sectionPages];
 }
