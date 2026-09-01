@@ -11,7 +11,17 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/api/", "/feed", "/profile", "/tracker"],
+      // /resume and /recruiter are sign-in-gated like the three above; they
+      // were missing here, so crawlers were free to spend budget discovering
+      // pages that can only redirect them to a login.
+      disallow: [
+        "/api/",
+        "/feed",
+        "/profile",
+        "/tracker",
+        "/resume",
+        "/recruiter",
+      ],
     },
     // Individual job postings live in their own sitemap so a slow job query can
     // never take down the static and field URLs. Both must be listed here —

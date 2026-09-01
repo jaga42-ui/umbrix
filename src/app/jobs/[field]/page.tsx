@@ -14,6 +14,25 @@ import { JOBS_SECTION, sectionQuery } from "@/lib/seoSection";
 // Regenerate hourly — fresh listings without a DB hit on every request.
 export const revalidate = 3600;
 
+/**
+ * Required for `revalidate` above to mean anything.
+ *
+ * Next 16: "You must always return an array from generateStaticParams, even if
+ * it's empty. Otherwise, the route will be dynamically rendered." Without this
+ * export the segment opts out of the full route cache entirely — measured in
+ * production as `X-Vercel-Cache: MISS` and `Cache-Control: no-store` on every
+ * single request, so each crawler hit re-ran the Mongo query below.
+ *
+ * Empty array rather than the 16 known fields on purpose: enumerating them
+ * would prerender at build time, and this page queries Mongo. A build running
+ * without a reachable database would then bake 16 empty field pages into the
+ * deployment and serve them for a full revalidation window. On-demand plus ISR
+ * has the same steady-state cost and cannot fail closed that way.
+ */
+export async function generateStaticParams() {
+  return [];
+}
+
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.umbrix.in";
 const YEAR = new Date().getFullYear();
 
@@ -54,6 +73,7 @@ export async function generateMetadata({ params }: { params: Promise<{ field: st
 
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { serializeJsonLd } from "@/lib/jsonLd";
 
 export default async function FieldJobsPage({ params }: { params: Promise<{ field: string }> }) {
   const { field } = await params;
@@ -77,7 +97,7 @@ export default async function FieldJobsPage({ params }: { params: Promise<{ fiel
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumb) }} />
 
       <Header />
 

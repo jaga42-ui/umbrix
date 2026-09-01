@@ -13,9 +13,18 @@ import { JobList, realCompanyNames, type ListedJob } from "@/components/JobList"
 import { INTERNSHIPS_SECTION, sectionQuery } from "@/lib/seoSection";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { serializeJsonLd } from "@/lib/jsonLd";
 
 // Regenerate hourly, matching the jobs pages.
 export const revalidate = 3600;
+
+/**
+ * Required for `revalidate` to apply — see the note in
+ * @/app/jobs/[field]/page.tsx.
+ */
+export async function generateStaticParams() {
+  return [];
+}
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.umbrix.in";
 const YEAR = new Date().getFullYear();
@@ -92,7 +101,7 @@ export default async function FieldInternshipsPage({
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumb) }} />
 
       <Header />
 

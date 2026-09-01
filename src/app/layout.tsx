@@ -37,22 +37,30 @@ const jost = Jost({
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://www.umbrix.in"),
+  // Names the audience and the country. The previous default ("Verified Jobs
+  // from Official Company Career Pages") described the sourcing method and
+  // matched no query anyone types: it contained none of "fresher", "student",
+  // "graduate" or "India", while every other template on the site — and the
+  // whole /jobs/{field}/{city} namespace — targets exactly those. The homepage
+  // carries the most authority of any URL here, so it was the one page spending
+  // it on nobody.
   title: {
-    default: "Umbrix — Verified Jobs from Official Company Career Pages",
+    default: "Umbrix — Verified Fresher Jobs & Internships in India",
     template: "%s · Umbrix",
   },
-  description: "Discover verified jobs directly from official company career pages. No recruiters, no ghost jobs, no third-party spam. Search less and apply faster.",
+  description: "Real, scam-checked jobs and internships for Indian freshers, sourced from official company career pages. See which roles you actually qualify for — by branch, batch and CGPA.",
   applicationName: "Umbrix",
   openGraph: {
-    title: "Umbrix — Verified Jobs from Official Company Career Pages",
-    description: "Discover verified jobs directly from official company career pages. No recruiters, no ghost jobs, no third-party spam.",
+    title: "Umbrix — Verified Fresher Jobs & Internships in India",
+    description: "Real, scam-checked jobs and internships for Indian freshers, sourced from official company career pages. See which roles you actually qualify for.",
     siteName: "Umbrix",
     type: "website",
+    locale: "en_IN",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Umbrix — Verified Jobs from Official Company Career Pages",
-    description: "Discover verified jobs directly from official company career pages. No recruiters, no ghost jobs, no third-party spam.",
+    title: "Umbrix — Verified Fresher Jobs & Internships in India",
+    description: "Real, scam-checked jobs and internships for Indian freshers, sourced from official company career pages. See which roles you actually qualify for.",
   },
   appleWebApp: {
     capable: true,

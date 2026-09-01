@@ -18,12 +18,24 @@ import { Opportunity } from "@/models/Opportunity";
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.umbrix.in";
 
 /**
- * Re-generate at most hourly. The city section costs one query per field, and
- * a sitemap does not need to be second-accurate — but it does need to keep up
- * with inventory, since a city page crossing the indexable threshold is exactly
- * the event this file exists to announce.
+ * Built fresh on every request.
+ *
+ * `revalidate` alone was not enough and the failure was silent. Per the Next 16
+ * docs, "sitemap.js is a special Route Handler that is cached by default unless
+ * it uses a Request-time API or dynamic config option" — so this file was baked
+ * at build time and served unchanged until the next deploy. Measured on
+ * 2026-09-01: the live sitemap still advertised `lastmod 2026-08-25` on all 219
+ * inventory-driven URLs, seven days stale, while declaring `changefreq: daily`.
+ *
+ * That is the exact lastmod-credibility problem @/lib/contentDates was written
+ * to avoid, and it had a second-order cost: /job/sitemap.xml filters
+ * `status: "Active"` correctly, but a frozen copy kept advertising postings the
+ * freshness sweep had since closed — 61% of a 41-URL sample.
+ *
+ * A sitemap is fetched a handful of times a day by crawlers, so paying the
+ * query cost per request is the right trade for never serving a stale one.
  */
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 /**
  * Per-city counts, plus the field total, for one section and field.

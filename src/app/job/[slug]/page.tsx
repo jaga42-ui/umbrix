@@ -31,6 +31,17 @@ const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.umbrix.in";
 export const revalidate = 3600;
 
 /**
+ * Required for `revalidate` to apply — see the note in
+ * @/app/jobs/[field]/page.tsx. Especially load-bearing here: this is the
+ * largest template on the site (800+ live URLs, and the whole `/job/` namespace
+ * once inventory recovers), so rendering it dynamically meant every crawl of
+ * every posting ran two Mongo queries plus the similar-jobs lookup.
+ */
+export async function generateStaticParams() {
+  return [];
+}
+
+/**
  * The shape read from Mongo. Declared rather than inferred because `.lean()`
  * widens to a generic document and the JSON-LD builder needs the real fields.
  */

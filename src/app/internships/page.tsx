@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 import { FieldLinks } from "@/components/FieldLinks";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { serializeJsonLd } from "@/lib/jsonLd";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.umbrix.in";
 const YEAR = new Date().getFullYear();
@@ -42,7 +43,7 @@ export default function InternshipsHubPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumb) }} />
 
       <Header />
 
