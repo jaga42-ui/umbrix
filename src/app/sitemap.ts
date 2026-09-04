@@ -1,6 +1,10 @@
 import type { MetadataRoute } from "next";
 import { SEO_FIELDS } from "@/lib/seoFields";
-import { CITIES, MIN_CITY_JOBS_TO_INDEX } from "@/lib/seoCities";
+import {
+  CITIES,
+  MIN_CITY_JOBS_TO_INDEX,
+  MIN_FIELD_JOBS_TO_INDEX,
+} from "@/lib/seoCities";
 import {
   JOBS_SECTION,
   INTERNSHIPS_SECTION,
@@ -85,7 +89,10 @@ async function sectionUrls(
   for (const field of SEO_FIELDS) {
     const { total, byCity } = await countsForField(section, field);
 
-    if (!gateFieldPages || total >= MIN_CITY_JOBS_TO_INDEX) {
+    // Field pages keep the original, lower bar — see MIN_FIELD_JOBS_TO_INDEX.
+    // A nationwide /internships/<field> hub is not a location page, so the
+    // doorway reasoning behind the raised city threshold does not apply to it.
+    if (!gateFieldPages || total >= MIN_FIELD_JOBS_TO_INDEX) {
       urls.push({
         url: `${SITE}${section.basePath}/${field}`,
         lastModified,
