@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { MapPin, GraduationCap } from "lucide-react";
 import { jobPath } from "@/lib/jobUrl";
+import { isAggregatorSlug } from "@/lib/seoFields";
+import { labelFromSlug } from "@/lib/companyName";
 
 /** The listing fields every SEO page selects. */
 export interface ListedJob {
@@ -18,12 +20,25 @@ export interface ListedJob {
  * Aggregator shards store a synthetic `companySlug` like "adzuna-in-it" that is
  * a field bucket, not a company — showing it would put "Adzuna-in-it" where a
  * reader expects an employer. Falls back to a neutral label instead.
+ *
+ * Two fixes here rather than one, because they shared a cause — logic derived
+ * by hand instead of reused:
+ *
+ *  - The shard test was spelled out inline as two `startsWith` calls, so it
+ *    missed `careerjet-*` and every `*-fresher-*` slug. `isAggregatorSlug` is
+ *    the canonical definition and says in its own comment that callers should
+ *    share it; a missed shard is not cosmetic, it publishes a bucket name where
+ *    an employer belongs.
+ *  - Casing was "uppercase the first character", which produced "Hpe",
+ *    "Mongodb", "Phonepe" and "Servicenow" — now in indexed prose via the city
+ *    snapshot and FAQ, not just in a card. `labelFromSlug` carries the brand
+ *    exceptions.
  */
 export function companyDisplayName(job: ListedJob): string {
   if (job.companyName) return job.companyName;
   const slug = job.companySlug;
-  if (typeof slug === "string" && !slug.startsWith("adzuna-in-") && !slug.startsWith("jooble-in-")) {
-    return slug.charAt(0).toUpperCase() + slug.slice(1);
+  if (typeof slug === "string" && slug.length > 0 && !isAggregatorSlug(slug)) {
+    return labelFromSlug(slug);
   }
   return "Hiring company";
 }
