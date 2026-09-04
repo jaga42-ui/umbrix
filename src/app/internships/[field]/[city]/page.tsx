@@ -13,6 +13,8 @@ import { INTERNSHIPS_SECTION, sectionQuery } from "@/lib/seoSection";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { serializeJsonLd } from "@/lib/jsonLd";
+import { CitySnapshot } from "@/components/CitySnapshot";
+import { buildCitySnapshot, type SnapshotJob } from "@/lib/citySnapshot";
 
 export const revalidate = 3600;
 
@@ -43,6 +45,25 @@ async function getCityInternships(field: string, cityPattern: string) {
     return { jobs, total };
   } catch {
     return { jobs: [] as ListedJob[], total: 0 };
+  }
+}
+
+/**
+ * Wider, tag-bearing sample for the hiring snapshot. Separate from the function
+ * above because `generateMetadata` calls that one only for the indexability
+ * count — see the matching note in @/app/jobs/[field]/[city]/page.tsx.
+ */
+async function getSnapshotSample(field: string, cityPattern: string): Promise<SnapshotJob[]> {
+  try {
+    const db = await connectToDatabase();
+    if (!db) return [];
+    return await Opportunity.find(sectionQuery(INTERNSHIPS_SECTION, field, cityPattern))
+      .select("companyName companySlug tags type createdAt title")
+      .sort({ createdAt: -1 })
+      .limit(300)
+      .lean<SnapshotJob[]>();
+  } catch {
+    return [];
   }
 }
 
@@ -87,7 +108,11 @@ export default async function CityInternshipsPage({
 
   const label = fieldLabel(field);
   const inlineLabel = fieldLabelInline(field);
-  const { jobs, total } = await getCityInternships(field, cityObj.pattern);
+  const [{ jobs, total }, sample] = await Promise.all([
+    getCityInternships(field, cityObj.pattern),
+    getSnapshotSample(field, cityObj.pattern),
+  ]);
+  const snapshot = buildCitySnapshot(sample, total, new Date());
   const companies = realCompanyNames(jobs);
 
   const breadcrumb = {
@@ -137,6 +162,13 @@ export default async function CityInternshipsPage({
           r&eacute;sum&eacute; on Umbrix to see a match score and which of these you qualify for.
         </p>
 
+        <CitySnapshot
+          snapshot={snapshot}
+          place={cityObj.label}
+          fieldInline={inlineLabel}
+          noun="internships"
+        />
+
         <Link
           href="/feed"
           className="um-btn um-btn--primary inline-flex items-center gap-2 px-5 py-2.5 rounded-none text-sm font-semibold my-6"
@@ -168,6 +200,8 @@ export default async function CityInternshipsPage({
           total={total}
           companies={companies}
           internships
+          skills={snapshot.skills}
+          addedLastWeek={snapshot.addedLastWeek}
         />
 
         <CityLinks

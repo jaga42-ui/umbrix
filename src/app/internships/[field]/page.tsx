@@ -5,7 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Opportunity } from "@/models/Opportunity";
 import { fieldLabel, fieldLabelInline, isSeoField } from "@/lib/seoFields";
-import { MIN_CITY_JOBS_TO_INDEX } from "@/lib/seoCities";
+import { MIN_FIELD_JOBS_TO_INDEX } from "@/lib/seoCities";
 import { FieldLinks } from "@/components/FieldLinks";
 import { CityLinks } from "@/components/CityLinks";
 import { JobsFaq } from "@/components/JobsFaq";
@@ -65,7 +65,7 @@ export async function generateMetadata({
   // internships would otherwise be a near-empty page competing against its own
   // /jobs equivalent, which does have inventory.
   const { total } = await getFieldInternships(field);
-  const indexable = total >= MIN_CITY_JOBS_TO_INDEX;
+  const indexable = total >= MIN_FIELD_JOBS_TO_INDEX;
 
   return {
     title,
