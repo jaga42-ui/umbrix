@@ -13,6 +13,15 @@ import { JOBS_SECTION, sectionQuery } from "@/lib/seoSection";
 
 export const revalidate = 3600;
 
+/**
+ * Required for `revalidate` to apply — see the note in ../page.tsx. Without it
+ * Next 16 renders this segment dynamically and all 147 city pages hit Mongo on
+ * every request.
+ */
+export async function generateStaticParams() {
+  return [];
+}
+
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.umbrix.in";
 const YEAR = new Date().getFullYear();
 
@@ -66,6 +75,7 @@ export async function generateMetadata({
 
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { serializeJsonLd } from "@/lib/jsonLd";
 
 export default async function CityJobsPage({
   params,
@@ -95,7 +105,7 @@ export default async function CityJobsPage({
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumb) }} />
 
       <Header />
 

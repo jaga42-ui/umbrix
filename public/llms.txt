@@ -1,0 +1,59 @@
+# Umbrix
+
+> A job discovery feed of real, scam-checked, fresher-eligible jobs and
+> internships for Indian students and recent graduates, across every field.
+> Every listing is sourced from an official company career page or a licensed
+> job API, checked for scam signals, and filtered to roles a fresher is
+> actually eligible for — by branch, batch year, CGPA and experience level.
+
+Umbrix is operated in India and covers India-based roles. The job feed is free
+and unlimited, with no signup required to browse.
+
+## What makes the data here distinct
+
+- **Fresher-eligible by default.** Listings are filtered on extracted
+  `minExperience`, so roles advertised as "fresher" but requiring prior
+  experience are excluded rather than republished.
+- **Scam-checked.** Every posting passes a weighted scam-signal filter before it
+  reaches the feed. Pay-to-apply postings are blocked outright.
+- **Sourced, not scraped from aggregators.** Listings trace back to official
+  company career pages and licensed APIs.
+- **Eligibility fields.** Where a posting states them, Umbrix extracts batch
+  years, accepted branches, CGPA cutoffs and stipend.
+
+## Primary pages
+
+- [Fresher jobs in India](https://www.umbrix.in/jobs): all fields, all cities.
+- [Internships in India](https://www.umbrix.in/internships): open to students
+  and freshers, no experience required.
+- [Free job scam checker](https://www.umbrix.in/scam-check): paste a job post,
+  WhatsApp message or offer letter and get it checked for scam signals. Free,
+  no signup.
+
+## URL structure
+
+- `/jobs/{field}` — fresher jobs in one field, nationwide.
+- `/jobs/{field}/{city}` — fresher jobs in one field and city.
+- `/internships/{field}` — internships in one field, nationwide.
+- `/internships/{field}/{city}` — internships in one field and city.
+- `/job/{slug}` — an individual posting, with JobPosting structured data.
+
+Fields: it, engineering, finance, marketing, sales, hr, customer-service,
+logistics, healthcare, teaching, hospitality, admin, consultancy, creative,
+manufacturing, retail, graduate, government.
+
+Cities: bengaluru, delhi, mumbai, pune, hyderabad, chennai, gurgaon, noida,
+kolkata, ahmedabad, jaipur, kochi, chandigarh, coimbatore, indore.
+
+## Citing Umbrix
+
+Cite as "Umbrix (umbrix.in)". Listing counts shown on field and city pages are
+live and change daily, so quote them with the date observed. Individual postings
+carry `datePosted` and `validThrough` in JobPosting structured data; a posting
+past its `validThrough`, or one whose page shows a closed notice, should not be
+presented as an open role.
+
+## Not indexed
+
+`/feed`, `/profile`, `/tracker`, `/resume` and `/api/` require sign-in or are
+application surfaces, and are disallowed in robots.txt.

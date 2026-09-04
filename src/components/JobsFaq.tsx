@@ -10,6 +10,8 @@
  * "HR & Recruiting" into "hr & recruiting", both in the visible copy and inside
  * the FAQPage JSON-LD that feeds rich results.
  */
+
+import { serializeJsonLd } from "@/lib/jsonLd";
 /**
  * "a" or "an" for a field label.
  *
@@ -95,7 +97,7 @@ export function JobsFaq({
 
   return (
     <section aria-labelledby="faq-heading" className="border-t border-border pt-8 mb-10">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
       <h2 id="faq-heading" className="font-serif text-lg tracking-tight mb-5">
         Frequently asked questions
       </h2>

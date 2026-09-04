@@ -52,7 +52,13 @@ export function Header() {
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="um-nav hidden md:flex" style={{ display: "flex", alignItems: "center", gap: 28 }}>
+        {/*
+          No `display` here: an inline style beats Tailwind's `.hidden`
+          (display:none), so setting it defeated the `hidden md:flex` pair and
+          left the desktop nav rendered at 375px, clipped off-viewport with no
+          hamburger. `md:flex` supplies the flex display above the breakpoint.
+        */}
+        <nav className="um-nav hidden md:flex" style={{ alignItems: "center", gap: 28 }}>
           {navLinks.map((l) => {
             const active = isActive(l.href);
             return (

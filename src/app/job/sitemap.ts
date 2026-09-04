@@ -22,8 +22,15 @@ const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.umbrix.in";
  * enumerate every shard, and a shard count that changes between builds either
  * strands URLs or advertises 404s — to solve a problem this site does not have.
  * The guard below logs loudly if that stops being true.
+ *
+ * `force-dynamic`, not `revalidate`: metadata routes are cached at build time
+ * unless a dynamic config option says otherwise, and this file was serving a
+ * seven-day-old snapshot in production. The `status: "Active"` filter below is
+ * correct, but a frozen copy of it still advertised postings the freshness
+ * sweep had closed since the last deploy. See @/app/sitemap.ts for the full
+ * measurement.
  */
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 /** Google's hard ceiling is 50,000; stop short of it. */
 const MAX_URLS = 45000;
