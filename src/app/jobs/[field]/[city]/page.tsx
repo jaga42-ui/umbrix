@@ -10,6 +10,8 @@ import { CityLinks } from "@/components/CityLinks";
 import { JobsFaq } from "@/components/JobsFaq";
 import { JobList, realCompanyNames, type ListedJob } from "@/components/JobList";
 import { JOBS_SECTION, sectionQuery } from "@/lib/seoSection";
+import { CitySnapshot } from "@/components/CitySnapshot";
+import { buildCitySnapshot, type SnapshotJob } from "@/lib/citySnapshot";
 
 export const revalidate = 3600;
 
@@ -41,6 +43,30 @@ async function getCityJobs(field: string, cityPattern: string) {
     return { jobs, total };
   } catch {
     return { jobs: [] as ListedJob[], total: 0 };
+  }
+}
+
+/**
+ * A wider, tag-bearing sample used only to build the hiring snapshot.
+ *
+ * Kept separate from `getCityJobs` on purpose: `generateMetadata` calls that one
+ * purely for the indexability count, and widening its projection would make
+ * every page pay for 300 tag arrays twice per render. This runs once, in the
+ * page body. 300 rows is far more than the ranking needs to be stable while
+ * staying a single small round trip — and with ISR restored the whole page is
+ * built at most once an hour.
+ */
+async function getSnapshotSample(field: string, cityPattern: string): Promise<SnapshotJob[]> {
+  try {
+    const db = await connectToDatabase();
+    if (!db) return [];
+    return await Opportunity.find(sectionQuery(JOBS_SECTION, field, cityPattern))
+      .select("companyName companySlug tags type createdAt title")
+      .sort({ createdAt: -1 })
+      .limit(300)
+      .lean<SnapshotJob[]>();
+  } catch {
+    return [];
   }
 }
 
@@ -88,7 +114,11 @@ export default async function CityJobsPage({
 
   const label = fieldLabel(field);
   const inlineLabel = fieldLabelInline(field);
-  const { jobs, total } = await getCityJobs(field, cityObj.pattern);
+  const [{ jobs, total }, sample] = await Promise.all([
+    getCityJobs(field, cityObj.pattern),
+    getSnapshotSample(field, cityObj.pattern),
+  ]);
+  const snapshot = buildCitySnapshot(sample, total, new Date());
 
   const breadcrumb = {
     "@context": "https://schema.org",
@@ -128,6 +158,8 @@ export default async function CityJobsPage({
           Umbrix to see a match score and which of these you qualify for.
         </p>
 
+        <CitySnapshot snapshot={snapshot} place={cityObj.label} fieldInline={inlineLabel} />
+
         <Link
           href="/feed"
           className="um-btn um-btn--primary inline-flex items-center gap-2 px-5 py-2.5 rounded-none text-sm font-semibold my-6"
@@ -146,7 +178,15 @@ export default async function CityJobsPage({
           </div>
         )}
 
-        <JobsFaq field={label} fieldInline={inlineLabel} city={cityObj.label} total={total} companies={companies} />
+        <JobsFaq
+          field={label}
+          fieldInline={inlineLabel}
+          city={cityObj.label}
+          total={total}
+          companies={companies}
+          skills={snapshot.skills}
+          addedLastWeek={snapshot.addedLastWeek}
+        />
 
         <CityLinks field={field} currentCity={city} />
       </main>

@@ -12,6 +12,7 @@
  */
 
 import { serializeJsonLd } from "@/lib/jsonLd";
+import { toProseList } from "@/lib/citySnapshot";
 /**
  * "a" or "an" for a field label.
  *
@@ -37,6 +38,8 @@ export function JobsFaq({
   total,
   companies = [],
   internships = false,
+  skills = [],
+  addedLastWeek = 0,
 }: {
   field: string; // human label, e.g. "IT & Software"
   fieldInline?: string; // mid-sentence label, e.g. "IT & software"
@@ -45,6 +48,10 @@ export function JobsFaq({
   companies?: string[];
   /** Reword for the /internships section. */
   internships?: boolean;
+  /** Most-mentioned skills in this slice, from `buildCitySnapshot`. */
+  skills?: string[];
+  /** How many listings in this slice appeared in the last seven days. */
+  addedLastWeek?: number;
 }) {
   const f = fieldInline ?? field;
   const where = city ? `in ${city}` : "in India";
@@ -71,7 +78,24 @@ export function JobsFaq({
   if (total > 0) {
     faqs.push({
       q: `How many ${f} ${kind} are there ${where} right now?`,
-      a: `${total.toLocaleString("en-IN")}+ fresher-eligible ${f} ${kind} are live ${where} on Umbrix today, refreshed daily as new ones are posted and filled ones drop off.`,
+      a:
+        `${total.toLocaleString("en-IN")}+ fresher-eligible ${f} ${kind} are live ${where} on Umbrix today` +
+        (addedLastWeek > 0
+          ? `, ${addedLastWeek.toLocaleString("en-IN")} of them posted in the last seven days`
+          : "") +
+        `, refreshed daily as new ones are posted and filled ones drop off.`,
+    });
+  }
+  // The only answer whose text is genuinely this slice's rather than the
+  // template's with a place name swapped in. Measured across six cities, these
+  // skill lists overlap by ~2/6 — it is the cheapest real differentiation
+  // available on pages that were 92-96% identical to each other.
+  if (skills.length > 0) {
+    faqs.push({
+      q: `What skills do ${f} employers ask for ${where}?`,
+      a: `Across the ${f} ${kind} live ${where} right now, the skills mentioned most often are ${toProseList(
+        skills
+      )}. Upload your résumé and Umbrix scores each role against the skills you already have.`,
     });
   }
   if (companies.length > 0) {
