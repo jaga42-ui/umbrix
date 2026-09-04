@@ -394,6 +394,26 @@ async function processCompany(company) {
         // the /jobs/<field> SEO pages. Optional and additive: adapters that
         // omit it keep the inferred values exactly as before.
         ...(job.eligibility || {}),
+        // Which adapter produced this posting. Required by the normalized job
+        // shape, but this pipeline never set it: measured on production,
+        // `source` was undefined on 7,105 of 7,689 live India postings, and the
+        // only documents carrying one came from the modular platform.
+        //
+        // That gap hid a real problem. 4,634 live postings have descriptions of
+        // exactly 500 characters — Adzuna's API returns excerpts, and their
+        // terms require linking out rather than republishing — which puts them
+        // under MIN_INDEXABLE_DESCRIPTION_CHARS. They are therefore noindex,
+        // carry no JobPosting markup, and are absent from the job sitemap. That
+        // is 60% of live Indian inventory invisible to search, and answering
+        // "which source is producing it?" needed a reconstruction from applyUrl
+        // hostnames because this field was blank.
+        //
+        // Set after the spreads so an adapter's eligibility payload can never
+        // shadow it. `ats` is the adapter identifier from companies.json
+        // (greenhouse | lever | ashby | smartrecruiters | adzuna | jooble |
+        // careerjet), so the per-source health alerts the ingest rules require
+        // finally have something to group by.
+        source: ats,
         lastSeenAt: now,
       });
     }
