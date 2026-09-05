@@ -5,6 +5,7 @@
   { "slug": "airtable", "ats": "greenhouse" },
   { "slug": "amplitude", "ats": "greenhouse" },
   { "slug": "anthropic", "ats": "greenhouse" },
+  { "slug": "appsflyer", "ats": "greenhouse" },
   { "slug": "asana", "ats": "greenhouse" },
   { "slug": "assemblyai", "ats": "greenhouse" },
   { "slug": "attentive", "ats": "greenhouse" },
@@ -232,6 +233,6 @@
   { "slug": "serpapi-internship", "ats": "serpapi", "query": "internship for students", "location": "India", "pages": 1 },
   { "slug": "jsearch-fresher-it", "ats": "jsearch", "query": "fresher software developer jobs in India", "country": "in", "pages": 1 },
   { "slug": "jsearch-internship", "ats": "jsearch", "query": "internship for freshers in India", "country": "in", "pages": 1 },
-  { "slug": "unstop-jobs", "ats": "unstop", "opportunity": "jobs", "perPage": 30, "pages": 8 },
-  { "slug": "unstop-internships", "ats": "unstop", "opportunity": "internships", "perPage": 30, "pages": 8 }
+  { "slug": "unstop-jobs", "ats": "unstop", "opportunity": "jobs", "perPage": 30, "pages": 40 },
+  { "slug": "unstop-internships", "ats": "unstop", "opportunity": "internships", "perPage": 30, "pages": 40 }
 ]
