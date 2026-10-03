@@ -84,13 +84,36 @@ const AGGREGATOR_SHARD_RE = new RegExp(
 );
 
 /**
- * Whether a companySlug is an aggregator field shard rather than a real company
- * ATS board. Exported so callers outside this module (JobPosting schema, which
- * must not claim `directApply` for a link that bounces through an aggregator)
- * share the one definition instead of re-deriving the pattern.
+ * Aggregator sources whose companySlug is one bucket spanning every field
+ * (`unstop-jobs`, `jsearch-internship`, `serpapi-fresher-it`), with the field
+ * carried per posting in `category` instead — set by the connector through
+ * `normalizeCategory` (packages/normalizer). Even a slug that names a field,
+ * like `serpapi-fresher-it`, is only the search query the connector ran; the
+ * postings it returns are classified individually and measurably are not all IT.
+ *
+ * These were missing from the shard rule, so the IT catch-all treated each
+ * bucket as a "company ATS board". Measured 2026-10-03: 1,629 of 2,412 listings
+ * on /jobs/it (67%) were Unstop — mostly sales, HR and business-development
+ * roles — and none of them appeared on their own field's pages.
+ */
+export const CATEGORIZED_SOURCES = ["unstop", "jsearch", "serpapi"] as const;
+
+const CATEGORIZED_SOURCE_RE = new RegExp(`^(?:${CATEGORIZED_SOURCES.join("|")})-`);
+
+// Every companySlug that is a source bucket rather than one real employer.
+const NON_COMPANY_SLUG_RE = new RegExp(
+  `${AGGREGATOR_SHARD_RE.source}|${CATEGORIZED_SOURCE_RE.source}`
+);
+
+/**
+ * Whether a companySlug is an aggregator bucket rather than a real company ATS
+ * board — a per-field shard or a categorized multi-field bucket. Exported so
+ * callers outside this module (JobPosting schema, which must not claim
+ * `directApply` for a link that bounces through an aggregator) share the one
+ * definition instead of re-deriving the pattern.
  */
 export function isAggregatorSlug(companySlug: string): boolean {
-  return AGGREGATOR_SHARD_RE.test(String(companySlug ?? ""));
+  return NON_COMPANY_SLUG_RE.test(String(companySlug ?? ""));
 }
 
 // Same shape as AGGREGATOR_SHARD_RE, but capturing the field so a posting can
@@ -100,31 +123,45 @@ const AGGREGATOR_SHARD_FIELD_RE = new RegExp(
 );
 
 /**
- * The field a posting belongs to, derived from its companySlug.
+ * The SEO field a posting belongs to, or null when it has none.
  *
- * The exact inverse of `fieldSlugConds`: aggregator shards carry their field in
- * the slug, and every genuine ATS board belongs to "it" — which is the rule
- * that function's `it` branch encodes. Keeping the two in one file is what
- * stops a job's breadcrumb from disagreeing with the page that lists it.
+ * The exact inverse of `fieldSlugConds`: per-field shards carry their field in
+ * the slug, categorized buckets carry it in `category`, and every genuine ATS
+ * board belongs to "it" — which is the rule that function's `it` branch
+ * encodes. Keeping the two in one file is what stops a job's breadcrumb from
+ * disagreeing with the page that lists it.
+ *
+ * Null when the posting's field has no page ("general", "graduate",
+ * "government"): no field page lists it, so naming one would send the reader
+ * somewhere it is absent. (The old slug-only version returned "it" here.)
  */
-export function fieldForSlug(companySlug: string): string {
-  const match = AGGREGATOR_SHARD_FIELD_RE.exec(String(companySlug ?? ""));
-  if (match && isSeoField(match[1])) return match[1];
+export function fieldForJob(job: {
+  companySlug?: string | null;
+  category?: string | null;
+}): string | null {
+  const slug = String(job.companySlug ?? "");
+  if (CATEGORIZED_SOURCE_RE.test(slug)) {
+    const category = String(job.category ?? "");
+    return isSeoField(category) ? category : null;
+  }
+  const match = AGGREGATOR_SHARD_FIELD_RE.exec(slug);
+  if (match) return isSeoField(match[1]) ? match[1] : null;
   return "it";
 }
 
 /**
- * Mongo `$or` conditions for "jobs in this field" — mirrors the feed's field
- * scoping. Shared by the field and city SEO pages.
+ * Mongo `$or` conditions for "jobs in this field". Shared by the field and city
+ * SEO pages, the job page's similar-roles block and the feed's field scoping.
  */
 export function fieldSlugConds(field: string): Record<string, unknown>[] {
   const shards = AGGREGATOR_PREFIXES.flatMap((source) =>
     SHARD_INFIXES.map((infix) => ({ companySlug: `${source}-${infix}-${field}` }))
   );
+  const categorized = { companySlug: CATEGORIZED_SOURCE_RE, category: field };
   if (field === "it") {
     // ATS boards are software/product companies, so they belong to IT — but only
-    // the genuine ones, not another aggregator's non-IT shard.
-    return [...shards, { companySlug: { $not: AGGREGATOR_SHARD_RE } }];
+    // the genuine ones, never an aggregator bucket of any kind.
+    return [...shards, categorized, { companySlug: { $not: NON_COMPANY_SLUG_RE } }];
   }
-  return shards;
+  return [...shards, categorized];
 }

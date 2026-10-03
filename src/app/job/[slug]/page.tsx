@@ -6,7 +6,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { Opportunity } from "@/models/Opportunity";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { fieldLabel, fieldForSlug, fieldSlugConds } from "@/lib/seoFields";
+import { fieldLabel, fieldLabelInline, fieldForJob, fieldSlugConds } from "@/lib/seoFields";
 import { cityBySlug } from "@/lib/seoCities";
 import { parseJobId, jobPath } from "@/lib/jobUrl";
 import { fresherEligibleConditions } from "@/lib/fresherFilter";
@@ -51,10 +51,11 @@ interface JobDoc extends JobPostingSource {
   branches?: string[];
   cgpaCutoff?: number;
   tags?: string[];
+  category?: string | null;
 }
 
 const SELECT =
-  "title companyName companySlug location descriptionHtml applyUrl status type roleType minExperience cgpaCutoff batchYears branches tags postedAt lastSeenAt createdAt";
+  "title companyName companySlug category location descriptionHtml applyUrl status type roleType minExperience cgpaCutoff batchYears branches tags postedAt lastSeenAt createdAt";
 
 async function getJob(slugParam: string): Promise<JobDoc | null> {
   const id = parseJobId(slugParam);
@@ -76,7 +77,7 @@ async function getJob(slugParam: string): Promise<JobDoc | null> {
  * only route into a job page is the sitemap, and a page a crawler reaches only
  * via the sitemap accumulates far less authority than one linked from a hub.
  */
-async function getSimilar(job: JobDoc, field: string, citySlug?: string): Promise<JobDoc[]> {
+async function getSimilar(job: JobDoc, field: string | null, citySlug?: string): Promise<JobDoc[]> {
   try {
     const db = await connectToDatabase();
     if (!db) return [];
@@ -89,7 +90,11 @@ async function getSimilar(job: JobDoc, field: string, citySlug?: string): Promis
       // Same eligibility rule as every other fresher surface — recommending a
       // senior role as "similar" to a fresher is the same defect wearing a
       // different hat.
-      $and: [...fresherEligibleConditions(), { $or: fieldSlugConds(field) }],
+      // A posting with no field page is matched on eligibility alone.
+      $and: [
+        ...fresherEligibleConditions(),
+        ...(field ? [{ $or: fieldSlugConds(field) }] : []),
+      ],
     };
 
     const city = citySlug ? cityBySlug(citySlug) : undefined;
@@ -170,8 +175,15 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
 
   const closed = job.status === "Closed";
   const company = hiringOrganizationName(job);
-  const field = fieldForSlug(job.companySlug);
-  const label = fieldLabel(field);
+  // Null for a posting whose field has no page (an Unstop "general" role): the
+  // breadcrumb and links then stop at /jobs instead of naming a field that
+  // does not list it.
+  const field = fieldForJob(job);
+  const label = field ? fieldLabel(field) : null;
+  const fieldHref = field ? `/jobs/${field}` : "/jobs";
+  // Mid-sentence noun — `fieldLabelInline`, never `toLowerCase()`, which turned
+  // "IT & Software" into "it & software".
+  const roleKind = field ? fieldLabelInline(field) : "fresher";
   const place = parseJobLocation(job.location);
   const city = place.citySlug ? cityBySlug(place.citySlug) : undefined;
   const blocks = parseDescriptionHtml(job.descriptionHtml);
@@ -184,8 +196,8 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
   const crumbs = [
     { name: "Umbrix", item: SITE },
     { name: "Fresher jobs", item: `${SITE}/jobs` },
-    { name: label, item: `${SITE}/jobs/${field}` },
-    ...(city ? [{ name: city.label, item: `${SITE}/jobs/${field}/${city.slug}` }] : []),
+    ...(field && label ? [{ name: label, item: `${SITE}/jobs/${field}` }] : []),
+    ...(field && city ? [{ name: city.label, item: `${SITE}/jobs/${field}/${city.slug}` }] : []),
     { name: job.title, item: url },
   ];
 
@@ -226,12 +238,17 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
         <nav aria-label="Breadcrumb" className="font-mono text-xs text-muted-foreground mb-5">
           <Link href="/jobs" className="hover:text-foreground">
             Fresher jobs
-          </Link>{" "}
-          /{" "}
-          <Link href={`/jobs/${field}`} className="hover:text-foreground">
-            {label}
           </Link>
-          {city && (
+          {field && label && (
+            <>
+              {" "}
+              /{" "}
+              <Link href={fieldHref} className="hover:text-foreground">
+                {label}
+              </Link>
+            </>
+          )}
+          {field && city && (
             <>
               {" "}
               /{" "}
@@ -253,8 +270,8 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
               <p className="text-muted-foreground mt-1 leading-relaxed">
                 It&rsquo;s no longer listed by the employer, so applying won&rsquo;t reach anyone.
                 Similar openings are below, and{" "}
-                <Link href={`/jobs/${field}`} className="text-primary font-semibold">
-                  more {label.toLowerCase()} roles
+                <Link href={fieldHref} className="text-primary font-semibold">
+                  more {roleKind} roles
                 </Link>{" "}
                 land every day.
               </p>
@@ -330,12 +347,12 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
           )}
         </section>
 
-        <Faq job={job} company={company} label={label} fresher={fresher} closed={closed} />
+        <Faq job={job} company={company} label={roleKind} fresher={fresher} closed={closed} />
 
         {similar.length > 0 && (
           <section className="mb-10">
             <h2 className="text-lg font-bold tracking-tight mb-3">
-              Similar {label.toLowerCase()} roles{city ? ` in ${city.label}` : ""}
+              Similar {roleKind} roles{city ? ` in ${city.label}` : ""}
             </h2>
             <ul className="space-y-2.5">
               {similar.map((s) => (
@@ -356,8 +373,8 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
         )}
 
         <div className="border-t border-border pt-6 text-sm">
-          <Link href={`/jobs/${field}`} className="text-primary font-semibold">
-            Browse all fresher {label.toLowerCase()} jobs in India
+          <Link href={fieldHref} className="text-primary font-semibold">
+            {field ? `Browse all fresher ${roleKind} jobs in India` : "Browse all fresher jobs in India"}
           </Link>
         </div>
       </main>
@@ -467,6 +484,7 @@ function Faq({
 }: {
   job: JobDoc;
   company: string;
+  /** Mid-sentence role kind, already cased: "IT & software", "fresher". */
   label: string;
   fresher: boolean;
   closed: boolean;
@@ -491,7 +509,7 @@ function Faq({
   if (!closed) {
     qa.push([
       "Is this job still open?",
-      `Umbrix re-checks every listing against its source on a schedule and closes any posting that disappears. This ${label.toLowerCase()} role was still live at the last check. If the employer's page says otherwise, it closed since then.`,
+      `Umbrix re-checks every listing against its source on a schedule and closes any posting that disappears. This ${label} role was still live at the last check. If the employer's page says otherwise, it closed since then.`,
     ]);
   }
 
