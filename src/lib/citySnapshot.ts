@@ -162,3 +162,78 @@ export function toProseList(items: string[]): string {
   if (items.length === 1) return items[0];
   return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
 }
+
+/** One employer's live fresher openings in a field+city slice. */
+export interface HiringCompany {
+  name: string;
+  roles: number;
+}
+
+/** A `$group` row keyed on the raw company fields, as Mongo returns it. */
+export interface CompanyGroup {
+  _id: { name?: string | null; slug?: string | null };
+  roles: number;
+}
+
+/**
+ * Rank the employers in a slice by how many fresher roles each has open.
+ *
+ * Exists because "it companies in pune for freshers" and a dozen city variants
+ * were the largest non-brand query cluster in Search Console (Aug–Sep 2026),
+ * landing on /jobs/it/<city> at positions 10–50 with zero clicks: the page
+ * listed jobs, but the searcher wanted employers. The snapshot's top-four names
+ * come from a 300-row sample and carry no counts, so they cannot back a claim
+ * like "Infosys — 12 open roles"; this ranks exact counts grouped in Mongo.
+ *
+ * Pure. Groups are merged on display name, because one employer can arrive as
+ * several raw rows — a `companyName` on one posting, only a `companySlug` on
+ * another — that `companyDisplayName` resolves to the same label. Aggregator
+ * shards with no real employer are dropped, exactly as everywhere else on the
+ * page. Ties break alphabetically so the order is stable between renders.
+ *
+ * @param groups rows from `$group: { _id: { name, slug }, roles: { $sum: 1 } }`
+ * @param limit how many employers to return
+ */
+export function rankHiringCompanies(groups: CompanyGroup[], limit = Infinity): HiringCompany[] {
+  const counts = new Map<string, number>();
+  for (const g of groups) {
+    const name = companyDisplayName({
+      _id: null,
+      title: "",
+      companyName: g._id?.name,
+      companySlug: g._id?.slug,
+    }).trim();
+    if (!name || name === "Hiring company" || !(g.roles > 0)) continue;
+    counts.set(name, (counts.get(name) ?? 0) + g.roles);
+  }
+  return [...counts.entries()]
+    .map(([name, roles]) => ({ name, roles }))
+    .sort((a, b) => b.roles - a.roles || a.name.localeCompare(b.name))
+    .slice(0, limit);
+}
+
+/** What the "companies hiring" section shows, and how many it leaves unnamed. */
+export interface HiringCompaniesView {
+  shown: HiringCompany[];
+  /** Employers in the slice not in `shown`. */
+  more: number;
+}
+
+/**
+ * Choose which ranked employers to name.
+ *
+ * Measured on live data, small slices are a long tail of employers with one
+ * opening each — Ahmedabad IT had 2 with two roles and the rest with one. Named
+ * in full, that tail sorts alphabetically and reads as arbitrary ("4C
+ * CONSULTING…" ahead of real hirers). So when at least two employers have
+ * several openings, only those are named and the tail becomes a count. Below
+ * that, a short list of the leaders is still more useful than nothing.
+ *
+ * @param ranked output of `rankHiringCompanies`, commonest first
+ * @param max the most employers to name
+ */
+export function selectHiringCompanies(ranked: HiringCompany[], max = 12): HiringCompaniesView {
+  const several = ranked.filter((c) => c.roles >= 2);
+  const shown = several.length >= 2 ? several.slice(0, max) : ranked.slice(0, Math.min(max, 6));
+  return { shown, more: ranked.length - shown.length };
+}

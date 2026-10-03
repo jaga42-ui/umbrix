@@ -15,6 +15,8 @@ import { Footer } from "@/components/Footer";
 import { serializeJsonLd } from "@/lib/jsonLd";
 import { CitySnapshot } from "@/components/CitySnapshot";
 import { buildCitySnapshot, type SnapshotJob } from "@/lib/citySnapshot";
+import { HiringCompanies } from "@/components/HiringCompanies";
+import { getHiringCompanies } from "@/lib/hiringCompanies";
 
 export const revalidate = 3600;
 
@@ -108,9 +110,10 @@ export default async function CityInternshipsPage({
 
   const label = fieldLabel(field);
   const inlineLabel = fieldLabelInline(field);
-  const [{ jobs, total }, sample] = await Promise.all([
+  const [{ jobs, total }, sample, hiring] = await Promise.all([
     getCityInternships(field, cityObj.pattern),
     getSnapshotSample(field, cityObj.pattern),
+    getHiringCompanies(INTERNSHIPS_SECTION, field, cityObj.pattern),
   ]);
   const snapshot = buildCitySnapshot(sample, total, new Date());
   const companies = realCompanyNames(jobs);
@@ -164,6 +167,14 @@ export default async function CityInternshipsPage({
 
         <CitySnapshot
           snapshot={snapshot}
+          place={cityObj.label}
+          fieldInline={inlineLabel}
+          noun="internships"
+          showEmployers={hiring.length < 2}
+        />
+
+        <HiringCompanies
+          companies={hiring}
           place={cityObj.label}
           fieldInline={inlineLabel}
           noun="internships"
