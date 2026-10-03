@@ -18,6 +18,7 @@ export function CitySnapshot({
   place,
   fieldInline,
   noun = "roles",
+  showEmployers = true,
 }: {
   snapshot: Snapshot;
   /** "Bengaluru", or "India" on a nationwide field page. */
@@ -25,13 +26,18 @@ export function CitySnapshot({
   /** Lower-case field label, e.g. "IT & software". */
   fieldInline: string;
   noun?: string;
+  /**
+   * False where the page renders `HiringCompanies`, which lists the same
+   * employers with exact counts — naming them twice in a row is padding.
+   */
+  showEmployers?: boolean;
 }) {
   const { total, addedLastWeek, internships, skills, employers } = snapshot;
   if (total === 0) return null;
 
   const count = total.toLocaleString("en-IN");
   const hasSkills = skills.length > 0;
-  const hasEmployers = employers.length > 0;
+  const hasEmployers = showEmployers && employers.length > 0;
 
   return (
     <section

@@ -11,7 +11,9 @@ import { JobsFaq } from "@/components/JobsFaq";
 import { JobList, realCompanyNames, type ListedJob } from "@/components/JobList";
 import { JOBS_SECTION, sectionQuery } from "@/lib/seoSection";
 import { CitySnapshot } from "@/components/CitySnapshot";
+import { HiringCompanies } from "@/components/HiringCompanies";
 import { buildCitySnapshot, type SnapshotJob } from "@/lib/citySnapshot";
+import { getHiringCompanies } from "@/lib/hiringCompanies";
 
 export const revalidate = 3600;
 
@@ -70,6 +72,18 @@ async function getSnapshotSample(field: string, cityPattern: string): Promise<Sn
   }
 }
 
+/**
+ * Fields whose city pages are titled for company-intent queries.
+ *
+ * Search Console (Aug–Sep 2026) showed "it companies in <city> for freshers"
+ * and "software companies in <city> for freshers" as the largest non-brand
+ * cluster — across Ahmedabad, Jaipur, Pune, Noida, Gurgaon, Bengaluru, Chennai
+ * and more — ranking 10–50 with zero clicks. No other field had company-phrased
+ * queries; their searchers type "<field> jobs in <city>", which the default
+ * title already matches. Add a field here only on the same evidence.
+ */
+const COMPANY_INTENT_FIELDS = new Set(["it"]);
+
 export async function generateMetadata({
   params,
 }: {
@@ -81,14 +95,24 @@ export async function generateMetadata({
 
   const label = fieldLabel(field);
   const inlineLabel = fieldLabelInline(field);
-  const title = `Fresher ${label} Jobs in ${cityObj.label} (${YEAR})`;
-  const description = `Scam-checked ${inlineLabel} jobs and internships open to freshers in ${cityObj.label}. See which ones you qualify for — matched to your branch, batch, and skills on Umbrix.`;
   const url = `${SITE}/jobs/${field}/${city}`;
 
   // Thin pages hurt SEO — only let a city page into the index once it has enough
   // real listings. Below the threshold it still works for users, just noindex.
   const { total } = await getCityJobs(field, cityObj.pattern);
   const indexable = total >= MIN_CITY_JOBS_TO_INDEX;
+
+  // "IT & Software Companies Hiring Freshers in Pune" matches both the "it
+  // companies…" and "software companies…" phrasings verbatim; the live count
+  // keeps "jobs" in the title and gives the result a concrete reason to click.
+  const companyIntent = COMPANY_INTENT_FIELDS.has(field) && total > 0;
+  const count = total.toLocaleString("en-IN");
+  const title = companyIntent
+    ? `${label} Companies Hiring Freshers in ${cityObj.label} — ${count}+ Jobs`
+    : `Fresher ${label} Jobs in ${cityObj.label} (${YEAR})`;
+  const description = companyIntent
+    ? `See which ${inlineLabel} companies are hiring freshers in ${cityObj.label} right now — ${count}+ scam-checked jobs, matched to your branch, batch and skills.`
+    : `Scam-checked ${inlineLabel} jobs and internships open to freshers in ${cityObj.label}. See which ones you qualify for — matched to your branch, batch, and skills on Umbrix.`;
 
   return {
     title,
@@ -114,9 +138,10 @@ export default async function CityJobsPage({
 
   const label = fieldLabel(field);
   const inlineLabel = fieldLabelInline(field);
-  const [{ jobs, total }, sample] = await Promise.all([
+  const [{ jobs, total }, sample, hiring] = await Promise.all([
     getCityJobs(field, cityObj.pattern),
     getSnapshotSample(field, cityObj.pattern),
+    getHiringCompanies(JOBS_SECTION, field, cityObj.pattern),
   ]);
   const snapshot = buildCitySnapshot(sample, total, new Date());
 
@@ -158,7 +183,14 @@ export default async function CityJobsPage({
           Umbrix to see a match score and which of these you qualify for.
         </p>
 
-        <CitySnapshot snapshot={snapshot} place={cityObj.label} fieldInline={inlineLabel} />
+        <CitySnapshot
+          snapshot={snapshot}
+          place={cityObj.label}
+          fieldInline={inlineLabel}
+          showEmployers={hiring.length < 2}
+        />
+
+        <HiringCompanies companies={hiring} place={cityObj.label} fieldInline={inlineLabel} />
 
         <Link
           href="/feed"

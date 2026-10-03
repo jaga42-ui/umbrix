@@ -5,6 +5,7 @@ import UserProfile from "@/models/UserProfile";
 import { resolveUserId } from "@/lib/serverAuth";
 import { calculateMatch, rankByMatch, jobFieldFromSlug, type MatchProfile } from "@/lib/matchScore";
 import { safeRegexTerm } from "@/lib/validation";
+import { fieldSlugConds } from "@/lib/seoFields";
 
 // Max jobs returned to the feed. Ranked by match, so this is "your best N".
 // Bounds the payload as the ingested job set grows across ATS sources.
@@ -205,18 +206,15 @@ export async function GET(request: Request) {
       // Scope the candidate pool to the user's field(s) so the scored window isn't
       // starved of in-field jobs by the newest-N cut (which otherwise fills with
       // whatever was ingested most recently). Skipped when the user is actively
-      // searching — a search should look across every field. "it" = the Adzuna IT
-      // shard plus every ATS board (which are software/product boards).
+      // searching — a search should look across every field.
+      //
+      // Uses the same `fieldSlugConds` as the field pages. The hand-rolled copy
+      // that was here knew only `adzuna-in-*`, so an IT user's pool also took
+      // every Jooble/Careerjet shard and every Unstop sales role, while a sales
+      // user's pool never saw any of them.
       const targetFields = matchProfile.targetFields || [];
       if (!query.$or && targetFields.length > 0) {
-        const conds: any[] = [];
-        const adzunaSlugs = targetFields.filter((f) => f !== "it").map((f) => `adzuna-in-${f}`);
-        if (adzunaSlugs.length) conds.push({ companySlug: { $in: adzunaSlugs } });
-        if (targetFields.includes("it")) {
-          conds.push({ companySlug: "adzuna-in-it" });
-          conds.push({ companySlug: { $not: /^adzuna-in-/ } });
-        }
-        if (conds.length) query.$or = conds;
+        query.$or = targetFields.flatMap((f) => fieldSlugConds(f));
       }
 
       const locationTerm = safeRegexTerm(location);

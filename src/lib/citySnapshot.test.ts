@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import {
   buildCitySnapshot,
   isSkillTag,
+  rankHiringCompanies,
+  selectHiringCompanies,
   toProseList,
   type SnapshotJob,
 } from "./citySnapshot";
@@ -146,4 +148,66 @@ test("prose lists read naturally and collapse to nothing when empty", () => {
   assert.equal(toProseList(["Python"]), "Python");
   assert.equal(toProseList(["Python", "AWS"]), "Python and AWS");
   assert.equal(toProseList(["Python", "AWS", "Java"]), "Python, AWS and Java");
+});
+
+test("hiring companies are ranked by exact open-role counts", () => {
+  const ranked = rankHiringCompanies([
+    { _id: { name: "Infosys" }, roles: 3 },
+    { _id: { name: "TCS" }, roles: 9 },
+    { _id: { name: "Wipro" }, roles: 5 },
+  ]);
+  assert.deepEqual(ranked, [
+    { name: "TCS", roles: 9 },
+    { name: "Wipro", roles: 5 },
+    { name: "Infosys", roles: 3 },
+  ]);
+});
+
+test("one employer split across name and slug rows is counted once", () => {
+  // A posting with only a companySlug resolves to the same label as one with
+  // the name stored, so their counts must merge rather than list twice.
+  const ranked = rankHiringCompanies([
+    { _id: { name: "PhonePe", slug: "phonepe" }, roles: 2 },
+    { _id: { name: null, slug: "phonepe" }, roles: 4 },
+  ]);
+  assert.deepEqual(ranked, [{ name: "PhonePe", roles: 6 }]);
+});
+
+test("aggregator shards with no real employer are never listed as companies", () => {
+  const ranked = rankHiringCompanies([
+    { _id: { name: null, slug: "adzuna-in-it" }, roles: 40 },
+    { _id: { name: "", slug: "careerjet-fresher-it" }, roles: 12 },
+    { _id: { name: "Acme" }, roles: 1 },
+  ]);
+  assert.deepEqual(ranked, [{ name: "Acme", roles: 1 }]);
+});
+
+test("ties break alphabetically and the limit is applied after merging", () => {
+  const ranked = rankHiringCompanies(
+    [
+      { _id: { name: "Zeta" }, roles: 2 },
+      { _id: { name: "Alpha" }, roles: 2 },
+      { _id: { name: "Mid" }, roles: 1 },
+    ],
+    2
+  );
+  assert.deepEqual(ranked.map((c) => c.name), ["Alpha", "Zeta"]);
+});
+
+test("only employers with several openings are named when there are enough of them", () => {
+  const view = selectHiringCompanies([
+    { name: "IndiGo", roles: 2 },
+    { name: "Techwize", roles: 2 },
+    { name: "4C Consulting", roles: 1 },
+    { name: "Acinor", roles: 1 },
+  ]);
+  assert.deepEqual(view.shown.map((c) => c.name), ["IndiGo", "Techwize"]);
+  assert.equal(view.more, 2);
+});
+
+test("a slice of single-opening employers still names its first few", () => {
+  const ranked = Array.from({ length: 9 }, (_, i) => ({ name: `Co ${i}`, roles: 1 }));
+  const view = selectHiringCompanies(ranked);
+  assert.equal(view.shown.length, 6);
+  assert.equal(view.more, 3);
 });
